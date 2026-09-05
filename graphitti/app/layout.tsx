@@ -10,6 +10,7 @@ import { GitHubStarsLoader } from "@/components/github-stars-loader";
 import { GitHubStarsProvider } from "@/components/github-stars-provider";
 import { GlobalModals } from "@/components/global-modals";
 import { OverlayProvider } from "@/components/overlays/overlay-provider";
+import { PrivyAppProvider } from "@/components/privy/privy-app-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PersistentCanvas } from "@/components/workflow/persistent-canvas";
@@ -54,6 +55,7 @@ const RootLayout = ({ children }: RootLayoutProps) => (
         enableSystem
       >
         <Provider>
+          <PrivyAppProvider>
           <AuthProvider>
             <OverlayProvider>
               <Suspense
@@ -71,6 +73,7 @@ const RootLayout = ({ children }: RootLayoutProps) => (
               <GlobalModals />
             </OverlayProvider>
           </AuthProvider>
+          </PrivyAppProvider>
         </Provider>
       </ThemeProvider>
       <Analytics />

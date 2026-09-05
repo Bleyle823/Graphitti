@@ -11,6 +11,7 @@ import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
 import { SettingsOverlay } from "@/components/overlays/settings-overlay";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,6 +147,9 @@ export const UserMenu = () => {
           <Key className="size-4" />
           <span>API Keys</span>
         </DropdownMenuItem>
+        <div className="px-2 py-1.5">
+          <ConnectWalletButton compact />
+        </div>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

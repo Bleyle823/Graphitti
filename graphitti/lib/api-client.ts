@@ -655,10 +655,20 @@ export const aiGatewayApi = {
 };
 
 // Export all APIs as a single object
+export const marketplaceApi = {
+  wallet: () =>
+    apiCall<{
+      address: string | null;
+      privyWalletId: string | null;
+      gaslessEnabled: boolean;
+    }>("/api/privy/wallet"),
+};
+
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
   integration: integrationApi,
   user: userApi,
   workflow: workflowApi,
+  marketplace: marketplaceApi,
 };

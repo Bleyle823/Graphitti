@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@privy-io/react-auth"],
 };
 
 export default withWorkflow(nextConfig);
