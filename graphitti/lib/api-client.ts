@@ -26,6 +26,7 @@ export type SavedWorkflow = WorkflowData & {
   updatedAt: string;
   isOwner?: boolean;
   isListed?: boolean;
+  deletedAt?: string | null;
   listedSlug?: string | null;
   priceUsdcPerCall?: string | null;
   workflowType?: "read" | "write";
@@ -33,6 +34,17 @@ export type SavedWorkflow = WorkflowData & {
   chain?: string | null;
   inputSchema?: Record<string, unknown> | null;
   outputMapping?: Record<string, unknown> | null;
+};
+
+export type ActivityItem = {
+  id: string;
+  workflowId: string;
+  workflowName: string;
+  status: string;
+  error: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  duration: string | null;
 };
 
 export type MarketplaceListing = {
@@ -722,6 +734,21 @@ export const marketplaceApi = {
     }>("/api/privy/wallet"),
 };
 
+export const activityApi = {
+  list: () => apiCall<{ items: ActivityItem[] }>("/api/activity"),
+};
+
+export const analyticsApi = {
+  summary: () =>
+    apiCall<{
+      workflows: number;
+      listed: number;
+      executions: number;
+      successes: number;
+      errors: number;
+    }>("/api/analytics"),
+};
+
 export const api = {
   ai: aiApi,
   aiGateway: aiGatewayApi,
@@ -729,5 +756,7 @@ export const api = {
   user: userApi,
   workflow: workflowApi,
   marketplace: marketplaceApi,
+  activity: activityApi,
+  analytics: analyticsApi,
   openapi: () => apiCall<Record<string, unknown>>("/api/openapi"),
 };

@@ -60,15 +60,15 @@ We're committed to providing a welcoming and inclusive environment for all contr
 
 - Node.js 18+
 - pnpm (our package manager of choice)
-- PostgreSQL (for database integrations)
+- Docker Desktop (for local Postgres via `pnpm docker:up`)
 
 ### Environment Variables
 
 Required variables for development:
 
 ```bash
-# Database
-DATABASE_URL=postgres://localhost:5432/workflow
+# Database (matches docker-compose.yml)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/workflow
 
 # Authentication
 BETTER_AUTH_SECRET=your-auth-secret-here  # Generate with: openssl rand -base64 32
@@ -95,6 +95,13 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ```
 
 See `.env.example` for the complete list of available environment variables.
+
+Start Postgres and apply the schema before running the app:
+
+```bash
+pnpm setup   # docker compose up -d && pnpm db:push
+pnpm dev
+```
 
 ### Development Workflow
 
