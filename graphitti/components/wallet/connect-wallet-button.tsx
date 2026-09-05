@@ -1,10 +1,10 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import { Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PrivyIcon } from "@/plugins/privy/icon";
 
 type ConnectWalletButtonProps = {
   compact?: boolean;
@@ -66,7 +66,7 @@ function ConnectWalletButtonInner({ compact }: ConnectWalletButtonProps) {
       type="button"
       variant="outline"
     >
-      <Wallet className="mr-2 size-4" />
+      <PrivyIcon className="mr-2 size-4" />
       {label}
     </Button>
   );
