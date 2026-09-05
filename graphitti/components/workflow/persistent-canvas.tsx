@@ -14,7 +14,7 @@ export function PersistentCanvas() {
   }
 
   return (
-    <div className="fixed inset-0 z-0">
+    <div className="fixed top-(--header-height) right-0 bottom-0 left-0 z-0 md:left-(--nav-content-offset,var(--nav-sidebar-width,200px))">
       <WorkflowCanvas />
     </div>
   );
