@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, LogOut, Moon, Plug, Settings, Sun } from "lucide-react";
+import { Key, LogOut, Moon, Plug, Settings, Store, Sun, Wallet } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import {
@@ -10,6 +10,7 @@ import {
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
+import { EarningsOverlay } from "@/components/overlays/earnings-overlay";
 import { SettingsOverlay } from "@/components/overlays/settings-overlay";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -146,6 +147,18 @@ export const UserMenu = () => {
         <DropdownMenuItem onClick={() => openOverlay(ApiKeysOverlay)}>
           <Key className="size-4" />
           <span>API Keys</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            window.location.href = "/marketplace";
+          }}
+        >
+          <Store className="size-4" />
+          <span>Marketplace</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openOverlay(EarningsOverlay)}>
+          <Wallet className="size-4" />
+          <span>Earnings</span>
         </DropdownMenuItem>
         <div className="px-2 py-1.5">
           <ConnectWalletButton compact />

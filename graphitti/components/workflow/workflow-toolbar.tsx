@@ -15,6 +15,7 @@ import {
   Redo2,
   Save,
   Settings2,
+  Store,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -73,6 +74,7 @@ import { Panel } from "../ai-elements/panel";
 import { DeployButton } from "../deploy-button";
 import { GitHubStarsButton } from "../github-stars-button";
 import { ConfigurationOverlay } from "../overlays/configuration-overlay";
+import { ListingOverlay } from "../overlays/listing-overlay";
 import { ConfirmOverlay } from "../overlays/confirm-overlay";
 import { ExportWorkflowOverlay } from "../overlays/export-workflow-overlay";
 import { MakePublicOverlay } from "../overlays/make-public-overlay";
@@ -1179,6 +1181,22 @@ function ToolbarActions({
 
       {/* Visibility Toggle */}
       <VisibilityButton actions={actions} state={state} />
+
+      <Button
+        className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5"
+        disabled={!state.currentWorkflowId || state.isGenerating}
+        onClick={() =>
+          openOverlay(ListingOverlay, {
+            workflowId: state.currentWorkflowId ?? "",
+            workflowName: state.workflowName || "Workflow",
+          })
+        }
+        size="icon"
+        title="Marketplace"
+        variant="secondary"
+      >
+        <Store className="size-4" />
+      </Button>
 
       <RunButtonGroup actions={actions} state={state} />
     </>

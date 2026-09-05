@@ -1,66 +1,12 @@
-import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { start } from "workflow/api";
+import { validateApiKey } from "@/lib/auth/api-key";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
-import { apiKeys, workflowExecutions, workflows } from "@/lib/db/schema";
+import { workflowExecutions, workflows } from "@/lib/db/schema";
 import { executeWorkflow } from "@/lib/workflow-executor.workflow";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
-
-// Validate API key and return the user ID if valid
-async function validateApiKey(
-  authHeader: string | null,
-  workflowUserId: string
-): Promise<{ valid: boolean; error?: string; statusCode?: number }> {
-  if (!authHeader) {
-    return {
-      valid: false,
-      error: "Missing Authorization header",
-      statusCode: 401,
-    };
-  }
-
-  // Support "Bearer <key>" format
-  const key = authHeader.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : authHeader;
-
-  if (!key?.startsWith("wfb_")) {
-    return { valid: false, error: "Invalid API key format", statusCode: 401 };
-  }
-
-  // Hash the key to compare with stored hash
-  const keyHash = createHash("sha256").update(key).digest("hex");
-
-  // Find the API key in the database
-  const apiKey = await db.query.apiKeys.findFirst({
-    where: eq(apiKeys.keyHash, keyHash),
-  });
-
-  if (!apiKey) {
-    return { valid: false, error: "Invalid API key", statusCode: 401 };
-  }
-
-  // Verify the API key belongs to the workflow owner
-  if (apiKey.userId !== workflowUserId) {
-    return {
-      valid: false,
-      error: "You do not have permission to run this workflow",
-      statusCode: 403,
-    };
-  }
-
-  // Update last used timestamp (don't await, fire and forget)
-  db.update(apiKeys)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(apiKeys.id, apiKey.id))
-    .catch(() => {
-      // Fire and forget - ignore errors
-    });
-
-  return { valid: true };
-}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
