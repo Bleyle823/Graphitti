@@ -1,5 +1,15 @@
-import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import type { IntegrationType } from "../types/integration";
 import { generateId } from "../utils/id";
 
@@ -60,26 +70,93 @@ export const verifications = pgTable("verifications", {
 export type WorkflowVisibility = "private" | "public";
 
 // Workflows table with user association
-export const workflows = pgTable("workflows", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => generateId()),
-  name: text("name").notNull(),
-  description: text("description"),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  // biome-ignore lint/suspicious/noExplicitAny: JSONB type - structure validated at application level
-  nodes: jsonb("nodes").notNull().$type<any[]>(),
-  // biome-ignore lint/suspicious/noExplicitAny: JSONB type - structure validated at application level
-  edges: jsonb("edges").notNull().$type<any[]>(),
-  visibility: text("visibility")
-    .notNull()
-    .default("private")
-    .$type<WorkflowVisibility>(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const workflows = pgTable(
+  "workflows",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    name: text("name").notNull(),
+    description: text("description"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    // biome-ignore lint/suspicious/noExplicitAny: JSONB type - structure validated at application level
+    nodes: jsonb("nodes").notNull().$type<any[]>(),
+    // biome-ignore lint/suspicious/noExplicitAny: JSONB type - structure validated at application level
+    edges: jsonb("edges").notNull().$type<any[]>(),
+    visibility: text("visibility")
+      .notNull()
+      .default("private")
+      .$type<WorkflowVisibility>(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    isListed: boolean("is_listed").default(false).notNull(),
+    listedSlug: text("listed_slug"),
+    listedAt: timestamp("listed_at"),
+    listingVersion: integer("listing_version").notNull().default(1),
+    inputSchema: jsonb("input_schema").$type<Record<string, unknown>>(),
+    outputMapping: jsonb("output_mapping").$type<Record<string, unknown>>(),
+    priceUsdcPerCall: numeric("price_usdc_per_call"),
+    workflowType: text("workflow_type")
+      .$type<"read" | "write">()
+      .default("read")
+      .notNull(),
+    category: text("category"),
+    chain: text("chain"),
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => [
+    uniqueIndex("idx_workflows_listed_slug")
+      .on(table.listedSlug)
+      .where(sql`${table.listedSlug} is not null`),
+    index("idx_workflows_user_id").on(table.userId),
+  ]
+);
+
+export const userWallets = pgTable(
+  "user_wallets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    privyUserId: text("privy_user_id"),
+    privyWalletId: text("privy_wallet_id").notNull(),
+    address: text("address").notNull(),
+    chainType: text("chain_type").notNull().default("ethereum"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_user_wallets_privy_wallet").on(table.privyWalletId),
+    index("idx_user_wallets_user_id").on(table.userId),
+  ]
+);
+
+export const workflowPayments = pgTable(
+  "workflow_payments",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    workflowId: text("workflow_id")
+      .notNull()
+      .references(() => workflows.id),
+    caller: text("caller"),
+    amountUsdc: numeric("amount_usdc").notNull(),
+    paymentHash: text("payment_hash").notNull(),
+    txHash: text("tx_hash"),
+    chain: text("chain").notNull().default("arc-testnet"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_workflow_payments_hash").on(table.paymentHash),
+    index("idx_workflow_payments_workflow").on(table.workflowId),
+  ]
+);
 
 // Integrations table for storing user credentials
 export const integrations = pgTable("integrations", {
@@ -186,3 +263,7 @@ export type WorkflowExecutionLog = typeof workflowExecutionLogs.$inferSelect;
 export type NewWorkflowExecutionLog = typeof workflowExecutionLogs.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+export type UserWallet = typeof userWallets.$inferSelect;
+export type NewUserWallet = typeof userWallets.$inferInsert;
+export type WorkflowPayment = typeof workflowPayments.$inferSelect;
+export type NewWorkflowPayment = typeof workflowPayments.$inferInsert;
