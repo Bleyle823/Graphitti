@@ -67,16 +67,11 @@ export async function POST(
   try {
     const { workflowId } = await context.params;
 
-    // Get session
     const session = await auth.api.getSession({
       headers: request.headers,
     });
+    const authHeader = request.headers.get("Authorization");
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get workflow and verify ownership
     const workflow = await db.query.workflows.findFirst({
       where: eq(workflows.id, workflowId),
     });
@@ -88,14 +83,26 @@ export async function POST(
       );
     }
 
-    if (workflow.userId !== session.user.id) {
+    let userId = session?.user?.id;
+    if (!userId) {
+      const { validateApiKey } = await import("@/lib/auth/api-key");
+      const key = await validateApiKey(authHeader, workflow.userId);
+      if (!key.valid) {
+        return NextResponse.json(
+          { error: key.error },
+          { status: key.statusCode }
+        );
+      }
+      userId = key.userId;
+    }
+
+    if (workflow.userId !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Validate that all integrationIds in workflow nodes belong to the current user
     const validation = await validateWorkflowIntegrations(
       workflow.nodes as WorkflowNode[],
-      session.user.id
+      userId
     );
     if (!validation.valid) {
       console.error(
@@ -117,7 +124,7 @@ export async function POST(
       .insert(workflowExecutions)
       .values({
         workflowId,
-        userId: session.user.id,
+        userId,
         status: "running",
         input,
       })

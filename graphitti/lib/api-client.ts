@@ -25,6 +25,28 @@ export type SavedWorkflow = WorkflowData & {
   createdAt: string;
   updatedAt: string;
   isOwner?: boolean;
+  isListed?: boolean;
+  listedSlug?: string | null;
+  priceUsdcPerCall?: string | null;
+  workflowType?: "read" | "write";
+  category?: string | null;
+  chain?: string | null;
+  inputSchema?: Record<string, unknown> | null;
+  outputMapping?: Record<string, unknown> | null;
+};
+
+export type MarketplaceListing = {
+  id: string;
+  name: string;
+  description: string | null;
+  listedSlug: string | null;
+  listedAt: string | null;
+  priceUsdcPerCall: string | null;
+  workflowType: "read" | "write";
+  category: string | null;
+  chain: string | null;
+  inputSchema: Record<string, unknown> | null;
+  outputMapping: Record<string, unknown> | null;
 };
 
 // API error class
@@ -656,6 +678,42 @@ export const aiGatewayApi = {
 
 // Export all APIs as a single object
 export const marketplaceApi = {
+  search: (params?: Record<string, string>) => {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : "";
+    return apiCall<{ items: MarketplaceListing[]; total: number }>(
+      `/api/mcp/workflows${query}`
+    );
+  },
+  listing: (slug: string) =>
+    apiCall<MarketplaceListing>(`/api/mcp/workflows/${slug}/listing`),
+  list: (data: {
+    workflowId: string;
+    slug?: string;
+    priceUsdcPerCall?: string;
+    category?: string;
+    chain?: string;
+    workflowType?: "read" | "write";
+    inputSchema?: Record<string, unknown>;
+    outputMapping?: Record<string, unknown>;
+    listed?: boolean;
+  }) =>
+    apiCall<{
+      id: string;
+      listedSlug: string | null;
+      isListed: boolean;
+      priceUsdcPerCall: string | null;
+    }>("/api/mcp/workflows", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  earnings: () =>
+    apiCall<{
+      invocations: number;
+      grossUsdc: string;
+      netUsdc: string;
+      platformFeeBps: number;
+      chain: string;
+    }>("/api/marketplace/earnings"),
   wallet: () =>
     apiCall<{
       address: string | null;
@@ -671,4 +729,5 @@ export const api = {
   user: userApi,
   workflow: workflowApi,
   marketplace: marketplaceApi,
+  openapi: () => apiCall<Record<string, unknown>>("/api/openapi"),
 };
