@@ -111,6 +111,7 @@ Visit [http://localhost:3000](http://localhost:3000) to get started.
 - **Slack**: Send Slack Message
 - **Stripe**: Create Customer, Get Customer, Create Invoice
 - **Superagent**: Guard, Redact
+- **The Graph**: Search subgraphs, Recommend subgraph, Get subgraph detail, Get schema, Find subgraphs by contract, Query subgraph, Get indexing status, Query lending snapshot, Get token balances, Get token transfers, Get token holders, Get DEX swaps, Get NFT activity, Search Substreams packages, Get package, Get default endpoint, Get subscription, Get usage summary, Get bill preview, Get active connections, List hosted deployments, Get deployment state, Get deployment events, Get deployment logs
 - **v0**: Create Chat, Send Message
 - **Webflow**: List Sites, Get Site, Publish Site
 <!-- PLUGINS:END -->
