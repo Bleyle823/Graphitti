@@ -15,20 +15,24 @@
  */
 
 import "./ai-gateway";
+import "./arc";
 import "./blob";
 import "./circle";
 import "./clerk";
 import "./fal";
+import "./fantasy-premier-league";
 import "./firecrawl";
 import "./github";
 import "./linear";
 import "./perplexity";
+import "./privy";
 import "./resend";
 import "./slack";
 import "./stripe";
 import "./superagent";
 import "./the-graph";
 import "./v0";
+import "./web3";
 import "./webflow";
 
 export type {
