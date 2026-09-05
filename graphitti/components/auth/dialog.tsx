@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { signIn, signUp } from "@/lib/auth-client";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import {
   getEnabledAuthProviders,
   getSingleProvider,
@@ -507,6 +508,9 @@ const EmailOnlyDialog = ({
         onToggleMode={onToggleMode}
         password={password}
       />
+      <div className="mt-4">
+        <ConnectWalletButton />
+      </div>
     </DialogContent>
   </Dialog>
 );
@@ -604,6 +608,18 @@ const MultiProviderDialog = ({
               password={password}
             />
           )}
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Wallet
+              </span>
+            </div>
+          </div>
+          <ConnectWalletButton />
         </div>
       </DialogContent>
     </Dialog>
