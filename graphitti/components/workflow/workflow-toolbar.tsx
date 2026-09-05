@@ -81,7 +81,6 @@ import { MakePublicOverlay } from "../overlays/make-public-overlay";
 import { useOverlay } from "../overlays/overlay-provider";
 import { WorkflowIssuesOverlay } from "../overlays/workflow-issues-overlay";
 import { WorkflowIcon } from "../ui/workflow-icon";
-import { UserMenu } from "../workflows/user-menu";
 
 type WorkflowToolbarProps = {
   workflowId?: string;
@@ -1185,12 +1184,16 @@ function ToolbarActions({
       <Button
         className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5"
         disabled={!state.currentWorkflowId || state.isGenerating}
-        onClick={() =>
-          openOverlay(ListingOverlay, {
-            workflowId: state.currentWorkflowId ?? "",
-            workflowName: state.workflowName || "Workflow",
-          })
-        }
+        onClick={() => {
+          if (state.currentWorkflowId) {
+            openOverlay(ListingOverlay, {
+              workflowId: state.currentWorkflowId,
+              workflowName: state.workflowName || "Workflow",
+            });
+            return;
+          }
+          state.router.push("/hub?tab=marketplace");
+        }}
         size="icon"
         title="Marketplace"
         variant="secondary"
@@ -1497,7 +1500,6 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
                 onDuplicate={actions.handleDuplicate}
               />
             )}
-            <UserMenu />
           </div>
         </div>
       </div>

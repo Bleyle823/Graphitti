@@ -1,8 +1,9 @@
 "use client";
 
-import { Key, LogOut, Moon, Plug, Settings, Store, Sun, Wallet } from "lucide-react";
+import { useSetAtom } from "jotai";
+import { Key, LogOut, Moon, Plug, Rocket, Settings, Sun } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import {
   AuthDialog,
   isSingleProviderSignInInitiated,
@@ -10,9 +11,6 @@ import {
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
-import { EarningsOverlay } from "@/components/overlays/earnings-overlay";
-import { SettingsOverlay } from "@/components/overlays/settings-overlay";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,34 +26,19 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { api } from "@/lib/api-client";
 import { signOut, useSession } from "@/lib/auth-client";
+import { gettingStartedOpenAtom } from "@/lib/ui-store";
 
 export const UserMenu = () => {
   const { data: session, isPending } = useSession();
   const { theme, setTheme } = useTheme();
   const { open: openOverlay } = useOverlay();
-  const [providerId, setProviderId] = useState<string | null>(null);
-
-  // Fetch provider info when session is available
-  useEffect(() => {
-    if (session?.user && !session.user.name?.startsWith("Anonymous")) {
-      api.user
-        .get()
-        .then((user) => setProviderId(user.providerId))
-        .catch(() => setProviderId(null));
-    }
-  }, [session?.user]);
+  const router = useRouter();
+  const setGettingStartedOpen = useSetAtom(gettingStartedOpenAtom);
 
   const handleLogout = async () => {
     await signOut();
   };
-
-  // OAuth users can't edit their profile
-  const isOAuthUser =
-    providerId === "vercel" ||
-    providerId === "github" ||
-    providerId === "google";
 
   const getUserInitials = () => {
     if (session?.user?.name) {
@@ -134,12 +117,10 @@ export const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {!isOAuthUser && (
-          <DropdownMenuItem onClick={() => openOverlay(SettingsOverlay)}>
-            <Settings className="size-4" />
-            <span>Settings</span>
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem onClick={() => router.push("/settings")}>
+          <Settings className="size-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => openOverlay(IntegrationsOverlay)}>
           <Plug className="size-4" />
           <span>Connections</span>
@@ -150,19 +131,12 @@ export const UserMenu = () => {
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => {
-            window.location.href = "/marketplace";
+            setGettingStartedOpen(true);
           }}
         >
-          <Store className="size-4" />
-          <span>Marketplace</span>
+          <Rocket className="size-4" />
+          <span>Getting started</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openOverlay(EarningsOverlay)}>
-          <Wallet className="size-4" />
-          <span>Earnings</span>
-        </DropdownMenuItem>
-        <div className="px-2 py-1.5">
-          <ConnectWalletButton compact />
-        </div>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

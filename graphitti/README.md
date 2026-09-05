@@ -33,44 +33,28 @@ You can deploy your own version of the workflow builder to Vercel with one click
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database
+- Docker Desktop (for local Postgres)
 - pnpm package manager
 
 ### Environment Variables
 
-Create a `.env.local` file with the following:
+Copy the example env file and fill in secrets:
+
+```bash
+cp .env.example .env.local
+```
+
+Minimum required values:
 
 ```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/workflow_builder
-
-# Better Auth
-BETTER_AUTH_SECRET=your-secret-key
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/workflow
+BETTER_AUTH_SECRET= # openssl rand -base64 32
 BETTER_AUTH_URL=http://localhost:3000
-
-# AI Gateway (for AI workflow generation)
-AI_GATEWAY_API_KEY=your-openai-api-key
-
-# Privy (embedded wallets + gasless writes)
-NEXT_PUBLIC_PRIVY_APP_ID=
-PRIVY_APP_ID=
-PRIVY_APP_SECRET=
-PRIVY_AUTHORIZATION_KEY=
-
-# The Graph
-THEGRAPH_API_KEY=
-SUBSTREAMS_API_KEY=
-THEGRAPH_MARKET_BEARER=
-
-# Circle
-CIRCLE_API_KEY=
-CIRCLE_ENTITY_SECRET=
-CIRCLE_MINT_API_KEY=
-CIRCLE_STABLEFX_API_KEY=
-
-# Marketplace (optional 70/30 split; 3000 = 30%)
-MARKETPLACE_PLATFORM_FEE_BPS=3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+INTEGRATION_ENCRYPTION_KEY= # openssl rand -hex 32
 ```
+
+Optional keys (AI Gateway, Privy, The Graph, Circle, OAuth) are documented in `.env.example`.
 
 ### Installation
 
@@ -78,14 +62,22 @@ MARKETPLACE_PLATFORM_FEE_BPS=3000
 # Install dependencies
 pnpm install
 
-# Run database migrations
-pnpm db:push
+# Start Postgres in Docker and push the schema
+pnpm setup
 
 # Start development server
 pnpm dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to get started.
+
+Useful Docker commands:
+
+```bash
+pnpm docker:up    # start Postgres
+pnpm docker:down  # stop Postgres
+pnpm docker:logs  # tail Postgres logs
+```
 
 ## Workflow Types
 

@@ -24,6 +24,8 @@ import {
 
 type AuthDialogProps = {
   children?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 const VercelIcon = ({ className = "mr-2 h-3 w-3" }: { className?: string }) => (
@@ -443,7 +445,7 @@ const SingleProviderButton = ({
 };
 
 type EmailOnlyDialogProps = {
-  children: ReactNode;
+  children?: ReactNode;
   open: boolean;
   mode: "signin" | "signup";
   name: string;
@@ -476,13 +478,7 @@ const EmailOnlyDialog = ({
   onToggleMode,
 }: EmailOnlyDialogProps) => (
   <Dialog onOpenChange={onOpenChange} open={open}>
-    <DialogTrigger asChild>
-      {children || (
-        <Button size="sm" variant="default">
-          Sign In
-        </Button>
-      )}
-    </DialogTrigger>
+    {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
@@ -552,13 +548,7 @@ const MultiProviderDialog = ({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button size="sm" variant="default">
-            Sign In
-          </Button>
-        )}
-      </DialogTrigger>
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -626,8 +616,19 @@ const MultiProviderDialog = ({
   );
 };
 
-export const AuthDialog = ({ children }: AuthDialogProps) => {
-  const [open, setOpen] = useState(false);
+export const AuthDialog = ({
+  children,
+  open: openProp,
+  onOpenChange,
+}: AuthDialogProps) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = openProp ?? uncontrolledOpen;
+  const setOpen = (next: boolean): void => {
+    if (openProp === undefined) {
+      setUncontrolledOpen(next);
+    }
+    onOpenChange?.(next);
+  };
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -653,7 +654,7 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
     setOpen,
   });
 
-  if (singleProvider && singleProvider !== "email") {
+  if (singleProvider && singleProvider !== "email" && children) {
     return (
       <SingleProviderButton
         loadingProvider={loadingProvider}

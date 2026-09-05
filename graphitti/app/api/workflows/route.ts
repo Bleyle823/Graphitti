@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const userWorkflows = await db
       .select()
       .from(workflows)
-      .where(eq(workflows.userId, session.user.id))
+      .where(and(eq(workflows.userId, session.user.id), isNull(workflows.deletedAt)))
       .orderBy(desc(workflows.updatedAt));
 
     const mappedWorkflows = userWorkflows.map((workflow) => ({
