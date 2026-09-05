@@ -50,6 +50,26 @@ BETTER_AUTH_URL=http://localhost:3000
 
 # AI Gateway (for AI workflow generation)
 AI_GATEWAY_API_KEY=your-openai-api-key
+
+# Privy (embedded wallets + gasless writes)
+NEXT_PUBLIC_PRIVY_APP_ID=
+PRIVY_APP_ID=
+PRIVY_APP_SECRET=
+PRIVY_AUTHORIZATION_KEY=
+
+# The Graph
+THEGRAPH_API_KEY=
+SUBSTREAMS_API_KEY=
+THEGRAPH_MARKET_BEARER=
+
+# Circle
+CIRCLE_API_KEY=
+CIRCLE_ENTITY_SECRET=
+CIRCLE_MINT_API_KEY=
+CIRCLE_STABLEFX_API_KEY=
+
+# Marketplace (optional 70/30 split; 3000 = 30%)
+MARKETPLACE_PLATFORM_FEE_BPS=3000
 ```
 
 ### Installation
