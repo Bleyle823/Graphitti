@@ -1,0 +1,19 @@
+---
+title: Execute
+description: Start a run and poll status or logs.
+---
+
+```bash
+curl -X POST https://<host>/api/workflows/{id}/execute \
+  -H "Authorization: Bearer wfb_..." \
+  -H "Content-Type: application/json" \
+  -d '{"input":{"address":"0x..."}}'
+
+curl https://<host>/api/workflows/executions/{executionId}/status \
+  -H "Authorization: Bearer wfb_..."
+
+curl https://<host>/api/workflows/executions/{executionId}/logs \
+  -H "Authorization: Bearer wfb_..."
+```
+
+The webhook route at `/api/workflows/{id}/webhook` still requires a Webhook trigger and the same `wfb_` key.

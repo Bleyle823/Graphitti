@@ -1,0 +1,15 @@
+---
+title: Agent
+description: Discover and call listed workflows from Cursor or Claude.
+---
+
+Point your MCP client at `https://<host>/mcp`. Graphitti exposes two meta-tools instead of one tool per workflow.
+
+| Tool | Purpose |
+|---|---|
+| `search_workflows` | Search the public catalog (`q`, `category`, `chain`, `workflowType`) |
+| `call_workflow` | Call `{ slug, input }` through the same handler as the HTTP call route |
+
+A single-workflow server is available at `/mcp/w/{slug}`.
+
+Owner calls can send `Authorization: Bearer wfb_...` to skip the payment gate on your own listings.

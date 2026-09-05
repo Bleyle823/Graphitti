@@ -1,0 +1,15 @@
+---
+title: Plugins
+description: Integrations you can drop onto the canvas.
+---
+
+| Plugin | Category | Credentials |
+|---|---|---|
+| Web3 | EVM reads and Privy-sponsored writes | None (uses linked wallet) |
+| Privy | Users, wallets, sign, send | `PRIVY_APP_ID`, `PRIVY_APP_SECRET` |
+| The Graph | Discovery, GraphQL, Token API, Substreams, Market | `THEGRAPH_API_KEY`, optional Substreams and Market bearers |
+| Circle | Wallets, CCTP, Gateway, contracts, Mint | `CIRCLE_API_KEY`, `CIRCLE_ENTITY_SECRET`, `CIRCLE_MINT_API_KEY` |
+| Arc | App Kit flows, Arc tokens, StableFX | `CIRCLE_API_KEY`, optional `CIRCLE_STABLEFX_API_KEY` |
+| Fantasy Premier League | Public FPL reads | None |
+
+Each page lists the actions that ship. Plugin steps use `fetch` only.

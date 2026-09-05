@@ -1,0 +1,10 @@
+---
+title: Templating
+description: Reference earlier node outputs in action fields.
+---
+
+Template-enabled fields accept `{{NodeName.field}}`.
+
+- `template-input` and `template-textarea` resolve variables at run time.
+- `text`, `number`, `select`, and `schema-builder` do not interpolate.
+- Success payloads unwrap `data`, so `{{GetBalance.balance}}` reads `data.balance`.

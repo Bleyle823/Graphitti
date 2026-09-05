@@ -1,0 +1,13 @@
+---
+title: Gas
+description: Privy sponsorship for workflow writes and USDC gas on Arc.
+---
+
+Workflow writes call Privy wallet RPC with `sponsor: true`. You do not fund ETH for those steps on supported chains.
+
+On Arc, gas is USDC:
+
+- Native gas USDC is **18 decimals**
+- The ERC-20 USDC interface and marketplace amounts are **6 decimals** at `0x3600000000000000000000000000000000000000`
+
+Do not mix those units in the same field.

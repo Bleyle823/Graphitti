@@ -1,0 +1,17 @@
+---
+title: Arc
+description: App Kit flows, Arc decimals, StableFX, and marketplace settlement.
+---
+
+Arc Testnet chain id is `5042002`. CCTP domain is `26`. Marketplace settlement uses Arc USDC ERC-20 at `0x3600…0000` with 6 decimals.
+
+| Group | Actions |
+|---|---|
+| Bridge / swap / send | Bridge USDC, retry, swap, swap+bridge, status, send |
+| Unified balance | Deposit, depositFor, spend (needs a delegate), delegates, remove fund, balances |
+| Estimates | Bridge, swap, send, spend, token rates, supported chains |
+| Chain | Config, genesis addresses, native vs ERC-20 USDC, EURC, gas floor, finality, memo, deploy/read/write |
+| Identity | ERC-8004 register, ERC-8183 job |
+| StableFX | Quote, execute taker, status |
+
+Privy server wallets cannot sign Gateway spends. Add a delegate first.
