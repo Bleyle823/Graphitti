@@ -26,6 +26,7 @@ import "./github";
 import "./linear";
 import "./perplexity";
 import "./privy";
+import "./protocol";
 import "./resend";
 import "./slack";
 import "./stripe";
