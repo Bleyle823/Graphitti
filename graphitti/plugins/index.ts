@@ -26,6 +26,7 @@ import "./resend";
 import "./slack";
 import "./stripe";
 import "./superagent";
+import "./the-graph";
 import "./v0";
 import "./webflow";
 
