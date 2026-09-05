@@ -76,6 +76,15 @@ export const CHAINS: Record<string, SupportedChain> = {
     nativeDecimals: 18,
     cctpDomain: 26,
   },
+  sepolia: {
+    id: "sepolia",
+    label: "Ethereum Sepolia",
+    chainId: 11155111,
+    rpcUrl: "https://rpc.sepolia.org",
+    explorerUrl: "https://sepolia.etherscan.io",
+    nativeSymbol: "ETH",
+    nativeDecimals: 18,
+  },
 };
 
 export const NETWORK_SELECT_OPTIONS = Object.values(CHAINS).map((chain) => ({
@@ -91,7 +100,7 @@ export function requireChain(network: string): SupportedChain {
   const chain = getChain(network);
   if (!chain) {
     throw new Error(
-      `Unsupported network "${network}". Use ethereum, base, arbitrum, optimism, polygon, or arc-testnet.`
+      `Unsupported network "${network}". Use ethereum, sepolia, base, arbitrum, optimism, polygon, or arc-testnet.`
     );
   }
   return chain;

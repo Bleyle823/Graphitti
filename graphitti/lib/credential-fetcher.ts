@@ -67,7 +67,8 @@ function mapIntegrationConfig(
  * @returns WorkflowCredentials object with the integration's credentials
  */
 export async function fetchCredentials(
-  integrationId: string
+  integrationId: string,
+  _options?: { organizationId?: string | null }
 ): Promise<WorkflowCredentials> {
   console.log("[Credential Fetcher] Fetching integration:", integrationId);
 
