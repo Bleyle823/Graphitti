@@ -1,0 +1,21 @@
+---
+title: Fantasy Premier League
+description: Public FPL bootstrap, fixtures, manager, and league reads.
+---
+
+<img src="/images/brand/pl-logo-compact-dark.png" alt="Premier League" className="block h-10 dark:hidden" />
+<img src="/images/brand/pl-logo-compact-light.png" alt="Premier League" className="hidden h-10 dark:block" />
+
+No credentials. Graphitti calls `https://fantasy.premierleague.com/api/` with a browser User-Agent.
+
+| Action | Endpoint |
+|---|---|
+| Get bootstrap | `/bootstrap-static/` |
+| Search players | Filter bootstrap elements |
+| Get player | `/element-summary/{id}/` |
+| Get fixtures | `/fixtures/` |
+| Get gameweek live | `/event/{gw}/live/` |
+| Get manager / history / picks / transfers | `/entry/...` |
+| Classic / H2H standings | `/leagues-classic/` and `/leagues-h2h/` |
+
+There is no cookie “my team” action.

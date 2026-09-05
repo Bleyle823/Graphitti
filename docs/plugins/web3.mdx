@@ -1,0 +1,18 @@
+---
+title: Web3
+description: EVM balance, transfer, approve, contract, logs, and typed data.
+---
+
+Reads need no wallet. Writes require **Connect wallet** and use Privy `sponsor: true`.
+
+| Action | When to use |
+|---|---|
+| Get native balance | Check ETH/POL/USDC gas on a supported chain |
+| Get ERC-20 balance | Token balances |
+| Transfer native / ERC-20 | Send from the linked wallet |
+| Approve / Check allowance | ERC-20 spenders |
+| Read / Write contract | Hex calldata `eth_call` or sponsored send |
+| Get transaction / Query logs | Receipts and events |
+| Sign typed data | EIP-712 |
+
+Networks: Ethereum, Base, Arbitrum, Optimism, Polygon, Arc Testnet.

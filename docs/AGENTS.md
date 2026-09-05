@@ -1,7 +1,3 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
-
 # Documentation project instructions
 
 ## About this project
@@ -9,17 +5,18 @@
 - This is a documentation site built on [Mintlify](https://mintlify.com)
 - Pages are MDX files with YAML frontmatter
 - Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
 
 ## Terminology
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- **workflow**: A graph of a trigger plus actions you run in the editor, by API, or through MCP
+- **listing**: A published workflow in the marketplace, identified by an immutable **slug**
+- **slug**: Public URL key for a listing. Reserved values: marketplace, api, mcp, openapi, admin, hub
+- **Privy wallet**: Embedded EVM wallet linked to a Better Auth user and stored in `user_wallets`
+- **Arc USDC**: Marketplace settlement asset on Arc Testnet (`0x3600…0000`, 6-decimal ERC-20). Native Arc gas USDC is 18 decimals
+- **plugin**: An integration that registers actions in the workflow builder
+- **action**: A single step a plugin can run
 
 ## Style preferences
-
-{/* Add any project-specific style rules below */}
 
 - Use active voice and second person ("you")
 - Keep sentences concise — one idea per sentence
@@ -29,5 +26,4 @@
 
 ## Content boundaries
 
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+Document Browser, Agent (MCP), and API paths only. Do not document Turnkey, orgs/teams, Tempo/MPP, Base x402, CLI, keepers/scheduler, or protocol plugins that are not shipped.

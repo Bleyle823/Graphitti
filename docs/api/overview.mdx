@@ -1,0 +1,14 @@
+---
+title: API overview
+description: Session, API key, public catalog, and paid call auth.
+---
+
+| Surface | Auth |
+|---|---|
+| Editor execute | Session |
+| `POST /api/workflows/{id}/execute` | Session or owner `Bearer wfb_...` |
+| `GET /api/mcp/workflows` | None (IP rate limit) |
+| `POST /api/mcp/workflows` | Session (list / update / unlist) |
+| `POST /api/mcp/workflows/{slug}/call` | x402 receipt or owner API key |
+
+Write listings return an unsigned `{ to, data, value }` instruction unless the caller is the owner with an API key.

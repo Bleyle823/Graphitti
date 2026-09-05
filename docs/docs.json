@@ -11,27 +11,51 @@
   "navigation": {
     "pages": [
       {
-        "group": "Getting Started",
+        "group": "Getting started",
         "pages": [
           "index",
-          "quickstart"
+          "getting-started/browser",
+          "getting-started/agent",
+          "getting-started/api"
+        ]
+      },
+      {
+        "group": "Workflows",
+        "pages": [
+          "workflows/index",
+          "workflows/creating",
+          "workflows/templating",
+          "workflows/marketplace"
+        ]
+      },
+      {
+        "group": "Wallet",
+        "pages": ["wallet/privy", "wallet/gas"]
+      },
+      {
+        "group": "API",
+        "pages": [
+          "api/overview",
+          "api/api-keys",
+          "api/execute",
+          "api/marketplace",
+          "api/openapi",
+          "api/mcp"
+        ]
+      },
+      {
+        "group": "Plugins",
+        "pages": [
+          "plugins/overview",
+          "plugins/web3",
+          "plugins/privy",
+          "plugins/the-graph",
+          "plugins/circle",
+          "plugins/arc",
+          "plugins/fantasy-premier-league"
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -40,33 +64,19 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "GitHub",
+        "href": "https://github.com/Bleyle823/Graphitti"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "App",
+      "href": "https://graphitti.app"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/Bleyle823/Graphitti"
     }
   }
 }

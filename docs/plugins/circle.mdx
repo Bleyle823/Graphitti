@@ -1,0 +1,18 @@
+---
+title: Circle
+description: Developer wallets, CCTP, Gateway, nanopayments, contracts, Mint, USDC/EURC.
+---
+
+<img src="/images/brand/circle-mark.png" alt="Circle" className="h-10" />
+
+`CIRCLE_API_KEY` talks to `api.circle.com`. `CIRCLE_MINT_API_KEY` talks to Circle Mint (`api-sandbox.circle.com` in sandbox). Do not mix keys.
+
+| Group | Actions |
+|---|---|
+| Wallets | Wallet sets, wallets, balances, transfers, sign typed data |
+| CCTP V2 | Deposit-for-burn, Iris attestation, receive/mint, domains |
+| Gateway | Balances, transfer attestation |
+| Nanopayments | Deposit, balance, x402 check/pay/settle, agent discovery, withdraw |
+| Contracts | Import, deploy bytecode/template, monitors, logs |
+| USDC / EURC | Lookup, balance, transfer, approve. Arc native USDC is 18-dec; ERC-20 is 6-dec |
+| Mint | Ping, balances, transfers, payment intents, payouts. Wires need `confirmDestructive=yes` |
