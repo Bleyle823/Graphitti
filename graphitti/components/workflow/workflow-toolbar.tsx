@@ -70,6 +70,8 @@ import {
   flattenConfigFields,
   getIntegrationLabels,
 } from "@/plugins";
+import type { ActionConfigFieldBase } from "@/plugins/registry";
+import { evaluateShowWhen } from "@/lib/workflow/show-when";
 import { Panel } from "../ai-elements/panel";
 import { DeployButton } from "../deploy-button";
 import { GitHubStarsButton } from "../github-stars-button";
@@ -246,18 +248,13 @@ function isFieldEmpty(value: unknown): boolean {
   return false;
 }
 
-// Check if a conditional field should be shown based on current config
 function shouldShowField(
-  field: { showWhen?: { field: string; equals: string } },
+  field: ActionConfigFieldBase,
   config: Record<string, unknown>
 ): boolean {
-  if (!field.showWhen) {
-    return true;
-  }
-  return config[field.showWhen.field] === field.showWhen.equals;
+  return evaluateShowWhen(field.showWhen, config);
 }
 
-// Get missing required fields for a single node
 function getNodeMissingFields(
   node: WorkflowNode
 ): MissingRequiredFieldInfo | null {

@@ -1,4 +1,5 @@
 import type { IntegrationType } from "@/lib/types/integration";
+import type { ShowWhen } from "@/lib/workflow/show-when";
 import { LEGACY_ACTION_MAPPINGS } from "./legacy-mappings";
 
 /**
@@ -23,12 +24,56 @@ export type ActionConfigFieldBase = {
 
   // Field type
   type:
-    | "template-input" // TemplateBadgeInput - supports {{variable}}
-    | "template-textarea" // TemplateBadgeTextarea - supports {{variable}}
-    | "text" // Regular text input
-    | "number" // Number input
-    | "select" // Dropdown select
-    | "schema-builder"; // Schema builder for structured output
+    | "template-input"
+    | "template-textarea"
+    | "text"
+    | "number"
+    | "fail-on-error-switch"
+    | "datetime"
+    | "select"
+    | "chain-select"
+    | "schema-builder"
+    | "abi-function-select"
+    | "abi-function-args"
+    | "abi-with-auto-fetch"
+    | "token-select"
+    | "abi-event-select"
+    | "gas-limit-multiplier"
+    | "code-editor"
+    | "json-editor"
+    | "call-list-builder"
+    | "args-list-builder"
+    | "protocol-address"
+    | "protocol-uint"
+    | "protocol-int"
+    | "protocol-bool"
+    | "protocol-bytes"
+    | "protocol-eth-value"
+    | "protocol-tuple-array";
+
+  chainTypeFilter?: string | string[];
+  allowedChainIds?: string[];
+  showPrivateVariants?: boolean;
+  actionSlug?: string;
+  max?: number;
+  step?: number;
+  abiField?: string;
+  functionFilter?: "read" | "write";
+  abiFunctionField?: string;
+  contractAddressField?: string;
+  networkField?: string;
+  contractInteractionType?: "read" | "write";
+  hideNetworkColumn?: boolean;
+  helpTip?: string;
+  isAddressField?: boolean;
+  docUrl?: string;
+  tupleComponents?: Array<{
+    name: string;
+    type: string;
+    components?: Array<{ name: string; type: string }>;
+  }>;
+  solidityType?: string;
+  hidden?: boolean;
 
   // Placeholder text
   placeholder?: string;
@@ -52,10 +97,7 @@ export type ActionConfigFieldBase = {
   required?: boolean;
 
   // Conditional rendering: only show if another field has a specific value
-  showWhen?: {
-    field: string;
-    equals: string;
-  };
+  showWhen?: ShowWhen;
 };
 
 /**
@@ -153,6 +195,10 @@ export type PluginAction = {
   // Optional - if not provided, will fall back to auto-generated template
   // from steps that export _exportCore
   codegenTemplate?: string;
+
+  requiresCredentials?: boolean;
+  credentialIntegrationType?: string;
+  docUrl?: string;
 };
 
 /**
@@ -164,6 +210,9 @@ export type IntegrationPlugin = {
   type: IntegrationType;
   label: string;
   description: string;
+  egress?: string;
+  requiresCredentials?: boolean;
+  singleConnection?: boolean;
 
   // Icon component (should be exported from plugins/[name]/icon.tsx)
   icon: React.ComponentType<{ className?: string }>;
@@ -172,12 +221,13 @@ export type IntegrationPlugin = {
   formFields: Array<{
     id: string;
     label: string;
-    type: "text" | "password" | "url";
+    type: "text" | "password" | "url" | "checkbox";
     placeholder?: string;
     helpText?: string;
     helpLink?: { text: string; url: string };
     configKey: string; // Which key in IntegrationConfig to store the value
     envVar?: string; // Environment variable this field maps to (e.g., "RESEND_API_KEY")
+    defaultValue?: string | boolean;
   }>;
 
   // Testing configuration (lazy-loaded to avoid bundling Node.js packages in client)

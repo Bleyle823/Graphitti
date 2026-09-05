@@ -13,6 +13,7 @@ import { PrivyAppProvider } from "@/components/privy/privy-app-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { LayoutContent } from "@/components/layout-content";
+import { WorkflowExtensionsLoader } from "@/components/workflow/extensions-loader";
 import { mono, sans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,7 @@ const RootLayout = ({ children }: RootLayoutProps) => (
           <PrivyAppProvider>
           <AuthProvider>
             <OverlayProvider>
+              <WorkflowExtensionsLoader />
               <Suspense
                 fallback={
                   <GitHubStarsProvider stars={null}>
