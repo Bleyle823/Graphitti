@@ -142,3 +142,16 @@ export async function getErrorMessageAsync(error: unknown): Promise<string> {
 
   return getErrorMessage(error);
 }
+
+export function resolveFailOnError(failOnError: unknown): boolean {
+  if (failOnError === undefined || failOnError === null || failOnError === "") {
+    return true;
+  }
+  if (typeof failOnError === "boolean") {
+    return failOnError;
+  }
+  if (typeof failOnError === "string") {
+    return failOnError.toLowerCase() !== "false";
+  }
+  return Boolean(failOnError);
+}
