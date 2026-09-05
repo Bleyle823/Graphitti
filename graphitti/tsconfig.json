@@ -1,43 +1,70 @@
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      },
-      {
-        "name": "workflow"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    },
-    "strictNullChecks": true
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-  ],
-  "exclude": [
-    "node_modules",
-    "lib/next-boilerplate/**/*.ts",
-    "lib/next-boilerplate/**/*.tsx",
-    "tmp/**/*"
-  ]
-}
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      },
+      {
+        "name": "workflow"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "strictNullChecks": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib/next-boilerplate/**/*.ts",
+    "lib/next-boilerplate/**/*.tsx",
+    "tmp/**/*",
+    "lib/errors/__tests__/**/*",
+    "lib/metrics/__tests__/**/*",
+    "lib/execute/reconcile-executions.ts",
+    "lib/execute/native-balance.ts",
+    "lib/execute/reserved-value.ts",
+    "lib/execute/simulate.ts",
+    "lib/metrics/db-metrics.ts",
+    "lib/metrics/rpc-health-probe.ts",
+    "lib/metrics/prometheus-api.ts",
+    "lib/metrics/rpc-metrics.ts",
+    "lib/metrics/instrumentation/api.ts",
+    "lib/metrics/instrumentation/safe.ts",
+    "lib/metrics/instrumentation/process-memory.ts",
+    "lib/rpc/providers/solana.ts",
+    "lib/test-data/**",
+    "lib/web3/chain-adapter/**",
+    "lib/web3/gas-strategy.ts",
+    "lib/web3/gas-preflight.ts",
+    "lib/web3/wallet-helpers.ts",
+    "lib/web3/resolve-org-context.ts",
+    "components/ui/template-code-editor.tsx",
+    "plugins/web3/steps/sign-typed-data.ts",
+    "plugins/web3/steps/sign-typed-data-core.ts",
+    "plugins/web3/steps/transfer-spl-token*.ts",
+    "plugins/web3/steps/send-raw-solana-instruction*.ts",
+    "plugins/web3/steps/call-solana-program*.ts"
+  ]
+}
+

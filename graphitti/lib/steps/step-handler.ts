@@ -17,6 +17,9 @@ export type StepContext = {
   nodeId: string;
   nodeName: string;
   nodeType: string;
+  organizationId?: string;
+  workflowId?: string;
+  valueCapReserved?: string;
 };
 
 /**
