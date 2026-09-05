@@ -1,0 +1,10 @@
+---
+title: Privy wallet
+description: Embedded wallets linked to your Better Auth user.
+---
+
+Graphitti keeps Better Auth for the session. Privy holds the embedded EVM wallet.
+
+After **Connect wallet**, Graphitti verifies the Privy access token and upserts `user_wallets` (`privyUserId`, `privyWalletId`, `address`). Settings shows the address and **gasless enabled** when a wallet is linked.
+
+The Privy plugin can also manage users and wallets through REST if you add `PRIVY_APP_ID` and `PRIVY_APP_SECRET` as a connection.

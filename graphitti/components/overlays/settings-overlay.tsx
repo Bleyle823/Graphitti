@@ -20,6 +20,8 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
   // Account state
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [gaslessEnabled, setGaslessEnabled] = useState(false);
 
   const loadAccount = useCallback(async () => {
     try {
@@ -35,6 +37,9 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
     setLoading(true);
     try {
       await loadAccount();
+      const wallet = await api.marketplace.wallet().catch(() => null);
+      setWalletAddress(wallet?.address ?? null);
+      setGaslessEnabled(Boolean(wallet?.gaslessEnabled));
     } finally {
       setLoading(false);
     }
@@ -82,12 +87,23 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
           <Spinner />
         </div>
       ) : (
-        <AccountSettings
-          accountEmail={accountEmail}
-          accountName={accountName}
-          onEmailChange={setAccountEmail}
-          onNameChange={setAccountName}
-        />
+        <div className="space-y-6">
+          <AccountSettings
+            accountEmail={accountEmail}
+            accountName={accountName}
+            onEmailChange={setAccountEmail}
+            onNameChange={setAccountName}
+          />
+          <div className="space-y-2">
+            <p className="font-medium text-sm">Privy wallet</p>
+            <p className="break-all text-muted-foreground text-sm">
+              {walletAddress || "No wallet linked. Use Connect wallet."}
+            </p>
+            {gaslessEnabled ? (
+              <p className="text-muted-foreground text-xs">Gasless enabled</p>
+            ) : null}
+          </div>
+        </div>
       )}
     </Overlay>
   );

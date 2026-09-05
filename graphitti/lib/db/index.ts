@@ -7,10 +7,12 @@ import {
   integrations,
   sessions,
   users,
+  userWallets,
   verifications,
   workflowExecutionLogs,
   workflowExecutions,
   workflowExecutionsRelations,
+  workflowPayments,
   workflows,
 } from "./schema";
 
@@ -21,6 +23,8 @@ const schema = {
   accounts,
   verifications,
   workflows,
+  userWallets,
+  workflowPayments,
   workflowExecutions,
   workflowExecutionLogs,
   workflowExecutionsRelations,

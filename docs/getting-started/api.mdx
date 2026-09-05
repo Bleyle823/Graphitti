@@ -1,0 +1,25 @@
+---
+title: API
+description: Execute your workflows with a wfb_ key.
+---
+
+<Steps>
+  <Step title="Create a key">
+    Open **API Keys** in the user menu and create a `wfb_` key. Graphitti shows the secret once.
+  </Step>
+  <Step title="Execute by id">
+    Call your own workflow:
+
+    ```bash
+    curl -X POST https://<host>/api/workflows/{id}/execute \
+      -H "Authorization: Bearer wfb_..." \
+      -H "Content-Type: application/json" \
+      -d '{"input":{}}'
+    ```
+  </Step>
+  <Step title="Poll status">
+    Use `/api/workflows/executions/{executionId}/status` and `/logs`.
+  </Step>
+</Steps>
+
+Callers of **listed** workflows should use `POST /api/mcp/workflows/{slug}/call` instead of the owner execute route.

@@ -1,0 +1,39 @@
+---
+title: Marketplace
+description: List a workflow, set an Arc USDC price, and keep the node graph private.
+---
+
+Click **Marketplace** in the editor toolbar to list the current workflow.
+
+## Before you list
+
+- Run the workflow successfully at least once.
+- Reference listing inputs from the Manual trigger.
+- Link a Privy wallet if the price is greater than 0.
+
+## What you configure
+
+| Field | Notes |
+|---|---|
+| Slug | Immutable after the first publish |
+| Price | Arc USDC per call. `0` is free |
+| Type | `read` or `write` |
+| Chain | Metadata for callers |
+| Input schema | Public fields only |
+| Output mapping | The only values callers receive |
+
+Soft-delete and unlist drop the workflow from the catalog but keep the slug bound. Reserved slugs: `marketplace`, `api`, `mcp`, `openapi`, `admin`, `hub`.
+
+## How agents call
+
+`GET /api/mcp/workflows` returns public listing fields only. `POST /api/mcp/workflows/{slug}/call` executes the graph.
+
+Paid listings return `402` with `PAYMENT-REQUIRED` for x402 on Arc:
+
+- Network: `eip155:5042002`
+- Asset: `0x3600000000000000000000000000000000000000`
+- Amount: 6-decimal atomic units (`1.00` → `1000000`)
+- `payTo`: your linked Privy address
+- Scheme: `exact`
+
+Do not expect Base (`8453`) fields. Open **Earnings** to see Arc USDC invocations and the optional platform cut.
