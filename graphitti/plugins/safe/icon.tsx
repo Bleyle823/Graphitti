@@ -1,13 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { PLUGIN_BRAND_ASSETS } from "@/lib/brand/assets";
+import { createBrandLogoIcon } from "@/lib/brand/brand-logo";
 
-export function SafeIcon({
-  className,
-  style,
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <ShieldCheck className={`${className}`} strokeWidth={1.5} style={style} />
-  );
-}
+export const SafeIcon = createBrandLogoIcon(PLUGIN_BRAND_ASSETS.safe, "Safe");
