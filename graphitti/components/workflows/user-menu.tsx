@@ -28,8 +28,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
 import { gettingStartedOpenAtom } from "@/lib/ui-store";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 
 export const UserMenu = () => {
+  const hasMounted = useHasMounted();
   const { data: session, isPending } = useSession();
   const { theme, setTheme } = useTheme();
   const { open: openOverlay } = useOverlay();
@@ -57,11 +59,11 @@ export const UserMenu = () => {
 
   const signInInProgress = isSingleProviderSignInInitiated();
 
-  // Don't render anything while session is loading to prevent flash
-  // BUT if sign-in is in progress, keep showing the AuthDialog with loading state
-  if (isPending && !signInInProgress) {
+  // Defer session-dependent Radix UI until after hydration so server/client
+  // trees match and Radix useId counters stay in sync.
+  if (!hasMounted || (isPending && !signInInProgress)) {
     return (
-      <div className="h-9 w-9" /> // Placeholder to maintain layout
+      <div aria-hidden="true" className="h-9 w-9" /> // Placeholder to maintain layout
     );
   }
 
