@@ -18,12 +18,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify workflow ownership
     const workflow = await db.query.workflows.findFirst({
-      where: and(
-        eq(workflows.id, workflowId),
-        eq(workflows.userId, session.user.id)
-      ),
+      where: eq(workflows.id, workflowId),
     });
 
     if (!workflow) {
@@ -31,6 +27,19 @@ export async function GET(
         { error: "Workflow not found" },
         { status: 404 }
       );
+    }
+
+    const isOwner = session.user.id === workflow.userId;
+    if (!isOwner && workflow.visibility !== "public") {
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only owners can view execution history.
+    if (!isOwner) {
+      return NextResponse.json([]);
     }
 
     // Fetch executions
