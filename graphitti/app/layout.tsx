@@ -14,8 +14,13 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { LayoutContent } from "@/components/layout-content";
 import { WorkflowExtensionsLoader } from "@/components/workflow/extensions-loader";
-import { mono, sans } from "@/lib/fonts";
+import { mono } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
+import { Inter, Instrument_Sans } from "next/font/google";
+
+const instrumentSansHeading = Instrument_Sans({subsets:['latin'],variable:'--font-heading'});
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "AI Workflow Builder - Visual Workflow Automation",
@@ -36,8 +41,8 @@ type RootLayoutProps = {
 };
 
 const RootLayout = ({ children }: RootLayoutProps) => (
-  <html lang="en" suppressHydrationWarning>
-    <body className={cn(sans.variable, mono.variable, "antialiased")}>
+  <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable, instrumentSansHeading.variable)}>
+    <body className={cn(inter.variable, instrumentSansHeading.variable, mono.variable, "antialiased")}>
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
