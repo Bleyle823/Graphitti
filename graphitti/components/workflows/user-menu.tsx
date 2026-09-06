@@ -11,6 +11,7 @@ import {
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +28,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
+import { isPrivyConfigured } from "@/lib/privy/client-config";
 import { gettingStartedOpenAtom } from "@/lib/ui-store";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 
 export const UserMenu = () => {
+  const hasMounted = useHasMounted();
   const { data: session, isPending } = useSession();
   const { theme, setTheme } = useTheme();
   const { open: openOverlay } = useOverlay();
@@ -57,11 +61,11 @@ export const UserMenu = () => {
 
   const signInInProgress = isSingleProviderSignInInitiated();
 
-  // Don't render anything while session is loading to prevent flash
-  // BUT if sign-in is in progress, keep showing the AuthDialog with loading state
-  if (isPending && !signInInProgress) {
+  // Defer session-dependent Radix UI until after hydration so server/client
+  // trees match and Radix useId counters stay in sync.
+  if (!hasMounted || (isPending && !signInInProgress)) {
     return (
-      <div className="h-9 w-9" /> // Placeholder to maintain layout
+      <div aria-hidden="true" className="h-9 w-9" /> // Placeholder to maintain layout
     );
   }
 
@@ -72,17 +76,29 @@ export const UserMenu = () => {
     session.user.name === "Anonymous" ||
     session.user.email?.startsWith("temp-");
 
-  // Show Sign In button if user is anonymous or not logged in
+  // Show Connect Wallet if user is anonymous or not logged in
   if (isAnonymous) {
+    if (isPrivyConfigured()) {
+      return (
+        <div className="flex items-center gap-2">
+          <ConnectWalletButton
+            className="h-9 w-auto"
+            compact
+            variant="default"
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center gap-2">
         <AuthDialog>
           <Button
-            className="h-9 disabled:opacity-100 disabled:[&>*]:text-muted-foreground"
+            className="h-9 disabled:opacity-100 disabled:*:text-muted-foreground"
             size="sm"
             variant="default"
           >
-            Sign In
+            Connect Wallet
           </Button>
         </AuthDialog>
       </div>
