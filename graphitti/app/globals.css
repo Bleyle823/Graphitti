@@ -210,3 +210,90 @@
   cursor: grabbing !important;
 }
 
+.react-flow__node:has(.sticky-note-drag-handle) {
+  cursor: default !important;
+}
+
+.react-flow__node:has(.sticky-note-drag-handle) .sticky-note-drag-handle {
+  cursor: grab !important;
+}
+
+.react-flow__node:has(.sticky-note-drag-handle).dragging .sticky-note-drag-handle {
+  cursor: grabbing !important;
+}
+
+.react-flow__node:has(.sticky-note-drag-handle) .react-flow__resize-control.handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--background) !important;
+}
+
+.react-flow__edge {
+  cursor: pointer !important;
+}
+
+/* React Flow handle positioning and styling */
+.react-flow__handle {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid var(--border) !important;
+  border-radius: 9999px !important;
+  background: var(--primary) !important;
+  cursor: crosshair !important;
+  z-index: 20 !important;
+}
+
+/* Invisible hit area for desktop */
+.react-flow__handle::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+/* Invisible hit area for mobile with WCAG minimum target size */
+@media (max-width: 768px) {
+  .react-flow__handle::after {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+.react-flow__handle-left {
+  left: 0 !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__handle-right {
+  right: 0 !important;
+  transform: translate(50%, -50%) !important;
+}
+
+.add-step-connector path {
+  stroke: var(--border);
+  transition: stroke 150ms;
+}
+
+.add-step-button:hover + .add-step-connector path {
+  stroke: var(--primary);
+}
+
+/* Safe area support for mobile devices */
+@supports (height: 100dvh) {
+  html,
+  body {
+    height: 100dvh;
+  }
+}
+
+/* Safe area support for mobile devices */
+@media (max-width: 768px) {
+  .workflow-controls-panel {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem) !important;
+  }
+}

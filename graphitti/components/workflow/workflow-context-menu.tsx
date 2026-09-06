@@ -2,7 +2,7 @@
 
 import type { Edge, Node, XYPosition } from "@xyflow/react";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Link2Off, Plus, Trash2 } from "lucide-react";
+import { Link2Off, Plus, StickyNote, Trash2 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useEffect, useRef } from "react";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
@@ -17,6 +17,7 @@ import {
   selectedNodeAtom,
   type WorkflowNode,
 } from "@/lib/workflow-store";
+import { createStickyNoteNode } from "@/lib/workflow/sticky-note";
 
 export type ContextMenuType = "node" | "edge" | "pane" | null;
 
@@ -106,6 +107,15 @@ export function WorkflowContextMenu({
     onClose();
   }, [menuState, addNode, setSelectedNode, setActiveTab, onClose]);
 
+  const handleAddStickyNote = useCallback(() => {
+    if (menuState?.flowPosition) {
+      const newNode = createStickyNoteNode(menuState.flowPosition);
+      addNode(newNode);
+      setSelectedNode(newNode.id);
+    }
+    onClose();
+  }, [menuState, addNode, setSelectedNode, onClose]);
+
   // Close menu when clicking outside
   useEffect(() => {
     if (!menuState) {
@@ -155,6 +165,9 @@ export function WorkflowContextMenu({
       return "Step";
     }
     const node = nodes.find((n) => n.id === menuState.nodeId);
+    if (node?.type === "note") {
+      return "Sticky note";
+    }
     return node?.data.label || "Step";
   };
 
@@ -187,11 +200,18 @@ export function WorkflowContextMenu({
       )}
 
       {menuState.type === "pane" && (
-        <MenuItem
-          icon={<Plus className="size-4" />}
-          label="Add Step"
-          onClick={handleAddStep}
-        />
+        <>
+          <MenuItem
+            icon={<Plus className="size-4" />}
+            label="Add Step"
+            onClick={handleAddStep}
+          />
+          <MenuItem
+            icon={<StickyNote className="size-4" />}
+            label="Add Sticky Note"
+            onClick={handleAddStickyNote}
+          />
+        </>
       )}
     </div>
   );
