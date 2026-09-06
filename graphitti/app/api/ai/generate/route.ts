@@ -1,5 +1,10 @@
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
+import {
+  createLanguageModel,
+  getAiApiKey,
+  getWorkflowModelId,
+} from "@/lib/ai/provider";
 import { auth } from "@/lib/auth";
 import { generateAIActionPrompts } from "@/plugins";
 
@@ -266,7 +271,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY;
+    const apiKey = getAiApiKey();
 
     if (!apiKey) {
       return NextResponse.json(
@@ -325,7 +330,10 @@ Example: If user says "connect node A to node B", output:
     }
 
     const result = streamText({
-      model: "openai/gpt-5.1-instant",
+      model: createLanguageModel({
+        apiKey,
+        modelId: getWorkflowModelId(),
+      }),
       system: getSystemPrompt(),
       prompt: userPrompt,
     });
