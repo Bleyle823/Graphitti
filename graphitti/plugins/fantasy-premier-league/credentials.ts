@@ -1,1 +1,3 @@
-export type FantasyPremierLeagueCredentials = Record<string, never>;
+export type FantasyPremierLeagueCredentials = {
+  FPL_GRAPHQL_URL?: string;
+};

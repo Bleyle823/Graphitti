@@ -1,15 +1,25 @@
 "use client";
 
 import { useReactFlow } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, MapPin, MapPinXInside } from "lucide-react";
-import { useAtom } from "jotai";
+import { ZoomIn, ZoomOut, Maximize2, MapPin, MapPinXInside, StickyNote } from "lucide-react";
+import { useAtom, useSetAtom } from "jotai";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { showMinimapAtom } from "@/lib/workflow-store";
+import {
+  addNodeAtom,
+  selectedNodeAtom,
+  showMinimapAtom,
+} from "@/lib/workflow-store";
+import {
+  createStickyNoteNode,
+  getFlowViewportCenterPosition,
+} from "@/lib/workflow/sticky-note";
 
 export const Controls = () => {
-  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const { zoomIn, zoomOut, fitView, screenToFlowPosition } = useReactFlow();
   const [showMinimap, setShowMinimap] = useAtom(showMinimapAtom);
+  const addNode = useSetAtom(addNodeAtom);
+  const setSelectedNode = useSetAtom(selectedNodeAtom);
 
   const handleZoomIn = () => {
     zoomIn();
@@ -27,8 +37,24 @@ export const Controls = () => {
     setShowMinimap(!showMinimap);
   };
 
+  const handleAddStickyNote = () => {
+    const position = getFlowViewportCenterPosition(screenToFlowPosition);
+    const newNode = createStickyNoteNode(position);
+    addNode(newNode);
+    setSelectedNode(newNode.id);
+  };
+
   return (
     <ButtonGroup orientation="vertical">
+      <Button
+        className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+        onClick={handleAddStickyNote}
+        size="icon"
+        title="Add sticky note"
+        variant="secondary"
+      >
+        <StickyNote className="size-4" />
+      </Button>
       <Button
         className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
         onClick={handleZoomIn}

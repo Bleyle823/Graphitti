@@ -1,6 +1,6 @@
 "use client";
 
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import {
   Check,
   ChevronDown,
@@ -15,7 +15,8 @@ import {
 import Image from "next/image";
 import type { JSX } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api-client";
+import { api, ApiError } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 import {
   OUTPUT_DISPLAY_CONFIGS,
   type OutputDisplayConfig,
@@ -25,6 +26,7 @@ import { getRelativeTime } from "@/lib/utils/time";
 import {
   currentWorkflowIdAtom,
   executionLogsAtom,
+  isWorkflowOwnerAtom,
   selectedExecutionIdAtom,
 } from "@/lib/workflow-store";
 import { findActionById } from "@/plugins";
@@ -521,6 +523,8 @@ export function WorkflowRuns({
   onStartRun,
 }: WorkflowRunsProps) {
   const [currentWorkflowId] = useAtom(currentWorkflowIdAtom);
+  const isOwner = useAtomValue(isWorkflowOwnerAtom);
+  const { isPending: isSessionPending } = useSession();
   const [selectedExecutionId, setSelectedExecutionId] = useAtom(
     selectedExecutionIdAtom
   );
@@ -536,7 +540,8 @@ export function WorkflowRuns({
 
   const loadExecutions = useCallback(
     async (showLoading = true) => {
-      if (!currentWorkflowId) {
+      if (!currentWorkflowId || isSessionPending || !isOwner) {
+        setExecutions([]);
         setLoading(false);
         return;
       }
@@ -548,7 +553,12 @@ export function WorkflowRuns({
         const data = await api.workflow.getExecutions(currentWorkflowId);
         setExecutions(data as WorkflowExecution[]);
       } catch (error) {
-        console.error("Failed to load executions:", error);
+        if (
+          !(error instanceof ApiError) ||
+          (error.status !== 401 && error.status !== 404)
+        ) {
+          console.error("Failed to load executions:", error);
+        }
         setExecutions([]);
       } finally {
         if (showLoading) {
@@ -556,7 +566,7 @@ export function WorkflowRuns({
         }
       }
     },
-    [currentWorkflowId]
+    [currentWorkflowId, isOwner, isSessionPending]
   );
 
   // Expose refresh function via ref
@@ -692,7 +702,7 @@ export function WorkflowRuns({
 
   // Poll for new executions when tab is active
   useEffect(() => {
-    if (!(isActive && currentWorkflowId)) {
+    if (!(isActive && currentWorkflowId && isOwner && !isSessionPending)) {
       return;
     }
 
@@ -706,13 +716,25 @@ export function WorkflowRuns({
           await refreshExecutionLogs(executionId);
         }
       } catch (error) {
-        console.error("Failed to poll executions:", error);
+        if (
+          !(error instanceof ApiError) ||
+          (error.status !== 401 && error.status !== 404)
+        ) {
+          console.error("Failed to poll executions:", error);
+        }
       }
     };
 
     const interval = setInterval(pollExecutions, 2000);
     return () => clearInterval(interval);
-  }, [isActive, currentWorkflowId, expandedRuns, refreshExecutionLogs]);
+  }, [
+    isActive,
+    currentWorkflowId,
+    expandedRuns,
+    isOwner,
+    isSessionPending,
+    refreshExecutionLogs,
+  ]);
 
   const toggleRun = async (executionId: string) => {
     const newExpanded = new Set(expandedRuns);

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Handle, Position } from "@xyflow/react";
 import type { ComponentProps } from "react";
 import { AnimatedBorder } from "@/components/ui/animated-border";
+import { AddStepButton } from "@/components/workflow/add-step-button";
 
 export type NodeProps = ComponentProps<typeof Card> & {
   handles: {
@@ -18,12 +19,19 @@ export type NodeProps = ComponentProps<typeof Card> & {
     source: boolean;
   };
   status?: "idle" | "running" | "success" | "error";
+  nodeId?: string;
 };
 
-export const Node = ({ handles, className, status, ...props }: NodeProps) => (
+export const Node = ({
+  handles,
+  className,
+  status,
+  nodeId,
+  ...props
+}: NodeProps) => (
   <Card
     className={cn(
-      "node-container relative size-full h-auto w-sm gap-0 rounded-md bg-card p-0 transition-all duration-200",
+      "node-container relative size-full h-auto w-sm gap-0 overflow-visible rounded-md bg-card p-0 transition-all duration-200",
       status === "success" && "border-green-500 border-2",
       status === "error" && "border-red-500 border-2",
       className
@@ -33,6 +41,7 @@ export const Node = ({ handles, className, status, ...props }: NodeProps) => (
     {status === "running" && <AnimatedBorder />}
     {handles.target && <Handle position={Position.Left} type="target" />}
     {handles.source && <Handle position={Position.Right} type="source" />}
+    {handles.source && nodeId && <AddStepButton sourceNodeId={nodeId} />}
     {props.children}
   </Card>
 );

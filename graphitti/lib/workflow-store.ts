@@ -3,7 +3,7 @@ import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import { atom } from "jotai";
 import { api } from "./api-client";
 
-export type WorkflowNodeType = "trigger" | "action" | "add";
+export type WorkflowNodeType = "trigger" | "action" | "add" | "note";
 
 export type WorkflowNodeData = {
   label: string;
@@ -168,6 +168,14 @@ export const onNodesChangeAtom = atom(
     );
     if (hadPositionChanges) {
       set(autosaveAtom); // Debounced save
+    }
+
+    const hadDimensionChanges = filteredChanges.some(
+      (change) => change.type === "dimensions"
+    );
+    if (hadDimensionChanges) {
+      set(hasUnsavedChangesAtom, true);
+      set(autosaveAtom);
     }
   }
 );

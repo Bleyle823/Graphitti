@@ -14,6 +14,7 @@
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  */
 
+import "./protocol";
 import "./ai-gateway";
 import "./arc";
 import "./blob";
@@ -32,7 +33,6 @@ import "./linear";
 import "./math";
 import "./perplexity";
 import "./privy";
-import "./protocol";
 import "./resend";
 import "./safe";
 import "./sendgrid";
