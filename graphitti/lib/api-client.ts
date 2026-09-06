@@ -73,6 +73,34 @@ export class ApiError extends Error {
 }
 
 // Helper function to make API calls
+async function parseErrorResponse(response: Response): Promise<string> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  try {
+    if (contentType.includes("application/json")) {
+      const body = (await response.json()) as {
+        error?: unknown;
+        message?: unknown;
+      };
+      if (typeof body.error === "string") {
+        return body.error;
+      }
+      if (typeof body.message === "string") {
+        return body.message;
+      }
+    } else {
+      const text = (await response.text()).trim();
+      if (text) {
+        return text.slice(0, 200);
+      }
+    }
+  } catch {
+    // Fall through to status-based message below.
+  }
+
+  return response.statusText || `HTTP ${response.status}`;
+}
+
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(endpoint, {
     ...options,
@@ -83,10 +111,8 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ error: "Unknown error" }));
-    throw new ApiError(response.status, error.error || "Request failed");
+    const message = await parseErrorResponse(response);
+    throw new ApiError(response.status, message);
   }
 
   return response.json();
