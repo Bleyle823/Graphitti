@@ -1,3 +1,4 @@
+import "@/protocols";
 import type { IntegrationType } from "@/lib/types/integration";
 import { getIntegration } from "@/plugins/registry";
 
@@ -257,7 +258,7 @@ const getTradesAction = {
 const cowswapProtocol = getIntegration("cowswap" as IntegrationType);
 if (!cowswapProtocol) {
   throw new Error(
-    '[cowswap plugin] "cowswap" integration not found in registry. Ensure keeperhub/protocols is imported before keeperhub/plugins/cowswap.'
+    '[cowswap plugin] "cowswap" integration not found in registry. Ensure @/protocols is imported before plugins/cowswap.'
   );
 }
 

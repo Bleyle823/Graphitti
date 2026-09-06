@@ -236,7 +236,12 @@ function discoverPlugins(): string[] {
  * Generate the plugins/index.ts file
  */
 function generateIndexFile(plugins: string[]): void {
-  const imports = plugins.map((plugin) => `import "./${plugin}";`).join("\n");
+  const sorted = [...plugins].sort();
+  const ordered = [
+    ...sorted.filter((plugin) => plugin === "protocol"),
+    ...sorted.filter((plugin) => plugin !== "protocol"),
+  ];
+  const imports = ordered.map((plugin) => `import "./${plugin}";`).join("\n");
 
   const content = `/**
  * Plugins Index (Auto-Generated)
