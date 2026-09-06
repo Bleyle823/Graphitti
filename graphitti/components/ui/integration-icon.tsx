@@ -2,6 +2,8 @@
 
 import { Database, HelpCircle } from "lucide-react";
 import type { IntegrationType } from "@/lib/types/integration";
+import { getPluginBrandAsset } from "@/lib/brand/assets";
+import { BrandLogo } from "@/lib/brand/brand-logo";
 import { cn } from "@/lib/utils";
 import { getIntegration } from "@/plugins";
 
@@ -39,6 +41,17 @@ export function IntegrationIcon({
   integration,
   className = "h-3 w-3",
 }: IntegrationIconProps) {
+  const brandAsset = getPluginBrandAsset(integration);
+  if (brandAsset) {
+    return (
+      <BrandLogo
+        alt={integration}
+        asset={brandAsset}
+        className={cn("text-foreground", className)}
+      />
+    );
+  }
+
   // Check for special icons first (integrations without plugins)
   const SpecialIcon = SPECIAL_ICONS[integration];
   if (SpecialIcon) {

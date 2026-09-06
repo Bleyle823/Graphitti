@@ -1,5 +1,7 @@
-import { Mail } from "lucide-react";
+import { PLUGIN_BRAND_ASSETS } from "@/lib/brand/assets";
+import { createBrandLogoIcon } from "@/lib/brand/brand-logo";
 
-export function SendGridIcon({ className }: { className?: string }) {
-  return <Mail className={className} />;
-}
+export const SendGridIcon = createBrandLogoIcon(
+  PLUGIN_BRAND_ASSETS.sendgrid,
+  "SendGrid"
+);

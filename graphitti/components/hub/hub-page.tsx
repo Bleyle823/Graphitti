@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type MarketplaceListing } from "@/lib/api-client";
 import { getAllIntegrations } from "@/plugins";
@@ -154,7 +155,6 @@ export function HubPage(): React.ReactElement {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredIntegrations.map((plugin) => {
-                  const Icon = plugin.icon;
                   return (
                     <button
                       className="rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50"
@@ -163,7 +163,10 @@ export function HubPage(): React.ReactElement {
                       type="button"
                     >
                       <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-muted">
-                        <Icon className="size-5" />
+                        <IntegrationIcon
+                          className="size-5"
+                          integration={plugin.type}
+                        />
                       </div>
                       <p className="font-medium text-sm">{plugin.label}</p>
                       <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
