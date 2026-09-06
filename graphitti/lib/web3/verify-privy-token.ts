@@ -34,11 +34,43 @@ export async function verifyPrivyAccessToken(token: string): Promise<{
   }
 }
 
+function isPrivyEmbeddedLinkedAccount(account: {
+  type: string;
+  address?: string;
+  chain_type?: string;
+  wallet_client_type?: string;
+  connector_type?: string;
+}): boolean {
+  if (account.type !== "wallet" || !account.address) {
+    return false;
+  }
+
+  const isPrivyClient =
+    !account.wallet_client_type || account.wallet_client_type === "privy";
+  const isEmbedded =
+    !account.connector_type || account.connector_type === "embedded";
+  const isEthereum =
+    !account.chain_type || account.chain_type === "ethereum";
+
+  return isPrivyClient && isEmbedded && isEthereum;
+}
+
 export function pickEmbeddedWallet(user?: PrivyUser): {
   walletId: string;
   address: string;
   chainType: string;
 } | null {
+  // Prefer explicitly tagged Privy embedded linked accounts.
+  const embeddedLinked = user?.linked_accounts?.find(isPrivyEmbeddedLinkedAccount);
+  if (embeddedLinked?.address) {
+    return {
+      walletId: embeddedLinked.id || embeddedLinked.address,
+      address: embeddedLinked.address,
+      chainType: embeddedLinked.chain_type || "ethereum",
+    };
+  }
+
+  // Privy user wallets array is typically embedded wallets for the user.
   const fromWallets = user?.wallets?.[0];
   if (fromWallets?.id && fromWallets.address) {
     return {
@@ -48,6 +80,7 @@ export function pickEmbeddedWallet(user?: PrivyUser): {
     };
   }
 
+  // Last resort: any wallet-shaped linked account with an address.
   const linked = user?.linked_accounts?.find(
     (account) => account.type === "wallet" && account.address
   );
