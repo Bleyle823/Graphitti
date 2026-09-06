@@ -1,38 +1,70 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import { useEffect, useState } from "react";
+import type { ComponentProps } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import { isPrivyConfigured } from "@/lib/privy/client-config";
 import { PrivyIcon } from "@/plugins/privy/icon";
 
 type ConnectWalletButtonProps = {
   compact?: boolean;
+  className?: string;
+  variant?: ComponentProps<typeof Button>["variant"];
 };
 
-export function ConnectWalletButton({ compact }: ConnectWalletButtonProps) {
-  if (!process.env.NEXT_PUBLIC_PRIVY_APP_ID) {
+export function ConnectWalletButton({
+  compact,
+  className,
+  variant = "outline",
+}: ConnectWalletButtonProps) {
+  if (!isPrivyConfigured()) {
     return null;
   }
-  return <ConnectWalletButtonInner compact={compact} />;
+
+  return (
+    <ConnectWalletButtonInner
+      className={className}
+      compact={compact}
+      variant={variant}
+    />
+  );
 }
 
-function ConnectWalletButtonInner({ compact }: ConnectWalletButtonProps) {
-  const { login, authenticated, user, getAccessToken, ready } = usePrivy();
+function ConnectWalletButtonInner({
+  compact,
+  className,
+  variant = "outline",
+}: ConnectWalletButtonProps) {
+  const { connectOrCreateWallet, authenticated, user, getAccessToken, ready } =
+    usePrivy();
   const [linking, setLinking] = useState(false);
+
+  const ensureAppSession = useCallback(async () => {
+    const session = await authClient.getSession();
+    if (!session.data?.user) {
+      await authClient.signIn.anonymous();
+    }
+  }, []);
 
   useEffect(() => {
     if (!authenticated || !user) {
       return;
     }
+
     const link = async () => {
       try {
         setLinking(true);
+        await ensureAppSession();
+
         const token = await getAccessToken();
         if (!token) {
           return;
         }
-        await fetch("/api/privy/link-wallet", {
+
+        const response = await fetch("/api/privy/link-wallet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -42,29 +74,50 @@ function ConnectWalletButtonInner({ compact }: ConnectWalletButtonProps) {
             privyUserId: user.id,
           }),
         });
-      } catch {
-        toast.error("Could not link wallet");
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(payload.error || "Failed to link wallet");
+        }
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not link wallet"
+        );
       } finally {
         setLinking(false);
       }
     };
+
     link();
-  }, [authenticated, user, getAccessToken]);
+  }, [authenticated, user, getAccessToken, ensureAppSession]);
+
+  const handleConnect = async () => {
+    try {
+      await ensureAppSession();
+      connectOrCreateWallet();
+    } catch {
+      toast.error("Could not start wallet connection");
+    }
+  };
 
   const label = authenticated
     ? linking
       ? "Linking wallet..."
       : "Wallet connected"
-    : "Connect wallet";
+    : "Connect Wallet";
 
   return (
     <Button
-      className="w-full"
+      className={className ?? "w-full"}
       disabled={!ready || linking || authenticated}
-      onClick={() => login()}
+      onClick={() => {
+        void handleConnect();
+      }}
       size={compact ? "sm" : "default"}
       type="button"
-      variant="outline"
+      variant={variant}
     >
       <PrivyIcon className="mr-2 size-4" />
       {label}
