@@ -20,6 +20,7 @@ import {
   NodeTitle,
 } from "@/components/ai-elements/node";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { IntegrationIcon } from "@/components/ui/integration-icon";
 import {
   integrationIdsAtom,
   integrationsLoadedAtom,
@@ -138,12 +139,13 @@ const getProviderLogo = (actionType: string) => {
 
   // Look up action in plugin registry and get the integration icon
   const action = findActionById(actionType);
-  if (action) {
-    const plugin = getIntegration(action.integration);
-    if (plugin?.icon) {
-      const PluginIcon = plugin.icon;
-      return <PluginIcon className="size-12" />;
-    }
+  if (action?.integration) {
+    return (
+      <IntegrationIcon
+        className="size-12"
+        integration={action.integration}
+      />
+    );
   }
 
   // Fallback for unknown actions
@@ -275,6 +277,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
         )}
         data-testid={`action-node-${id}`}
         handles={{ target: true, source: true }}
+        nodeId={id}
         status={status}
       >
         {isDisabled && (
@@ -345,6 +348,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
       )}
       data-testid={`action-node-${id}`}
       handles={{ target: true, source: true }}
+      nodeId={id}
       status={status}
     >
       {/* Disabled badge in top left */}

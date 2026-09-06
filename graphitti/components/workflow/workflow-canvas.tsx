@@ -17,7 +17,6 @@ import { Canvas } from "@/components/ai-elements/canvas";
 import { Connection } from "@/components/ai-elements/connection";
 import { Controls } from "@/components/ai-elements/controls";
 import { AIPrompt } from "@/components/ai-elements/prompt";
-import { WorkflowToolbar } from "@/components/workflow/workflow-toolbar";
 import "@xyflow/react/dist/style.css";
 
 import { PlayCircle, Zap } from "lucide-react";
@@ -46,7 +45,13 @@ import { Edge } from "../ai-elements/edge";
 import { Panel } from "../ai-elements/panel";
 import { ActionNode } from "./nodes/action-node";
 import { AddNode } from "./nodes/add-node";
+import { StickyNoteNode } from "./nodes/sticky-note-node";
 import { TriggerNode } from "./nodes/trigger-node";
+import {
+  STICKY_NOTE_DRAG_HANDLE,
+  STICKY_NOTE_HEIGHT,
+  STICKY_NOTE_WIDTH,
+} from "@/lib/workflow/sticky-note";
 import {
   type ContextMenuState,
   useContextMenuHandlers,
@@ -224,8 +229,24 @@ export function WorkflowCanvas() {
       trigger: TriggerNode,
       action: ActionNode,
       add: AddNode,
+      note: StickyNoteNode,
     }),
     []
+  );
+
+  const flowNodes = useMemo(
+    () =>
+      nodes.map((node) =>
+        node.type === "note"
+          ? {
+              ...node,
+              dragHandle: STICKY_NOTE_DRAG_HANDLE,
+              width: node.width ?? STICKY_NOTE_WIDTH,
+              height: node.height ?? STICKY_NOTE_HEIGHT,
+            }
+          : node
+      ),
+    [nodes]
   );
 
   const nodeHasHandle = useCallback(
@@ -236,7 +257,7 @@ export function WorkflowCanvas() {
         return false;
       }
 
-      if (node.type === "add") {
+      if (node.type === "add" || node.type === "note") {
         return false;
       }
 
@@ -261,12 +282,24 @@ export function WorkflowCanvas() {
         return false;
       }
 
+      const sourceNode = nodes.find((node) => node.id === connection.source);
+      const targetNode = nodes.find((node) => node.id === connection.target);
+
+      if (
+        sourceNode?.type === "note" ||
+        targetNode?.type === "note" ||
+        sourceNode?.type === "add" ||
+        targetNode?.type === "add"
+      ) {
+        return false;
+      }
+
       // Ensure connection is from source handle to target handle
       // sourceHandle should be defined if connecting from a specific handle
       // targetHandle should be defined if connecting to a specific handle
       return true;
     },
-    []
+    [nodes]
   );
 
   const onConnect: OnConnect = useCallback(
@@ -532,11 +565,6 @@ export function WorkflowCanvas() {
           : "opacity 300ms",
       }}
     >
-      {/* Toolbar */}
-      <div className="pointer-events-auto">
-        <WorkflowToolbar workflowId={currentWorkflowId ?? undefined} />
-      </div>
-
       {/* React Flow Canvas */}
       <Canvas
         className="bg-background"
@@ -546,7 +574,7 @@ export function WorkflowCanvas() {
         edgeTypes={edgeTypes}
         elementsSelectable={!isGenerating}
         isValidConnection={isValidConnection}
-        nodes={nodes}
+        nodes={flowNodes}
         nodesConnectable={!isGenerating}
         nodesDraggable={!isGenerating}
         nodeTypes={nodeTypes}

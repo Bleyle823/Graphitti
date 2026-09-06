@@ -16,6 +16,7 @@ import {
   Save,
   Settings2,
   Store,
+  StickyNote,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
   DropdownMenu,
@@ -50,11 +52,14 @@ import {
   hasUnsavedChangesAtom,
   isExecutingAtom,
   isGeneratingAtom,
+  isPanelAnimatingAtom,
   isSavingAtom,
+  isSidebarCollapsedAtom,
   isWorkflowOwnerAtom,
   nodesAtom,
   propertiesPanelActiveTabAtom,
   redoAtom,
+  rightPanelWidthAtom,
   selectedEdgeAtom,
   selectedExecutionIdAtom,
   selectedNodeAtom,
@@ -72,9 +77,10 @@ import {
 } from "@/plugins";
 import type { ActionConfigFieldBase } from "@/plugins/registry";
 import { evaluateShowWhen } from "@/lib/workflow/show-when";
-import { Panel } from "../ai-elements/panel";
-import { DeployButton } from "../deploy-button";
-import { GitHubStarsButton } from "../github-stars-button";
+import {
+  createStickyNoteNode,
+  getFlowViewportCenterPosition,
+} from "@/lib/workflow/sticky-note";
 import { ConfigurationOverlay } from "../overlays/configuration-overlay";
 import { ListingOverlay } from "../overlays/listing-overlay";
 import { ConfirmOverlay } from "../overlays/confirm-overlay";
@@ -1060,6 +1066,13 @@ function ToolbarActions({
     state.setActiveTab("properties");
   };
 
+  const handleAddStickyNote = () => {
+    const position = getFlowViewportCenterPosition(screenToFlowPosition);
+    const newNode = createStickyNoteNode(position);
+    state.addNode(newNode);
+    state.setSelectedNodeId(newNode.id);
+  };
+
   return (
     <>
       {/* Add Step - Mobile Vertical */}
@@ -1073,6 +1086,16 @@ function ToolbarActions({
           variant="secondary"
         >
           <Plus className="size-4" />
+        </Button>
+        <Button
+          className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+          disabled={state.isGenerating}
+          onClick={handleAddStickyNote}
+          size="icon"
+          title="Add Sticky Note"
+          variant="secondary"
+        >
+          <StickyNote className="size-4" />
         </Button>
       </ButtonGroup>
 
@@ -1112,6 +1135,16 @@ function ToolbarActions({
           variant="secondary"
         >
           <Plus className="size-4" />
+        </Button>
+        <Button
+          className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+          disabled={state.isGenerating}
+          onClick={handleAddStickyNote}
+          size="icon"
+          title="Add Sticky Note"
+          variant="secondary"
+        >
+          <StickyNote className="size-4" />
         </Button>
       </ButtonGroup>
 
@@ -1392,57 +1425,67 @@ function WorkflowMenuComponent({
   state: ReturnType<typeof useWorkflowState>;
   actions: ReturnType<typeof useWorkflowActions>;
 }) {
+  const hasMounted = useHasMounted();
+
+  const menuLabel = workflowId ? (
+    state.workflowName
+  ) : (
+    <>
+      <span className="sm:hidden">New</span>
+      <span className="hidden sm:inline">New Workflow</span>
+    </>
+  );
+
+  const menuTrigger = (
+    <div className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5">
+      <WorkflowIcon className="size-4 shrink-0" />
+      <p className="truncate font-medium text-sm">{menuLabel}</p>
+      <ChevronDown className="size-3 shrink-0 opacity-50" />
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-1">
       <div className="flex h-9 max-w-[160px] items-center overflow-hidden rounded-md border bg-secondary text-secondary-foreground sm:max-w-none">
-        <DropdownMenu onOpenChange={(open) => open && actions.loadWorkflows()}>
-          <DropdownMenuTrigger className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5">
-            <WorkflowIcon className="size-4 shrink-0" />
-            <p className="truncate font-medium text-sm">
-              {workflowId ? (
-                state.workflowName
+        {hasMounted ? (
+          <DropdownMenu onOpenChange={(open) => open && actions.loadWorkflows()}>
+            <DropdownMenuTrigger asChild>{menuTrigger}</DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuItem
+                asChild
+                className="flex items-center justify-between"
+              >
+                <a href="/">
+                  New Workflow{" "}
+                  {!workflowId && <Check className="size-4 shrink-0" />}
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {state.allWorkflows.length === 0 ? (
+                <DropdownMenuItem disabled>No workflows found</DropdownMenuItem>
               ) : (
-                <>
-                  <span className="sm:hidden">New</span>
-                  <span className="hidden sm:inline">New Workflow</span>
-                </>
+                state.allWorkflows
+                  .filter((w) => w.name !== "__current__")
+                  .map((workflow) => (
+                    <DropdownMenuItem
+                      className="flex items-center justify-between"
+                      key={workflow.id}
+                      onClick={() =>
+                        state.router.push(`/workflows/${workflow.id}`)
+                      }
+                    >
+                      <span className="truncate">{workflow.name}</span>
+                      {workflow.id === state.currentWorkflowId && (
+                        <Check className="size-4 shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  ))
               )}
-            </p>
-            <ChevronDown className="size-3 shrink-0 opacity-50" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuItem
-              asChild
-              className="flex items-center justify-between"
-            >
-              <a href="/">
-                New Workflow{" "}
-                {!workflowId && <Check className="size-4 shrink-0" />}
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {state.allWorkflows.length === 0 ? (
-              <DropdownMenuItem disabled>No workflows found</DropdownMenuItem>
-            ) : (
-              state.allWorkflows
-                .filter((w) => w.name !== "__current__")
-                .map((workflow) => (
-                  <DropdownMenuItem
-                    className="flex items-center justify-between"
-                    key={workflow.id}
-                    onClick={() =>
-                      state.router.push(`/workflows/${workflow.id}`)
-                    }
-                  >
-                    <span className="truncate">{workflow.name}</span>
-                    {workflow.id === state.currentWorkflowId && (
-                      <Check className="size-4 shrink-0" />
-                    )}
-                  </DropdownMenuItem>
-                ))
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          menuTrigger
+        )}
       </div>
       {workflowId && !state.isOwner && (
         <span className="text-muted-foreground text-xs uppercase lg:hidden">
@@ -1456,48 +1499,60 @@ function WorkflowMenuComponent({
 export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
   const state = useWorkflowState();
   const actions = useWorkflowActions(state);
+  const rightPanelWidth = useAtomValue(rightPanelWidthAtom);
+  const panelCollapsed = useAtomValue(isSidebarCollapsedAtom);
+  const isPanelAnimating = useAtomValue(isPanelAnimatingAtom);
+
+  const effectiveWorkflowId =
+    workflowId ?? state.currentWorkflowId ?? undefined;
+
+  const actionsRightOffset =
+    !panelCollapsed && rightPanelWidth
+      ? `calc(${rightPanelWidth} + 16px)`
+      : "16px";
 
   return (
     <>
-      <Panel
-        className="flex flex-col gap-2 rounded-none border-none bg-transparent p-0 lg:flex-row lg:items-center"
-        position="top-left"
+      <div
+        className="pointer-events-auto fixed top-[calc(var(--header-height)+12px)] left-[calc(var(--nav-content-offset,var(--nav-sidebar-width,200px))+12px)] z-40 max-md:left-3"
       >
         <div className="flex items-center gap-2">
           <WorkflowMenuComponent
             actions={actions}
             state={state}
-            workflowId={workflowId}
+            workflowId={effectiveWorkflowId}
           />
-          {workflowId && !state.isOwner && (
+          {effectiveWorkflowId && !state.isOwner && (
             <span className="hidden text-muted-foreground text-xs uppercase lg:inline">
               Read-only
             </span>
           )}
         </div>
-      </Panel>
+      </div>
 
-      <div className="pointer-events-auto absolute top-4 right-4 z-10">
+      <div
+        className="pointer-events-auto fixed top-[calc(var(--header-height)+12px)] z-40 flex flex-col-reverse items-end gap-2 lg:flex-row lg:items-center"
+        style={{
+          right: actionsRightOffset,
+          transition: isPanelAnimating
+            ? "right 300ms ease-out"
+            : undefined,
+        }}
+      >
         <div className="flex flex-col-reverse items-end gap-2 lg:flex-row lg:items-center">
           <ToolbarActions
             actions={actions}
             state={state}
-            workflowId={workflowId}
+            workflowId={effectiveWorkflowId}
           />
-          <div className="flex items-center gap-2">
-            {!workflowId && (
-              <>
-                <GitHubStarsButton />
-                <DeployButton />
-              </>
-            )}
-            {workflowId && !state.isOwner && (
+          {effectiveWorkflowId && !state.isOwner && (
+            <div className="flex items-center gap-2">
               <DuplicateButton
                 isDuplicating={state.isDuplicating}
                 onDuplicate={actions.handleDuplicate}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </>

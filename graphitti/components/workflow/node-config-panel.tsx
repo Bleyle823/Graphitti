@@ -52,6 +52,7 @@ import { findActionById } from "@/plugins";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { ActionConfig } from "./config/action-config";
 import { ActionGrid } from "./config/action-grid";
+import { NoteConfig } from "./config/note-config";
 
 import { TriggerConfig } from "./config/trigger-config";
 import { generateNodeCode } from "./utils/code-generators";
@@ -402,7 +403,7 @@ export const PanelInner = () => {
     [updateNodeData, setPendingIntegrationNodes]
   );
 
-  const handleUpdateConfig = (key: string, value: string) => {
+  const handleUpdateConfig = (key: string, value: unknown) => {
     if (selectedNode) {
       let newConfig = { ...selectedNode.data.config, [key]: value };
 
@@ -414,7 +415,7 @@ export const PanelInner = () => {
       updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
 
       // When action type changes, auto-select integration if only one exists
-      if (key === "actionType") {
+      if (key === "actionType" && typeof value === "string") {
         // Cancel any pending auto-select operation for this node
         const existingController =
           autoSelectAbortControllersRef.current[selectedNode.id];
@@ -561,18 +562,14 @@ export const PanelInner = () => {
           onValueChange={setActiveTab}
           value={activeTab}
         >
-          <TabsList className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5">
+          <TabsList
+            className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5"
+          >
             <TabsTrigger
               className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
               value="properties"
             >
               Properties
-            </TabsTrigger>
-            <TabsTrigger
-              className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              value="code"
-            >
-              Code
             </TabsTrigger>
             {isOwner && (
               <TabsTrigger
@@ -582,6 +579,12 @@ export const PanelInner = () => {
                 Runs
               </TabsTrigger>
             )}
+            <TabsTrigger
+              className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              value="code"
+            >
+              Code
+            </TabsTrigger>
           </TabsList>
           <TabsContent
             className="flex flex-col overflow-hidden"
@@ -746,6 +749,55 @@ export const PanelInner = () => {
     );
   }
 
+  if (selectedNode.data.type === "note") {
+    return (
+      <>
+        <div className="flex size-full flex-col">
+          <div className="flex h-14 shrink-0 items-center border-b px-4 font-medium text-sm">
+            Sticky Note
+          </div>
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            <NoteConfig
+              config={selectedNode.data.config || {}}
+              disabled={isGenerating || !isOwner}
+              onUpdateConfig={handleUpdateConfig}
+            />
+            {isOwner && (
+              <Button
+                className="text-muted-foreground"
+                onClick={() => setShowDeleteNodeAlert(true)}
+                size="sm"
+                variant="ghost"
+              >
+                <Trash2 className="mr-2 size-4" />
+                Delete
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <AlertDialog
+          onOpenChange={setShowDeleteNodeAlert}
+          open={showDeleteNodeAlert}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Sticky Note</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this sticky note? This action
+                cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
   return (
     <>
       <Tabs
@@ -755,13 +807,23 @@ export const PanelInner = () => {
         onValueChange={setActiveTab}
         value={activeTab}
       >
-        <TabsList className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5">
+        <TabsList
+          className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5"
+        >
           <TabsTrigger
             className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
             value="properties"
           >
             Properties
           </TabsTrigger>
+          {isOwner && (
+            <TabsTrigger
+              className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              value="runs"
+            >
+              Runs
+            </TabsTrigger>
+          )}
           {(selectedNode.data.type !== "trigger" ||
             (selectedNode.data.config?.triggerType as string) !== "Manual") &&
           selectedNode.data.config?.actionType !== "Condition" ? (
@@ -772,14 +834,6 @@ export const PanelInner = () => {
               Code
             </TabsTrigger>
           ) : null}
-          {isOwner && (
-            <TabsTrigger
-              className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              value="runs"
-            >
-              Runs
-            </TabsTrigger>
-          )}
         </TabsList>
         <TabsContent
           className="flex flex-col overflow-hidden"
