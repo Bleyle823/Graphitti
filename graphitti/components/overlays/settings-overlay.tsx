@@ -22,6 +22,8 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
   const [accountEmail, setAccountEmail] = useState("");
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [gaslessEnabled, setGaslessEnabled] = useState(false);
+  const [gasMode, setGasMode] = useState<string | null>(null);
+  const [gasAsset, setGasAsset] = useState<string | null>(null);
 
   const loadAccount = useCallback(async () => {
     try {
@@ -40,6 +42,8 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
       const wallet = await api.marketplace.wallet().catch(() => null);
       setWalletAddress(wallet?.address ?? null);
       setGaslessEnabled(Boolean(wallet?.gaslessEnabled));
+      setGasMode(wallet?.gasMode ?? null);
+      setGasAsset(wallet?.gasAsset ?? null);
     } finally {
       setLoading(false);
     }
@@ -100,7 +104,13 @@ export function SettingsOverlay({ overlayId }: SettingsOverlayProps) {
               {walletAddress || "No wallet linked. Use Connect wallet."}
             </p>
             {gaslessEnabled ? (
-              <p className="text-muted-foreground text-xs">Gasless enabled</p>
+              <p className="text-muted-foreground text-xs">
+                {gasMode === "user-pays"
+                  ? `Gasless ETH — wallet pays gas in ${(gasAsset || "usdc").toUpperCase()}`
+                  : gasMode === "app-pays"
+                    ? "Gasless — app credits cover gas"
+                    : "Gasless enabled"}
+              </p>
             ) : null}
           </div>
         </div>

@@ -8,14 +8,18 @@ export type PrivyWallet = {
   chain_type: string;
 };
 
+export type PrivyLinkedAccount = {
+  type: string;
+  address?: string;
+  chain_type?: string;
+  id?: string;
+  wallet_client_type?: string;
+  connector_type?: string;
+};
+
 export type PrivyUser = {
   id: string;
-  linked_accounts?: Array<{
-    type: string;
-    address?: string;
-    chain_type?: string;
-    id?: string;
-  }>;
+  linked_accounts?: PrivyLinkedAccount[];
   wallets?: PrivyWallet[];
 };
 

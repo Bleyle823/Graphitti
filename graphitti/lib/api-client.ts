@@ -757,6 +757,8 @@ export const marketplaceApi = {
       address: string | null;
       privyWalletId: string | null;
       gaslessEnabled: boolean;
+      gasMode?: "user-pays" | "app-pays";
+      gasAsset?: string;
     }>("/api/privy/wallet"),
 };
 

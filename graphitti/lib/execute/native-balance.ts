@@ -1,6 +1,6 @@
 import "server-only";
 
-/** Stub: Graphitti uses Privy-sponsored txs; native balance preflight deferred. */
+/** Stub: Graphitti uses Privy gas (user-pays USDC or app-pays credits); native ETH preflight deferred. */
 export async function getNativeBalanceForAddress(
   _chainId: number,
   _address: string

@@ -36,6 +36,8 @@ export type WriteContractResult =
       chainId?: number;
       transactionLink?: string;
       sponsored?: boolean;
+      gasMode?: string;
+      gasAsset?: string;
       result?: unknown;
       error?: string;
     }
@@ -179,7 +181,7 @@ export async function writeContractCore(
 
   try {
     const chain = requireChain(network);
-    const { hash } = await sendSponsoredTransaction({
+    const sent = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
       to: contractAddress,
@@ -189,10 +191,12 @@ export async function writeContractCore(
 
     return {
       success: true,
-      transactionHash: hash,
+      transactionHash: sent.hash,
       chainId: chain.chainId,
-      transactionLink: `${chain.explorerUrl}/tx/${hash}`,
-      sponsored: true,
+      transactionLink: `${chain.explorerUrl}/tx/${sent.hash}`,
+      sponsored: sent.sponsored,
+      gasMode: sent.gasMode,
+      gasAsset: sent.gasAsset,
     };
   } catch (error) {
     return {

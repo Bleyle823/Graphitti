@@ -16,6 +16,8 @@ export function WalletOverlay({ overlayId }: WalletOverlayProps) {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState<string | null>(null);
   const [gaslessEnabled, setGaslessEnabled] = useState(false);
+  const [gasMode, setGasMode] = useState<string | null>(null);
+  const [gasAsset, setGasAsset] = useState<string | null>(null);
 
   useEffect(() => {
     api.marketplace
@@ -23,6 +25,8 @@ export function WalletOverlay({ overlayId }: WalletOverlayProps) {
       .then((wallet) => {
         setAddress(wallet.address);
         setGaslessEnabled(wallet.gaslessEnabled);
+        setGasMode(wallet.gasMode ?? null);
+        setGasAsset(wallet.gasAsset ?? null);
       })
       .catch(() => {
         setAddress(null);
@@ -57,7 +61,13 @@ export function WalletOverlay({ overlayId }: WalletOverlayProps) {
             </p>
           </div>
           {gaslessEnabled ? (
-            <p className="text-muted-foreground text-xs">Gasless sends are enabled.</p>
+            <p className="text-muted-foreground text-xs">
+              {gasMode === "user-pays"
+                ? `Gasless ETH enabled — wallet pays gas in ${(gasAsset || "usdc").toUpperCase()}.`
+                : gasMode === "app-pays"
+                  ? "Gasless sends enabled — app credits cover gas."
+                  : "Gasless sends are enabled."}
+            </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
             {address ? (
