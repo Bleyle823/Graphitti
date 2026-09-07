@@ -23,6 +23,7 @@ export const GRAPH_X402_HOSTS = [
 export const TOKEN_ADDRESSES = {
   USDC: {
     ethereum: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    sepolia: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     arbitrum: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     optimism: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
@@ -37,6 +38,7 @@ export const TOKEN_ADDRESSES = {
 
 export const CCTP_DOMAINS: Record<string, number> = {
   ethereum: 0,
+  sepolia: 0,
   base: 6,
   arbitrum: 3,
   optimism: 2,

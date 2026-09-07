@@ -84,6 +84,7 @@ export const CHAINS: Record<string, SupportedChain> = {
     explorerUrl: "https://sepolia.etherscan.io",
     nativeSymbol: "ETH",
     nativeDecimals: 18,
+    cctpDomain: 0,
   },
 };
 
