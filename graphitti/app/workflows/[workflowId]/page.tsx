@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NodeConfigPanel } from "@/components/workflow/node-config-panel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { api } from "@/lib/api-client";
+import { ApiError, api } from "@/lib/api-client";
 import {
   integrationsAtom,
   integrationsLoadedAtom,
@@ -111,7 +111,9 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
   const [nodes] = useAtom(nodesAtom);
   const [edges] = useAtom(edgesAtom);
   const [currentWorkflowId] = useAtom(currentWorkflowIdAtom);
-  const [selectedExecutionId] = useAtom(selectedExecutionIdAtom);
+  const [selectedExecutionId, setSelectedExecutionId] = useAtom(
+    selectedExecutionIdAtom
+  );
   const setNodes = useSetAtom(nodesAtom);
   const setEdges = useSetAtom(edgesAtom);
   const setCurrentWorkflowId = useSetAtom(currentWorkflowIdAtom);
@@ -641,12 +643,18 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
           selectedExecutionPollingIntervalRef.current = null;
         }
       } catch (error) {
-        console.error("Failed to poll selected execution status:", error);
         // Clear polling on error
         if (selectedExecutionPollingIntervalRef.current) {
           clearInterval(selectedExecutionPollingIntervalRef.current);
           selectedExecutionPollingIntervalRef.current = null;
         }
+        // The run no longer exists (e.g. history was cleared) — drop the stale
+        // selection so we stop re-polling a permanent 404.
+        if (error instanceof ApiError && error.status === 404) {
+          setSelectedExecutionId(null);
+          return;
+        }
+        console.error("Failed to poll selected execution status:", error);
       }
     };
 
@@ -661,6 +669,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
         selectedExecutionPollingIntervalRef.current = null;
       }
     };
+    // biome-ignore lint/correctness/useExhaustiveDependencies: setter from a stable atom
   }, [selectedExecutionId, updateNodeData]);
 
   return (

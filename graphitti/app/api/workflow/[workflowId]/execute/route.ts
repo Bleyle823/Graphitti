@@ -29,8 +29,9 @@ async function executeWorkflowBackground(
       workflowId,
     });
 
-    // Use start() from workflow/api to properly execute the workflow
-    start(executeWorkflow, [
+    // Await start() so startup failures are caught and mark the execution error
+    // instead of leaving the first node stuck on "running".
+    await start(executeWorkflow, [
       {
         nodes,
         edges,
@@ -132,14 +133,32 @@ export async function POST(
 
     console.log("[API] Created execution:", execution.id);
 
-    // Execute the workflow in the background (don't await)
-    executeWorkflowBackground(
+    // Fire-and-forget; executeWorkflowBackground catches start() failures and
+    // marks the execution as error so the UI does not spin forever.
+    void executeWorkflowBackground(
       execution.id,
       workflowId,
       workflow.nodes as WorkflowNode[],
       workflow.edges as WorkflowEdge[],
       input
-    );
+    ).catch(async (error) => {
+      console.error("[API] Background execution rejected:", error);
+      try {
+        await db
+          .update(workflowExecutions)
+          .set({
+            status: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to start workflow execution",
+            completedAt: new Date(),
+          })
+          .where(eq(workflowExecutions.id, execution.id));
+      } catch (dbError) {
+        console.error("[API] Failed to mark execution error:", dbError);
+      }
+    });
 
     // Return immediately with the execution ID
     return NextResponse.json({

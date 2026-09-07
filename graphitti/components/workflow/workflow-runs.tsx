@@ -694,6 +694,27 @@ export function WorkflowRuns({
           setExecutionLogs(createExecutionLogsMap(mappedLogs));
         }
       } catch (error) {
+        // The run is gone (cleared history). Collapse it so the 2s poll loop
+        // stops requesting a permanent 404.
+        if (error instanceof ApiError && error.status === 404) {
+          setExpandedRuns((prev) => {
+            if (!prev.has(executionId)) {
+              return prev;
+            }
+            const next = new Set(prev);
+            next.delete(executionId);
+            return next;
+          });
+          setLogs((prev) => {
+            if (!(executionId in prev)) {
+              return prev;
+            }
+            const next = { ...prev };
+            delete next[executionId];
+            return next;
+          });
+          return;
+        }
         console.error(`Failed to refresh logs for ${executionId}:`, error);
       }
     },
