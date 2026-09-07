@@ -45,14 +45,19 @@ function isPrivyEmbeddedLinkedAccount(account: {
     return false;
   }
 
-  const isPrivyClient =
-    !account.wallet_client_type || account.wallet_client_type === "privy";
-  const isEmbedded =
-    !account.connector_type || account.connector_type === "embedded";
-  const isEthereum =
-    !account.chain_type || account.chain_type === "ethereum";
-
-  return isPrivyClient && isEmbedded && isEthereum;
+  if (account.chain_type && account.chain_type !== "ethereum") {
+    return false;
+  }
+  if (account.wallet_client_type && account.wallet_client_type !== "privy") {
+    return false;
+  }
+  if (account.connector_type && account.connector_type !== "embedded") {
+    return false;
+  }
+  return (
+    account.wallet_client_type === "privy" ||
+    account.connector_type === "embedded"
+  );
 }
 
 export function pickEmbeddedWallet(user?: PrivyUser): {
@@ -80,17 +85,37 @@ export function pickEmbeddedWallet(user?: PrivyUser): {
     };
   }
 
-  // Last resort: any wallet-shaped linked account with an address.
-  const linked = user?.linked_accounts?.find(
-    (account) => account.type === "wallet" && account.address
-  );
-  if (linked?.address) {
-    return {
-      walletId: linked.id || linked.address,
-      address: linked.address,
-      chainType: linked.chain_type || "ethereum",
-    };
+  return null;
+}
+
+/** True when the wallet id belongs to a Privy embedded Ethereum wallet on this user. */
+export function isEmbeddedWalletId(
+  user: PrivyUser | undefined,
+  walletId: string
+): boolean {
+  if (!walletId) {
+    return false;
   }
 
-  return null;
+  const embedded = pickEmbeddedWallet(user);
+  if (embedded?.walletId === walletId) {
+    return true;
+  }
+
+  const linked = user?.linked_accounts?.find(
+    (account) =>
+      isPrivyEmbeddedLinkedAccount(account) &&
+      (account.id === walletId || account.address?.toLowerCase() === walletId.toLowerCase())
+  );
+  if (linked) {
+    return true;
+  }
+
+  return Boolean(
+    user?.wallets?.some(
+      (wallet) =>
+        wallet.id === walletId ||
+        wallet.address?.toLowerCase() === walletId.toLowerCase()
+    )
+  );
 }

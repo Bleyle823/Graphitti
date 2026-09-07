@@ -99,6 +99,9 @@
   "pnpm": {
     "overrides": {
       "baseline-browser-mapping": "^2.11.21"
+    },
+    "patchedDependencies": {
+      "@privy-io/react-auth@3.40.0": "patches/@privy-io__react-auth@3.40.0.patch"
     }
   }
 }

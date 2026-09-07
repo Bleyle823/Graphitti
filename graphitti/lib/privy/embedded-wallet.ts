@@ -17,13 +17,34 @@ type WalletLike = {
   chainType?: string | null;
 };
 
+function isExternalWalletClient(walletClientType: string | null | undefined): boolean {
+  if (!walletClientType) {
+    return false;
+  }
+  return walletClientType !== "privy";
+}
+
 function isPrivyEmbeddedEthereum(account: WalletLike): boolean {
+  if (!account.address) {
+    return false;
+  }
+  if (account.type && account.type !== "wallet") {
+    return false;
+  }
+  if (account.chainType && account.chainType !== "ethereum") {
+    return false;
+  }
+  // MetaMask / injected connectors are never the execution wallet.
+  if (isExternalWalletClient(account.walletClientType)) {
+    return false;
+  }
+  if (account.connectorType && account.connectorType !== "embedded") {
+    return false;
+  }
+  // Privy embedded wallets report walletClientType "privy". connectorType is
+  // often "embedded" but can be omitted right after createOnLogin.
   return (
-    account.type === "wallet" &&
-    Boolean(account.address) &&
-    account.walletClientType === "privy" &&
-    account.connectorType === "embedded" &&
-    (account.chainType === "ethereum" || !account.chainType)
+    account.walletClientType === "privy" || account.connectorType === "embedded"
   );
 }
 
@@ -38,13 +59,13 @@ export function pickEmbeddedWalletFromLinkedAccounts(
   }
 
   const match = accounts.find(isPrivyEmbeddedEthereum);
-  if (!(match?.address && match.id)) {
+  if (!match?.address) {
     return null;
   }
 
   return {
     address: match.address,
-    walletId: match.id,
+    walletId: match.id || match.address,
   };
 }
 
@@ -59,13 +80,7 @@ export function pickEmbeddedWalletFromWallets(
     return null;
   }
 
-  const match = wallets.find(
-    (wallet) =>
-      Boolean(wallet.address) &&
-      wallet.walletClientType === "privy" &&
-      (wallet.connectorType === "embedded" || !wallet.connectorType) &&
-      (wallet.chainType === "ethereum" || !wallet.chainType)
-  );
+  const match = wallets.find(isPrivyEmbeddedEthereum);
 
   if (!match?.address) {
     return null;
