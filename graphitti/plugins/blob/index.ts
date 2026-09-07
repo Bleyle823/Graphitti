@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { BlobIcon } from "./icon";
 
 const blobPlugin: IntegrationPlugin = {
   type: "blob",
   label: "Blob",
   description: "Store and retrieve files with Vercel Blob",
-
-  icon: BlobIcon,
 
   formFields: [
     {

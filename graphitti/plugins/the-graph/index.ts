@@ -1,6 +1,5 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { TheGraphIcon } from "./icon";
 
 const graphNetworkOptions = [
   { value: "", label: "Any network" },
@@ -78,7 +77,6 @@ const theGraphPlugin: IntegrationPlugin = {
   label: "The Graph",
   description:
     "Discover and query subgraphs, Token API, Substreams packages, and Market reads. Never auto-pays x402.",
-  icon: TheGraphIcon,
   formFields: [
     {
       id: "apiKey",

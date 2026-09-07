@@ -1,7 +1,6 @@
 import { NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { PrivyIcon } from "./icon";
 
 const networkField = {
   key: "network",
@@ -26,7 +25,6 @@ const privyPlugin: IntegrationPlugin = {
   label: "Privy",
   description:
     "Manage Privy users and wallets. Sign messages and send gas-sponsored transactions.",
-  icon: PrivyIcon,
   formFields: [
     {
       id: "appId",

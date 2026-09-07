@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { WebflowIcon } from "./icon";
 
 const webflowPlugin: IntegrationPlugin = {
   type: "webflow",
   label: "Webflow",
   description: "Publish and manage Webflow sites",
-
-  icon: WebflowIcon,
 
   formFields: [
     {

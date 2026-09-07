@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { StripeIcon } from "./icon";
 
 const stripePlugin: IntegrationPlugin = {
   type: "stripe",
   label: "Stripe",
   description: "Payment processing and billing",
-
-  icon: StripeIcon,
 
   formFields: [
     {

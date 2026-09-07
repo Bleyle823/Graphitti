@@ -1,6 +1,5 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
-import { FantasyPremierLeagueIcon } from "./icon";
 
 const LIST_OUTPUT = [
   { field: "success", description: "Whether the query succeeded" },
@@ -15,7 +14,6 @@ const fantasyPremierLeaguePlugin: IntegrationPlugin = {
   label: "Fantasy Premier League",
   description:
     "Query synced Fantasy Premier League data via the unofficial footy-api GraphQL API, plus public manager and league endpoints from FPL.",
-  icon: FantasyPremierLeagueIcon,
   requiresCredentials: false,
   formFields: [
     {

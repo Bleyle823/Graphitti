@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { AiGatewayIcon } from "./icon";
 
 const aiGatewayPlugin: IntegrationPlugin = {
   type: "ai-gateway",
   label: "AI Gateway",
   description: "Generate text and images using AI models",
-
-  icon: AiGatewayIcon,
 
   formFields: [
     {
