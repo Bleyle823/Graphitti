@@ -25,9 +25,9 @@ auth.json
 .subgraph/
 .substreams/
 
-# local / scratch
+# local / scratch (root-level only; do not match .github/workflows)
 hackathon/
-workflows/
+/workflows/
 
 # Rust / Substreams build outputs
 **/target/
