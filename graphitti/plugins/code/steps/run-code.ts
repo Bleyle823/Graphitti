@@ -43,13 +43,20 @@ const VM_LINE_REGEX = /user-code\.js:(\d+)/;
 
 const SANDBOX_BACKEND = process.env.SANDBOX_BACKEND;
 
-if (
-  process.env.NODE_ENV === "production" &&
-  (SANDBOX_BACKEND !== "remote" || !process.env.SANDBOX_URL)
-) {
-  throw new Error(
-    "SANDBOX_BACKEND must be 'remote' and SANDBOX_URL must be set in production"
-  );
+function requireRemoteSandboxInProduction(): RunCodeResult | null {
+  if (process.env.NODE_ENV !== "production") {
+    return null;
+  }
+  if (SANDBOX_BACKEND === "remote" && process.env.SANDBOX_URL) {
+    return null;
+  }
+  return {
+    success: false,
+    error:
+      "SANDBOX_BACKEND must be 'remote' and SANDBOX_URL must be set in production",
+    logs: [],
+    errorClass: ExecutionErrorType.SYSTEM,
+  };
 }
 
 // Remove string/template-literal bodies and `//` + block comments so the
@@ -429,6 +436,10 @@ async function stepHandler(input: RunCodeCoreInput): Promise<RunCodeResult> {
   const validationError = validateInput(input);
   if (validationError) {
     return validationError;
+  }
+  const productionSandboxError = requireRemoteSandboxInProduction();
+  if (productionSandboxError) {
+    return productionSandboxError;
   }
   const rawTimeout = input.timeout ?? DEFAULT_TIMEOUT_SECONDS;
   const clampedSeconds = Math.min(
