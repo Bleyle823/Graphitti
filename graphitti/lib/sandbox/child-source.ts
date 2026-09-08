@@ -35,6 +35,9 @@
 // `lib/ssrf-blocklist.json` and `lib/ssrf-blocklist.ts` is just a typed
 // re-export used by the keeperhub-side consumers.
 import blocklist from "../ssrf-blocklist.json" with { type: "json" };
+import { createHash } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 /**
  * F-010: the grandchild returns its result as TAGGED JSON on a DEDICATED pipe
@@ -1496,3 +1499,26 @@ process.stdin.on("end", async function onEnd() {
   }
 });
 `;
+let cachedSandboxScriptPath: string | null = null;
+let cachedSandboxScriptDigest: string | null = null;
+
+/**
+ * Windows (and some Unix configs) reject `node -e <very long source>` with
+ * spawn ENAMETOOLONG. Materialize the grandchild once per source revision and
+ * execute it as a file instead.
+ */
+export function resolveSandboxChildScriptPath(): string {
+  const digest = createHash("sha256")
+    .update(SANDBOX_CHILD_SOURCE)
+    .digest("hex");
+  if (cachedSandboxScriptPath && cachedSandboxScriptDigest === digest) {
+    return cachedSandboxScriptPath;
+  }
+  const dir = join(process.cwd(), ".graphitti");
+  mkdirSync(dir, { recursive: true });
+  const scriptPath = join(dir, `sandbox-child-${digest.slice(0, 16)}.cjs`);
+  writeFileSync(scriptPath, SANDBOX_CHILD_SOURCE, "utf8");
+  cachedSandboxScriptPath = scriptPath;
+  cachedSandboxScriptDigest = digest;
+  return scriptPath;
+}
