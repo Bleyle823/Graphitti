@@ -20,6 +20,8 @@
     "docker:logs": "docker compose logs -f db",
     "setup": "pnpm docker:up && pnpm db:push",
     "discover-plugins": "tsx scripts/discover-plugins.ts",
+    "seed:workflows": "tsx scripts/seed-workflow-templates.ts",
+    "substreams:deploy-checklist": "tsx scripts/substreams-subgraph-deploy-checklist.ts",
     "fetch-brand-logos": "tsx scripts/fetch-brand-logos.ts",
     "create-plugin": "tsx scripts/create-plugin.ts",
     "test:e2e": "playwright test",
@@ -101,7 +103,8 @@
       "baseline-browser-mapping": "^2.11.21"
     },
     "patchedDependencies": {
-      "@privy-io/react-auth@3.40.0": "patches/@privy-io__react-auth@3.40.0.patch"
+      "@privy-io/react-auth@3.40.0": "patches/@privy-io__react-auth@3.40.0.patch",
+      "next@16.0.10": "patches/next@16.0.10.patch"
     }
   }
 }
