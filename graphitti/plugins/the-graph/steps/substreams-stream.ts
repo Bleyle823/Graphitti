@@ -8,7 +8,8 @@ import {
   packageSpkgUrl,
   searchSubstreamsPackages,
 } from "@/lib/the-graph/substreams-registry";
-import { loadTheGraphCredentials, type TheGraphCredentials } from "../credentials";
+import type { TheGraphCredentials } from "../credentials";
+import { loadTheGraphCredentials } from "../load-credentials";
 import {
   aliasNetwork,
   asRecordArray,

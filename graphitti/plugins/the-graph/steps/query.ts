@@ -3,7 +3,8 @@ import "server-only";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { graphQlPost, resolveGatewayUrl } from "@/lib/the-graph/gateway";
-import { loadTheGraphCredentials, type TheGraphCredentials } from "../credentials";
+import type { TheGraphCredentials } from "../credentials";
+import { loadTheGraphCredentials } from "../load-credentials";
 import {
   graphqlErrorMessage,
   parseVariablesJson,

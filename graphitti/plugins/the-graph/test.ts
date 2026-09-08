@@ -3,7 +3,6 @@ import {
   resolveTheGraphCredentials,
   validateGatewayApiKey,
 } from "./credentials";
-import { graphqlErrorMessage as formatGraphqlError } from "./steps/shared";
 
 // Public Graph Network subgraph on Arbitrum — used as a known gateway target.
 const CONNECTION_TEST_SUBGRAPH_ID =
@@ -42,9 +41,16 @@ export async function testTheGraph(credentials: Record<string, string>) {
     }
 
     if (result.errors?.length) {
+      const first = result.errors[0];
+      const message =
+        typeof first === "string"
+          ? first
+          : first && typeof first === "object" && "message" in first
+            ? String((first as { message: unknown }).message)
+            : "GraphQL query failed";
       return {
         success: false,
-        error: formatGraphqlError(result.errors) ?? "GraphQL query failed",
+        error: message,
       };
     }
 

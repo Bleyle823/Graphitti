@@ -3,7 +3,8 @@ import "server-only";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { tokenApiGet } from "@/lib/the-graph/token-api";
-import { loadTheGraphCredentials, type TheGraphCredentials } from "../credentials";
+import type { TheGraphCredentials } from "../credentials";
+import { loadTheGraphCredentials } from "../load-credentials";
 import { aliasNetwork, requireGatewayKey } from "./shared";
 
 type TokenApiInput = StepInput & {

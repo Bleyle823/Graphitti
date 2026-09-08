@@ -1,5 +1,3 @@
-import { fetchCredentials } from "@/lib/credential-fetcher";
-
 export type TheGraphCredentials = {
   THEGRAPH_API_KEY?: string;
   SUBSTREAMS_API_KEY?: string;
@@ -40,15 +38,6 @@ export function resolveTheGraphCredentials(
       process.env.THEGRAPH_MARKET_BEARER?.trim() ||
       undefined,
   };
-}
-
-export async function loadTheGraphCredentials(
-  integrationId?: string
-): Promise<TheGraphCredentials> {
-  const fetched = integrationId
-    ? ((await fetchCredentials(integrationId)) as TheGraphCredentials)
-    : {};
-  return resolveTheGraphCredentials(fetched);
 }
 
 export function validateGatewayApiKey(apiKey: string | undefined) {
