@@ -10,6 +10,7 @@ import {
 import {
   getActionLabel,
   getStepImporter,
+  type StepFunction,
   type StepImporter,
 } from "./step-registry";
 import type { StepContext } from "./steps/step-handler";
@@ -41,6 +42,57 @@ const SYSTEM_ACTIONS: Record<string, StepImporter> = {
     stepFunction: "forEachStep",
   },
 };
+
+type StepFunctionTable = Map<string, StepFunction>;
+
+function findStepImporter(actionType: string): StepImporter | undefined {
+  const systemAction = SYSTEM_ACTIONS[actionType];
+  if (systemAction) {
+    return systemAction;
+  }
+  return getStepImporter(actionType);
+}
+
+/**
+ * Resolve every step module once before the first node runs so sequential
+ * invocations stay in program order instead of racing on dynamic import timing.
+ */
+export async function preloadStepFunctions(
+  nodes: WorkflowNode[]
+): Promise<StepFunctionTable> {
+  const actionTypes = new Set<string>();
+  for (const node of nodes) {
+    if (node.data.type !== "action") {
+      continue;
+    }
+    const actionType = node.data.config?.actionType as string | undefined;
+    if (actionType) {
+      actionTypes.add(actionType);
+    }
+  }
+
+  const table = new Map<string, StepFunction>();
+  for (const actionType of [...actionTypes].sort()) {
+    const importer = findStepImporter(actionType);
+    if (!importer) {
+      continue;
+    }
+    try {
+      const module = await importer.importer();
+      const stepFunction = module[importer.stepFunction];
+      if (typeof stepFunction === "function") {
+        table.set(actionType, stepFunction as StepFunction);
+      }
+    } catch (error) {
+      console.error(
+        "[Workflow Executor] Failed to preload step module",
+        actionType,
+        error
+      );
+    }
+  }
+  return table;
+}
 
 type ExecutionResult = {
   success: boolean;
@@ -225,8 +277,9 @@ async function executeActionStep(input: {
   config: Record<string, unknown>;
   outputs: NodeOutputs;
   context: StepContext;
+  stepFunctions: StepFunctionTable;
 }) {
-  const { actionType, config, outputs, context } = input;
+  const { actionType, config, outputs, context, stepFunctions } = input;
 
   // Build step input WITHOUT credentials, but WITH integrationId reference and logging context
   const stepInput: Record<string, unknown> = {
@@ -234,16 +287,22 @@ async function executeActionStep(input: {
     _context: context,
   };
 
+  const stepFunction = stepFunctions.get(actionType);
+  if (!stepFunction) {
+    return {
+      success: false,
+      error: `Unknown action type: "${actionType}". This action is not registered in the plugin system. Available system actions: ${Object.keys(SYSTEM_ACTIONS).join(", ")}.`,
+    };
+  }
+
   // Special handling for Condition action - needs template evaluation
   if (actionType === "Condition") {
-    const systemAction = SYSTEM_ACTIONS.Condition;
-    const module = await systemAction.importer();
     const originalExpression = stepInput.condition;
     const { result: evaluatedCondition, resolvedValues } =
       evaluateConditionExpression(originalExpression, outputs);
     console.log("[Condition] Final result:", evaluatedCondition);
 
-    return await module[systemAction.stepFunction]({
+    return await stepFunction({
       condition: evaluatedCondition,
       // Include original expression and resolved values for logging purposes
       expression:
@@ -254,34 +313,7 @@ async function executeActionStep(input: {
     });
   }
 
-  // Check system actions first (Database Query, HTTP Request)
-  const systemAction = SYSTEM_ACTIONS[actionType];
-  if (systemAction) {
-    const module = await systemAction.importer();
-    const stepFunction = module[systemAction.stepFunction];
-    return await stepFunction(stepInput);
-  }
-
-  // Look up plugin action from the generated step registry
-  const stepImporter = getStepImporter(actionType);
-  if (stepImporter) {
-    const module = await stepImporter.importer();
-    const stepFunction = module[stepImporter.stepFunction];
-    if (stepFunction) {
-      return await stepFunction(stepInput);
-    }
-
-    return {
-      success: false,
-      error: `Step function "${stepImporter.stepFunction}" not found in module for action "${actionType}". Check that the plugin exports the correct function name.`,
-    };
-  }
-
-  // Fallback for unknown action types
-  return {
-    success: false,
-    error: `Unknown action type: "${actionType}". This action is not registered in the plugin system. Available system actions: ${Object.keys(SYSTEM_ACTIONS).join(", ")}.`,
-  };
+  return await stepFunction(stepInput);
 }
 
 /**
@@ -395,6 +427,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
   const outputs: NodeOutputs = {};
   const results: Record<string, ExecutionResult> = {};
+  const stepFunctions = await preloadStepFunctions(nodes);
 
   // Build node and edge maps
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
@@ -651,12 +684,14 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
                 nodeName: getNodeName(node),
                 nodeType: actionType,
               };
-              const forEachModule = await SYSTEM_ACTIONS["For Each"].importer();
-              await forEachModule.forEachStep({
-                arraySource,
-                itemCount: items.length,
-                _context: stepContext,
-              });
+              const forEachStep = stepFunctions.get("For Each");
+              if (forEachStep) {
+                await forEachStep({
+                  arraySource,
+                  itemCount: items.length,
+                  _context: stepContext,
+                });
+              }
               result = {
                 success: true,
                 data: { itemCount: items.length, completed: true },
@@ -702,6 +737,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           config: processedConfig,
           outputs,
           context: stepContext,
+          stepFunctions,
         });
 
         console.log("[Workflow Executor] Step result received:", {

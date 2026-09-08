@@ -1,8 +1,7 @@
 import { eq } from "drizzle-orm";
-import { start } from "workflow/api";
 import { db } from "@/lib/db";
 import { workflowExecutionLogs, workflowExecutions } from "@/lib/db/schema";
-import { executeWorkflow } from "@/lib/workflow-executor.workflow";
+import { executeWorkflowInBackground } from "@/lib/workflow/execute-in-background";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 
 export async function startListedWorkflow(options: {
@@ -22,15 +21,16 @@ export async function startListedWorkflow(options: {
     })
     .returning();
 
-  start(executeWorkflow, [
-    {
-      nodes: options.nodes,
-      edges: options.edges,
-      triggerInput: options.input,
-      executionId: execution.id,
-      workflowId: options.workflowId,
-    },
-  ]);
+  void executeWorkflowInBackground(
+    execution.id,
+    options.workflowId,
+    options.nodes,
+    options.edges,
+    options.input,
+    { logPrefix: "[Marketplace]" }
+  ).catch((error) => {
+    console.error("[Marketplace] Background execution rejected:", error);
+  });
 
   return execution.id;
 }
