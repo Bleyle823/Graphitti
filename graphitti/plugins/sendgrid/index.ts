@@ -1,14 +1,11 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
-import { SendGridIcon } from "./icon";
 
 const sendgridPlugin: IntegrationPlugin = {
   type: "sendgrid",
   egress: "fixed-host",
   label: "Email",
   description: "Send transactional emails",
-
-  icon: SendGridIcon,
 
   // No integration required - uses KeeperHub SendGrid API key by default
   requiresCredentials: false,

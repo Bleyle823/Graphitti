@@ -34,11 +34,48 @@ export async function verifyPrivyAccessToken(token: string): Promise<{
   }
 }
 
+function isPrivyEmbeddedLinkedAccount(account: {
+  type: string;
+  address?: string;
+  chain_type?: string;
+  wallet_client_type?: string;
+  connector_type?: string;
+}): boolean {
+  if (account.type !== "wallet" || !account.address) {
+    return false;
+  }
+
+  if (account.chain_type && account.chain_type !== "ethereum") {
+    return false;
+  }
+  if (account.wallet_client_type && account.wallet_client_type !== "privy") {
+    return false;
+  }
+  if (account.connector_type && account.connector_type !== "embedded") {
+    return false;
+  }
+  return (
+    account.wallet_client_type === "privy" ||
+    account.connector_type === "embedded"
+  );
+}
+
 export function pickEmbeddedWallet(user?: PrivyUser): {
   walletId: string;
   address: string;
   chainType: string;
 } | null {
+  // Prefer explicitly tagged Privy embedded linked accounts.
+  const embeddedLinked = user?.linked_accounts?.find(isPrivyEmbeddedLinkedAccount);
+  if (embeddedLinked?.address) {
+    return {
+      walletId: embeddedLinked.id || embeddedLinked.address,
+      address: embeddedLinked.address,
+      chainType: embeddedLinked.chain_type || "ethereum",
+    };
+  }
+
+  // Privy user wallets array is typically embedded wallets for the user.
   const fromWallets = user?.wallets?.[0];
   if (fromWallets?.id && fromWallets.address) {
     return {
@@ -48,16 +85,37 @@ export function pickEmbeddedWallet(user?: PrivyUser): {
     };
   }
 
-  const linked = user?.linked_accounts?.find(
-    (account) => account.type === "wallet" && account.address
-  );
-  if (linked?.address) {
-    return {
-      walletId: linked.id || linked.address,
-      address: linked.address,
-      chainType: linked.chain_type || "ethereum",
-    };
+  return null;
+}
+
+/** True when the wallet id belongs to a Privy embedded Ethereum wallet on this user. */
+export function isEmbeddedWalletId(
+  user: PrivyUser | undefined,
+  walletId: string
+): boolean {
+  if (!walletId) {
+    return false;
   }
 
-  return null;
+  const embedded = pickEmbeddedWallet(user);
+  if (embedded?.walletId === walletId) {
+    return true;
+  }
+
+  const linked = user?.linked_accounts?.find(
+    (account) =>
+      isPrivyEmbeddedLinkedAccount(account) &&
+      (account.id === walletId || account.address?.toLowerCase() === walletId.toLowerCase())
+  );
+  if (linked) {
+    return true;
+  }
+
+  return Boolean(
+    user?.wallets?.some(
+      (wallet) =>
+        wallet.id === walletId ||
+        wallet.address?.toLowerCase() === walletId.toLowerCase()
+    )
+  );
 }

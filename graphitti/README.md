@@ -136,7 +136,7 @@ pnpm docker:logs  # tail Postgres logs
 - **Stripe**: Create Customer, Get Customer, Create Invoice
 - **Superagent**: Guard, Redact
 - **Telegram**: Send Telegram Message
-- **The Graph**: Search subgraphs, Recommend subgraph, Get subgraph detail, Get schema, Find subgraphs by contract, Query subgraph, Get indexing status, Query lending snapshot, Get token balances, Get token transfers, Get token holders, Get DEX swaps, Get NFT activity, Search Substreams packages, Get package, Get default endpoint, Get subscription, Get usage summary, Get bill preview, Get active connections, List hosted deployments, Get deployment state, Get deployment events, Get deployment logs
+- **The Graph**: Search subgraphs, Recommend subgraph, Get subgraph detail, Get schema, Find subgraphs by contract, Query subgraph, Get indexing status, Query lending snapshot, Get token balances, Get token transfers, Get token holders, Get DEX swaps, Get NFT activity, Search Substreams packages, Get package, Get default endpoint, Query Substreams entity, Resolve Substreams package, Substreams webhook setup, Get Substreams stream status, Get subscription, Get usage summary, Get bill preview, Get active connections, List hosted deployments, Get deployment state, Get deployment events, Get deployment logs
 - **v0**: Create Chat, Send Message
 - **Web3**: Get Native Token Balance, Get ERC20 Token Balance, Transfer Native Token, Transfer ERC20 Token, Read Contract, Get Transaction, Decode Calldata, Assess Transaction Risk, Query Contract Events, Query Transaction History, Batch Read Contract, Batch Write Contract, Approve ERC20 Token, Check ERC20 Allowance, Write Contract
 - **Webflow**: List Sites, Get Site, Publish Site

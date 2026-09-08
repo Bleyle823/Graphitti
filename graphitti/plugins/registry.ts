@@ -214,8 +214,9 @@ export type IntegrationPlugin = {
   requiresCredentials?: boolean;
   singleConnection?: boolean;
 
-  // Icon component (should be exported from plugins/[name]/icon.tsx)
-  icon: React.ComponentType<{ className?: string }>;
+  // Icon component (optional — brand logos render via PLUGIN_BRAND_ASSETS /
+  // IntegrationIcon without importing client icon factories on the server)
+  icon?: React.ComponentType<{ className?: string }>;
 
   // Form fields for the integration dialog
   formFields: Array<{

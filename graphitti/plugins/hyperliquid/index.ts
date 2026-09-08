@@ -1,6 +1,5 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
-import { HyperliquidIcon } from "./icon";
 
 const hyperliquidPlugin: IntegrationPlugin = {
   type: "hyperliquid",
@@ -8,8 +7,6 @@ const hyperliquidPlugin: IntegrationPlugin = {
   label: "Hyperliquid",
   description:
     "Read-only wrappers over the Hyperliquid Info REST API for vault operator reporting, validator monitoring, and account state queries.",
-
-  icon: HyperliquidIcon,
 
   requiresCredentials: false,
 

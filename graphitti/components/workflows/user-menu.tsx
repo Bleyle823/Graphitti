@@ -106,75 +106,80 @@ export const UserMenu = () => {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          className="relative h-9 w-9 rounded-full border p-0"
-          variant="ghost"
-        >
-          <Avatar className="h-9 w-9">
-            <AvatarImage
-              alt={session?.user?.name || ""}
-              src={session?.user?.image || ""}
-            />
-            <AvatarFallback>{getUserInitials()}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>
-          <div className="flex flex-col space-y-1">
-            <p className="font-medium text-sm leading-none">
-              {session?.user?.name || "User"}
-            </p>
-            <p className="text-muted-foreground text-xs leading-none">
-              {session?.user?.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/settings")}>
-          <Settings className="size-4" />
-          <span>Settings</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openOverlay(IntegrationsOverlay)}>
-          <Plug className="size-4" />
-          <span>Connections</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openOverlay(ApiKeysOverlay)}>
-          <Key className="size-4" />
-          <span>API Keys</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            setGettingStartedOpen(true);
-          }}
-        >
-          <Rocket className="size-4" />
-          <span>Getting started</span>
-        </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span>Theme</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup onValueChange={setTheme} value={theme}>
-              <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="system">
-                System
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="size-4" />
-          <span>Logout</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2">
+      {isPrivyConfigured() ? (
+        <ConnectWalletButton chipOnly className="h-9 w-auto" compact />
+      ) : null}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="relative h-9 w-9 rounded-full border p-0"
+            variant="ghost"
+          >
+            <Avatar className="h-9 w-9">
+              <AvatarImage
+                alt={session?.user?.name || ""}
+                src={session?.user?.image || ""}
+              />
+              <AvatarFallback>{getUserInitials()}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>
+            <div className="flex flex-col space-y-1">
+              <p className="font-medium text-sm leading-none">
+                {session?.user?.name || "User"}
+              </p>
+              <p className="text-muted-foreground text-xs leading-none">
+                {session?.user?.email}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
+            <Settings className="size-4" />
+            <span>Settings</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openOverlay(IntegrationsOverlay)}>
+            <Plug className="size-4" />
+            <span>Connections</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openOverlay(ApiKeysOverlay)}>
+            <Key className="size-4" />
+            <span>API Keys</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setGettingStartedOpen(true);
+            }}
+          >
+            <Rocket className="size-4" />
+            <span>Getting started</span>
+          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span>Theme</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup onValueChange={setTheme} value={theme}>
+                <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="system">
+                  System
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="size-4" />
+            <span>Logout</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 };

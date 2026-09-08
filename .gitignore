@@ -11,3 +11,29 @@ Thumbs.db
 !.env.example
 *.pem
 *.key
+*.p12
+*.pfx
+*.secret
+*.token
+credentials.json
+**/secrets/
+.npmrc
+auth.json
+
+# Graph / Substreams CLI local auth
+.graph-cli/
+.subgraph/
+.substreams/
+
+# local / scratch (root-level only; do not match .github/workflows)
+hackathon/
+/workflows/
+
+# Rust / Substreams build outputs
+**/target/
+**/*.spkg
+**/*.wasm
+**/*_pb.rs
+
+# Node
+node_modules/

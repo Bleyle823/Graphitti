@@ -1,14 +1,11 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
 import { UserCard } from "./components/user-card";
-import { ClerkIcon } from "./icon";
 
 const clerkPlugin: IntegrationPlugin = {
   type: "clerk",
   label: "Clerk",
   description: "User authentication and management",
-
-  icon: ClerkIcon,
 
   formFields: [
     {

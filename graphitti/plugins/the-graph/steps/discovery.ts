@@ -1,10 +1,10 @@
 import "server-only";
 
-import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { graphQlPost, resolveGatewayUrl } from "@/lib/the-graph/gateway";
 import type { TheGraphCredentials } from "../credentials";
+import { loadTheGraphCredentials } from "../load-credentials";
 import {
   EXAMPLE_QUERY,
   GRAPH_NETWORK_SUBGRAPH_ID,
@@ -569,9 +569,7 @@ function withCreds(
   ) => Promise<ReturnType<typeof ok> | ReturnType<typeof fail>>
 ) {
   return withStepLogging(input, async () => {
-    const credentials = input.integrationId
-      ? ((await fetchCredentials(input.integrationId)) as TheGraphCredentials)
-      : {};
+    const credentials = await loadTheGraphCredentials(input.integrationId);
     return handler(input, credentials);
   });
 }

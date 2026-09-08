@@ -1,7 +1,6 @@
 import type { ActionConfigField, IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
 import { SUPPORTED_BLOCKSCOUT_CHAIN_IDS } from "./chains";
-import { BlockscoutIcon } from "./icon";
 
 // Chain picker shared by every action. Maps to a hosted Blockscout instance so
 // a workflow can query any supported chain with no connection setup. Defaults
@@ -23,8 +22,6 @@ const blockscoutPlugin: IntegrationPlugin = {
   egress: "user-destination",
   label: "Blockscout",
   description: "Query the Blockscout block explorer REST API",
-
-  icon: BlockscoutIcon,
 
   // Works against the public Ethereum mainnet instance without credentials.
   // Add an integration to point at a different instance or supply an API key.

@@ -1,7 +1,6 @@
 import { NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { CircleIcon } from "./icon";
 
 const CIRCLE_BLOCKCHAINS = [
   { value: "ETH", label: "Ethereum" },
@@ -38,7 +37,6 @@ const circlePlugin: IntegrationPlugin = {
   label: "Circle",
   description:
     "Developer wallets, CCTP V2, Gateway, nanopayments, Smart Contract Platform, USDC/EURC, and Circle Mint sandbox.",
-  icon: CircleIcon,
   formFields: [
     {
       id: "apiKey",

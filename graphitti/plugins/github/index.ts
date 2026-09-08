@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { GitHubIcon } from "./icon";
 
 const githubPlugin: IntegrationPlugin = {
   type: "github",
   label: "GitHub",
   description: "Create and manage issues in GitHub repositories",
-
-  icon: GitHubIcon,
 
   formFields: [
     {

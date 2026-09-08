@@ -1,7 +1,8 @@
 import "server-only";
 
-import { createGateway, generateObject, generateText } from "ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod";
+import { createLanguageModel } from "@/lib/ai/provider";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessageAsync } from "@/lib/utils";
@@ -97,8 +98,9 @@ async function stepHandler(
   const modelString = getModelString(modelId);
 
   try {
-    const gateway = createGateway({
+    const model = createLanguageModel({
       apiKey,
+      modelId: modelString,
     });
 
     if (input.aiFormat === "object" && input.aiSchema) {
@@ -106,7 +108,7 @@ async function stepHandler(
       const zodSchema = buildZodSchema(schema);
 
       const { object } = await generateObject({
-        model: gateway(modelString),
+        model,
         prompt: promptText,
         schema: zodSchema,
       });
@@ -115,7 +117,7 @@ async function stepHandler(
     }
 
     const { text } = await generateText({
-      model: gateway(modelString),
+      model,
       prompt: promptText,
     });
 

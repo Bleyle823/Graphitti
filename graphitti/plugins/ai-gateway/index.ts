@@ -1,26 +1,23 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { AiGatewayIcon } from "./icon";
 
 const aiGatewayPlugin: IntegrationPlugin = {
   type: "ai-gateway",
   label: "AI Gateway",
   description: "Generate text and images using AI models",
 
-  icon: AiGatewayIcon,
-
   formFields: [
     {
       id: "openaiApiKey",
       label: "API Key",
       type: "password",
-      placeholder: "Your AI Gateway API key",
+      placeholder: "OpenRouter or Vercel AI Gateway API key",
       configKey: "apiKey",
       envVar: "AI_GATEWAY_API_KEY",
       helpText: "Get your API key from ",
       helpLink: {
-        text: "vercel.com/ai-gateway",
-        url: "https://vercel.com/docs/ai-gateway/getting-started",
+        text: "openrouter.ai/keys",
+        url: "https://openrouter.ai/keys",
       },
     },
   ],

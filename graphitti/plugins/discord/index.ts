@@ -1,14 +1,11 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
-import { DiscordIcon } from "./icon";
 
 const discordPlugin: IntegrationPlugin = {
   type: "discord",
   egress: "fixed-host",
   label: "Discord",
   description: "Send messages to Discord channels via webhooks",
-
-  icon: DiscordIcon,
 
   // Webhook URL is stored in the integration for centralized management
   formFields: [

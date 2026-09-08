@@ -1,7 +1,6 @@
 import { NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { ArcIcon } from "./icon";
 
 const ARC_TOKENS = [
   { value: "USDC", label: "USDC" },
@@ -48,7 +47,6 @@ const arcPlugin: IntegrationPlugin = {
   label: "Arc",
   description:
     "Arc Testnet App Kit flows: CCTP bridge, swap, send, unified balance, genesis tokens, deploy, StableFX.",
-  icon: ArcIcon,
   formFields: [
     {
       id: "apiKey",

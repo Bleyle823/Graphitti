@@ -445,6 +445,54 @@ export function formatTemplateForDisplay(template: string): string {
 /**
  * Check if a string contains template variables
  */
+/**
+ * Resolve a single template reference to its raw value (not stringified).
+ * Supports {{@nodeId:Label.field}} and JSON literals.
+ */
+export function resolveTemplateReference(
+  template: string,
+  nodeOutputs: NodeOutputs
+): unknown {
+  if (typeof template !== "string") {
+    return template;
+  }
+
+  const trimmed = template.trim();
+  const newFormat = trimmed.match(/^\{\{@([^:]+):([^}]+)\}\}$/);
+  if (newFormat) {
+    const [, rawNodeId, rest] = newFormat;
+    const sanitizedNodeId = rawNodeId.replace(/[^a-zA-Z0-9]/g, "_");
+    const output =
+      nodeOutputs[sanitizedNodeId] ?? nodeOutputs[rawNodeId];
+    if (!output) {
+      return undefined;
+    }
+
+    const dotIndex = rest.indexOf(".");
+    if (dotIndex === -1) {
+      return unwrapStandardizedOutput(output.data);
+    }
+
+    const fieldPath = rest.substring(dotIndex + 1);
+    return resolveFieldPath(output.data, fieldPath);
+  }
+
+  if (trimmed.startsWith("{{") && trimmed.endsWith("}}")) {
+    const processed = processTemplate(trimmed, nodeOutputs);
+    try {
+      return JSON.parse(processed);
+    } catch {
+      return processed;
+    }
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
 export function hasTemplateVariables(str: string): boolean {
   return /\{\{[^}]+\}\}/g.test(str);
 }

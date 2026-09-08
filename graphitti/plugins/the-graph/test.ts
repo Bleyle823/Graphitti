@@ -1,4 +1,8 @@
 import { graphQlPost, subgraphQueryUrl } from "@/lib/the-graph/gateway";
+import {
+  resolveTheGraphCredentials,
+  validateGatewayApiKey,
+} from "./credentials";
 
 // Public Graph Network subgraph on Arbitrum — used as a known gateway target.
 const CONNECTION_TEST_SUBGRAPH_ID =
@@ -6,20 +10,26 @@ const CONNECTION_TEST_SUBGRAPH_ID =
 const META_QUERY = "{ _meta { block { number } } }";
 
 export async function testTheGraph(credentials: Record<string, string>) {
-  const apiKey = credentials.THEGRAPH_API_KEY?.trim();
+  const resolved = resolveTheGraphCredentials(
+    credentials as {
+      THEGRAPH_API_KEY?: string;
+      SUBSTREAMS_API_KEY?: string;
+      THEGRAPH_MARKET_BEARER?: string;
+    }
+  );
+  const validated = validateGatewayApiKey(resolved.THEGRAPH_API_KEY);
 
-  if (!apiKey) {
+  if (!validated.ok) {
     return {
       success: false,
-      error:
-        "THEGRAPH_API_KEY is not configured. Add your Studio/gateway key in Project Integrations.",
+      error: validated.error,
     };
   }
 
   try {
     const result = await graphQlPost({
       url: subgraphQueryUrl(CONNECTION_TEST_SUBGRAPH_ID),
-      apiKey,
+      apiKey: validated.apiKey,
       query: META_QUERY,
     });
 
@@ -31,9 +41,16 @@ export async function testTheGraph(credentials: Record<string, string>) {
     }
 
     if (result.errors?.length) {
+      const first = result.errors[0];
+      const message =
+        typeof first === "string"
+          ? first
+          : first && typeof first === "object" && "message" in first
+            ? String((first as { message: unknown }).message)
+            : "GraphQL query failed";
       return {
         success: false,
-        error: result.errors.map((item) => item.message).join("; "),
+        error: message,
       };
     }
 

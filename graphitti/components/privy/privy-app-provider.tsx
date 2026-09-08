@@ -14,10 +14,12 @@ export function PrivyAppProvider({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={appId}
       config={{
-        loginMethods: ["wallet"],
+        loginMethods: ["wallet", "email"],
         embeddedWallets: {
           ethereum: {
-            createOnLogin: "users-without-wallets",
+            // Always create an embedded wallet so workflow txs can use
+            // Privy server RPC even when the user also connects MetaMask.
+            createOnLogin: "all-users",
           },
         },
         appearance: {

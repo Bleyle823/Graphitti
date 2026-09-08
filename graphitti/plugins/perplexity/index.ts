@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { PerplexityIcon } from "./icon";
 
 const perplexityPlugin: IntegrationPlugin = {
   type: "perplexity",
   label: "Perplexity",
   description: "AI-powered search and research with real-time web access",
-
-  icon: PerplexityIcon,
 
   formFields: [
     {

@@ -69,7 +69,7 @@ async function sendSponsored(input: SendSponsoredTransactionInput) {
   }
   try {
     const chain = requireChain(input.network);
-    const { hash } = await sendSponsoredTransaction({
+    const { hash, gasMode, gasAsset } = await sendSponsoredTransaction({
       walletId: input.walletId,
       chain,
       to: input.to,
@@ -80,6 +80,8 @@ async function sendSponsored(input: SendSponsoredTransactionInput) {
       hash,
       to: input.to,
       explorer: `${chain.explorerUrl}/tx/${hash}`,
+      gasMode,
+      gasAsset,
     });
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error));
@@ -138,7 +140,7 @@ async function transfer(input: TransferInput) {
   try {
     const chain = requireChain(input.network);
     const value = `0x${parseUnits(input.amount, chain.nativeDecimals).toString(16)}`;
-    const { hash } = await sendSponsoredTransaction({
+    const { hash, gasMode, gasAsset } = await sendSponsoredTransaction({
       walletId: input.walletId,
       chain,
       to: input.to,
@@ -149,6 +151,8 @@ async function transfer(input: TransferInput) {
       to: input.to,
       amount: input.amount,
       explorer: `${chain.explorerUrl}/tx/${hash}`,
+      gasMode,
+      gasAsset,
     });
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error));

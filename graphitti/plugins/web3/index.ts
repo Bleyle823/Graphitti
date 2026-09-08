@@ -1,14 +1,11 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
-import { Web3Icon } from "./icon";
 
 const web3Plugin: IntegrationPlugin = {
   type: "web3",
   egress: "fixed-host",
   label: "Web3",
   description: "Read and write on EVM chains using your linked Privy wallet with gas sponsorship",
-
-  icon: Web3Icon,
 
   // One wallet per organization
   singleConnection: true,

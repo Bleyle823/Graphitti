@@ -1,0 +1,18 @@
+type BackingSnapshot @entity {
+  id: ID!
+  blockNumber: BigInt!
+  mainnetSupply: BigInt!
+  arbSupply: BigInt!
+  totalSupply: BigInt!
+  totalBackingEth: BigDecimal!
+  excessEth: BigDecimal!
+  deviationBps: Int!
+  deviationPct: BigDecimal!
+  shouldAlert: Boolean!
+  thresholdBps: Int!
+  mainnetSupplyEth: BigDecimal!
+  arbSupplyEth: BigDecimal!
+  totalSupplyEth: BigDecimal!
+  totalBackingEthHuman: BigDecimal!
+  excessEthHuman: BigDecimal!
+}

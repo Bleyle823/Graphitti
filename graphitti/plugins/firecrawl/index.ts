@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { FirecrawlIcon } from "./icon";
 
 const firecrawlPlugin: IntegrationPlugin = {
   type: "firecrawl",
   label: "Firecrawl",
   description: "Scrape, search, and crawl the web",
-
-  icon: FirecrawlIcon,
 
   formFields: [
     {

@@ -42,7 +42,7 @@ export const NO_WALLET_ERROR = {
   success: false as const,
   error: {
     message:
-      "No Privy wallet is linked. Open the auth dialog and choose Connect wallet, then try again.",
+      "No Privy embedded wallet is linked. Connect with MetaMask via Privy (Connect Wallet), wait for the embedded wallet to be created, then try again.",
   },
 };
 

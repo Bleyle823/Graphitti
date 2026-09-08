@@ -1,64 +1,11 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { start } from "workflow/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
 import { workflowExecutions, workflows } from "@/lib/db/schema";
-import { executeWorkflow } from "@/lib/workflow-executor.workflow";
+import { executeWorkflowInBackground } from "@/lib/workflow/execute-in-background";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
-
-// biome-ignore lint/nursery/useMaxParams: Background execution requires all workflow context
-async function executeWorkflowBackground(
-  executionId: string,
-  workflowId: string,
-  nodes: WorkflowNode[],
-  edges: WorkflowEdge[],
-  input: Record<string, unknown>
-) {
-  try {
-    console.log("[Workflow Execute] Starting execution:", executionId);
-
-    // SECURITY: We pass only the workflowId as a reference
-    // Steps will fetch credentials internally using fetchWorkflowCredentials(workflowId)
-    // This prevents credentials from being logged in Vercel's observability
-    console.log("[Workflow Execute] Calling executeWorkflow with:", {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      hasExecutionId: !!executionId,
-      workflowId,
-    });
-
-    // Use start() from workflow/api to properly execute the workflow
-    start(executeWorkflow, [
-      {
-        nodes,
-        edges,
-        triggerInput: input,
-        executionId,
-        workflowId, // Pass workflow ID so steps can fetch credentials
-      },
-    ]);
-
-    console.log("[Workflow Execute] Workflow started successfully");
-  } catch (error) {
-    console.error("[Workflow Execute] Error during execution:", error);
-    console.error(
-      "[Workflow Execute] Error stack:",
-      error instanceof Error ? error.stack : "N/A"
-    );
-
-    // Update execution record with error
-    await db
-      .update(workflowExecutions)
-      .set({
-        status: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
-        completedAt: new Date(),
-      })
-      .where(eq(workflowExecutions.id, executionId));
-  }
-}
 
 export async function POST(
   request: Request,
@@ -115,11 +62,9 @@ export async function POST(
       );
     }
 
-    // Parse request body
     const body = await request.json().catch(() => ({}));
     const input = body.input || {};
 
-    // Create execution record
     const [execution] = await db
       .insert(workflowExecutions)
       .values({
@@ -132,16 +77,32 @@ export async function POST(
 
     console.log("[API] Created execution:", execution.id);
 
-    // Execute the workflow in the background (don't await)
-    executeWorkflowBackground(
+    void executeWorkflowInBackground(
       execution.id,
       workflowId,
       workflow.nodes as WorkflowNode[],
       workflow.edges as WorkflowEdge[],
-      input
-    );
+      input,
+      { logPrefix: "[Workflow Execute]" }
+    ).catch(async (error) => {
+      console.error("[API] Background execution rejected:", error);
+      try {
+        await db
+          .update(workflowExecutions)
+          .set({
+            status: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to start workflow execution",
+            completedAt: new Date(),
+          })
+          .where(eq(workflowExecutions.id, execution.id));
+      } catch (dbError) {
+        console.error("[API] Failed to mark execution error:", dbError);
+      }
+    });
 
-    // Return immediately with the execution ID
     return NextResponse.json({
       executionId: execution.id,
       status: "running",

@@ -3,10 +3,35 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { userWallets } from "@/lib/db/schema";
+import { getPrivyWallet } from "@/lib/web3/privy-client";
 import {
   pickEmbeddedWallet,
   verifyPrivyAccessToken,
 } from "@/lib/web3/verify-privy-token";
+
+function isExternalWalletId(
+  linkedAccounts:
+    | Array<{
+        type: string;
+        id?: string;
+        address?: string;
+        wallet_client_type?: string;
+      }>
+    | undefined,
+  walletId: string
+): boolean {
+  if (!linkedAccounts?.length) {
+    return false;
+  }
+  return linkedAccounts.some(
+    (account) =>
+      account.type === "wallet" &&
+      (account.id === walletId ||
+        account.address?.toLowerCase() === walletId.toLowerCase()) &&
+      Boolean(account.wallet_client_type) &&
+      account.wallet_client_type !== "privy"
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -31,9 +56,34 @@ export async function POST(request: Request) {
 
     const verified = await verifyPrivyAccessToken(body.token);
     const fromUser = pickEmbeddedWallet(verified.user);
-    const walletId = body.walletId || fromUser?.walletId;
-    const address = body.address || fromUser?.address;
+
+    if (
+      body.walletId &&
+      isExternalWalletId(verified.user?.linked_accounts, body.walletId)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Only a Privy embedded wallet can be linked for gasless execution.",
+        },
+        { status: 400 }
+      );
+    }
+
+    let walletId = fromUser?.walletId || body.walletId;
+    let address = fromUser?.address || body.address;
     const privyUserId = body.privyUserId || verified.privyUserId;
+
+    if (walletId && !fromUser) {
+      try {
+        const remote = await getPrivyWallet(walletId);
+        walletId = remote.id;
+        address = remote.address || address;
+      } catch {
+        // Token is already verified. Persist the client-reported embedded wallet
+        // so the UI and later executions can proceed even if wallet GET is delayed.
+      }
+    }
 
     if (!walletId || !address) {
       return NextResponse.json(

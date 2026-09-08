@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { api } from "@/lib/api-client";
+import { ApiError, api } from "@/lib/api-client";
 import { authClient, useSession } from "@/lib/auth-client";
 import { integrationsAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
@@ -381,6 +381,15 @@ function getMissingIntegrations(
   );
 }
 
+/** Transient status-poll failures are tolerated before giving up on a run. */
+const MAX_POLL_ERRORS = 10;
+/**
+ * Upper bound on how long the canvas follows a run. Generous because a cold dev
+ * server can spend minutes compiling the workflow bundle before the first step
+ * reports in.
+ */
+const POLL_GIVE_UP_MS = 10 * 60 * 1000;
+
 type ExecuteTestWorkflowParams = {
   workflowId: string;
   nodes: WorkflowNode[];
@@ -430,6 +439,17 @@ async function executeTestWorkflow({
     // Select the new execution
     setSelectedExecutionId(result.executionId);
 
+    let consecutiveErrors = 0;
+    const pollStartedAt = Date.now();
+
+    const stopPolling = () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      setIsExecuting(false);
+    };
+
     // Poll for execution status updates
     const pollInterval = setInterval(async () => {
       try {
@@ -451,19 +471,40 @@ async function executeTestWorkflow({
           });
         }
 
+        consecutiveErrors = 0;
+
         // Stop polling if execution is complete
         if (statusData.status !== "running") {
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
-
-          setIsExecuting(false);
-
+          stopPolling();
           // Don't reset node statuses - let them show the final state
-          // The user can click another run or deselect to reset
+          return;
+        }
+
+        // Backstop against watching a run forever. Node statuses are left as
+        // they are: the run may still be progressing server-side, so this is
+        // not reported as a failure.
+        if (Date.now() - pollStartedAt >= POLL_GIVE_UP_MS) {
+          stopPolling();
+          toast.info(
+            "Stopped watching this run. Reopen it from Runs to see the result."
+          );
         }
       } catch (error) {
+        // A deleted execution (e.g. runs were cleared) can never resolve, so
+        // give up immediately instead of polling a 404 forever.
+        if (error instanceof ApiError && error.status === 404) {
+          stopPolling();
+          updateNodesStatus(nodes, updateNodeData, "idle");
+          setSelectedExecutionId(null);
+          return;
+        }
+
+        consecutiveErrors++;
+        if (consecutiveErrors >= MAX_POLL_ERRORS) {
+          stopPolling();
+          toast.error("Lost connection to the execution status feed.");
+          return;
+        }
         console.error("Failed to poll execution status:", error);
       }
     }, 500); // Poll every 500ms

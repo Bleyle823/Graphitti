@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { FalIcon } from "./icon";
 
 const falPlugin: IntegrationPlugin = {
   type: "fal",
   label: "fal.ai",
   description: "Fast AI inference for image, video, and audio generation",
-
-  icon: FalIcon,
 
   formFields: [
     {

@@ -53,3 +53,10 @@ if (process.env.NODE_ENV !== "production") {
   globalForDb.queryClient = queryClient;
   globalForDb.db = db;
 }
+
+export async function closeDbConnections(): Promise<void> {
+  await Promise.all([
+    migrationClient.end({ timeout: 5 }),
+    queryClient.end({ timeout: 5 }),
+  ]);
+}

@@ -1,6 +1,5 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { TheGraphIcon } from "./icon";
 
 const graphNetworkOptions = [
   { value: "", label: "Any network" },
@@ -78,7 +77,6 @@ const theGraphPlugin: IntegrationPlugin = {
   label: "The Graph",
   description:
     "Discover and query subgraphs, Token API, Substreams packages, and Market reads. Never auto-pays x402.",
-  icon: TheGraphIcon,
   formFields: [
     {
       id: "apiKey",
@@ -582,6 +580,223 @@ const theGraphPlugin: IntegrationPlugin = {
           required: true,
         },
       ],
+    },
+    {
+      slug: "query-substreams-entity",
+      label: "Query Substreams entity",
+      description:
+        "Pull indexed entities from a subgraph fed by Substreams graph_out. Does not start gRPC.",
+      category: "The Graph Substreams",
+      stepFunction: "querySubstreamsEntityStep",
+      stepImportPath: "substreams-stream",
+      outputFields: [
+        { field: "latest", description: "Newest matching entity row" },
+        { field: "has_match", description: "True when at least one row matches" },
+        { field: "rows", description: "Matching entity rows" },
+        { field: "count", description: "Row count after client-side minField filter" },
+        { field: "should_alert", description: "Alias when entity has shouldAlert" },
+        { field: "deviation_bps", description: "Alias when entity has deviationBps" },
+        { field: "block_number", description: "Latest block number alias" },
+        ...queryUrlOutputs,
+      ],
+      configFields: [
+        ...subgraphIdFields,
+        {
+          key: "entityName",
+          label: "Entity collection",
+          type: "template-input",
+          placeholder: "backingSnapshots",
+          example: "backingSnapshots",
+          required: true,
+        },
+        {
+          type: "group",
+          label: "Query",
+          fields: [
+            {
+              key: "entityFields",
+              label: "Fields (comma-separated)",
+              type: "template-input",
+              placeholder: "id,blockNumber,shouldAlert,deviationBps",
+            },
+            {
+              key: "orderBy",
+              label: "Order by",
+              type: "template-input",
+              placeholder: "blockNumber",
+              defaultValue: "blockNumber",
+            },
+            {
+              key: "orderDirection",
+              label: "Order direction",
+              type: "select",
+              options: [
+                { value: "desc", label: "desc" },
+                { value: "asc", label: "asc" },
+              ],
+              defaultValue: "desc",
+            },
+            {
+              key: "first",
+              label: "First",
+              type: "template-input",
+              placeholder: "5",
+              defaultValue: "5",
+            },
+            {
+              key: "whereJson",
+              label: "Where JSON",
+              type: "template-textarea",
+              placeholder: '{ "shouldAlert": true }',
+              rows: 3,
+            },
+          ],
+        },
+        {
+          type: "group",
+          label: "Client threshold (optional)",
+          fields: [
+            {
+              key: "minField",
+              label: "Min field",
+              type: "template-input",
+              placeholder: "deviationBps",
+            },
+            {
+              key: "minValue",
+              label: "Min value",
+              type: "template-input",
+              placeholder: "50",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      slug: "resolve-substreams-package",
+      label: "Resolve Substreams package",
+      description:
+        "Registry lookup plus deploy checklist and default endpoint. Setup only — no streaming.",
+      category: "The Graph Substreams",
+      stepFunction: "resolveSubstreamsPackageStep",
+      stepImportPath: "substreams-stream",
+      outputFields: [
+        { field: "slug", description: "Package slug" },
+        { field: "found", description: "Whether the slug exists in registry" },
+        { field: "version", description: "Resolved version" },
+        { field: "spkg", description: "spkg URL" },
+        { field: "endpoint", description: "Default gRPC endpoint" },
+        { field: "deploy_steps", description: "Deploy checklist steps" },
+        ...queryUrlOutputs,
+      ],
+      configFields: [
+        {
+          key: "slug",
+          label: "Slug",
+          type: "template-input",
+          placeholder: "your-package-slug",
+          required: true,
+        },
+        {
+          key: "version",
+          label: "Version",
+          type: "template-input",
+          placeholder: "v0.1.0 (optional)",
+        },
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          options: substreamsNetworkOptions,
+          defaultValue: "ethereum",
+        },
+      ],
+    },
+    {
+      slug: "substreams-webhook-setup",
+      label: "Substreams webhook setup",
+      description:
+        "Read-only sink CLI command and webhook URL template for push alerts.",
+      category: "The Graph Substreams",
+      stepFunction: "substreamsWebhookSetupStep",
+      stepImportPath: "substreams-stream",
+      outputFields: [
+        { field: "webhook_url", description: "Graphitti webhook URL" },
+        { field: "sink_command", description: "substreams sink webhook command" },
+        { field: "spkg", description: "Package URL or path" },
+        { field: "module_name", description: "Output module name" },
+        { field: "endpoint", description: "gRPC endpoint" },
+        { field: "env_vars", description: "Required environment variables" },
+        ...queryUrlOutputs,
+      ],
+      configFields: [
+        {
+          key: "slug",
+          label: "Package slug",
+          type: "template-input",
+          placeholder: "your-package-slug",
+        },
+        {
+          key: "version",
+          label: "Version",
+          type: "template-input",
+          placeholder: "v0.1.0",
+        },
+        {
+          key: "moduleName",
+          label: "Output module",
+          type: "template-input",
+          placeholder: "map_events",
+        },
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          options: substreamsNetworkOptions,
+          defaultValue: "ethereum",
+        },
+        {
+          type: "group",
+          label: "Graphitti webhook",
+          fields: [
+            {
+              key: "baseUrl",
+              label: "Base URL",
+              type: "template-input",
+              placeholder: "https://YOUR_GRAPHITTI_HOST",
+            },
+            {
+              key: "workflowId",
+              label: "Workflow id",
+              type: "template-input",
+              placeholder: "YOUR_WORKFLOW_ID",
+            },
+            {
+              key: "spkg",
+              label: "spkg override",
+              type: "template-input",
+              placeholder: "Optional local .spkg path or URL",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      slug: "get-substreams-stream-status",
+      label: "Get Substreams stream status",
+      description:
+        "Subgraph _meta sync check for a Substreams-backed deployment. Does not start gRPC.",
+      category: "The Graph Substreams",
+      stepFunction: "getSubstreamsStreamStatusStep",
+      stepImportPath: "substreams-stream",
+      outputFields: [
+        { field: "meta", description: "_meta payload" },
+        { field: "indexed_block_number", description: "Indexed block number" },
+        { field: "deployment", description: "Deployment id from _meta" },
+        { field: "stream_running_note", description: "Reminder that stream runs externally" },
+        ...queryUrlOutputs,
+      ],
+      configFields: subgraphIdFields,
     },
     {
       slug: "get-subscription",

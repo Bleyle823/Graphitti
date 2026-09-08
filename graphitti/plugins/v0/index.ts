@@ -1,13 +1,10 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
-import { V0Icon } from "./icon";
 
 const v0Plugin: IntegrationPlugin = {
   type: "v0",
   label: "v0",
   description: "Generate UI components with AI",
-
-  icon: V0Icon,
 
   formFields: [
     {
