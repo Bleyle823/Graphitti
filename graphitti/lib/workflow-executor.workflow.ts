@@ -14,6 +14,7 @@ import {
 } from "./step-registry";
 import type { StepContext } from "./steps/step-handler";
 import { triggerStep } from "./steps/trigger";
+import { resolveTemplateReference } from "./utils/template";
 import { getErrorMessageAsync } from "./utils";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
@@ -33,6 +34,11 @@ const SYSTEM_ACTIONS: Record<string, StepImporter> = {
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
     importer: () => import("./steps/condition") as Promise<any>,
     stepFunction: "conditionStep",
+  },
+  "For Each": {
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
+    importer: () => import("./steps/for-each") as Promise<any>,
+    stepFunction: "forEachStep",
   },
 };
 
@@ -392,11 +398,78 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
   // Build node and edge maps
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const edgesBySource = new Map<string, string[]>();
+  const edgesBySource = new Map<string, WorkflowEdge[]>();
   for (const edge of edges) {
-    const targets = edgesBySource.get(edge.source) || [];
-    targets.push(edge.target);
-    edgesBySource.set(edge.source, targets);
+    const outgoing = edgesBySource.get(edge.source) || [];
+    outgoing.push(edge);
+    edgesBySource.set(edge.source, outgoing);
+  }
+
+  function getOutgoingEdges(nodeId: string): WorkflowEdge[] {
+    return edgesBySource.get(nodeId) || [];
+  }
+
+  function getTargetNodeIds(
+    nodeId: string,
+    handleFilter?: "true" | "false" | "loop"
+  ): string[] {
+    const outgoing = getOutgoingEdges(nodeId);
+    if (!handleFilter) {
+      return outgoing.map((edge) => edge.target);
+    }
+    return outgoing
+      .filter((edge) => edge.sourceHandle === handleFilter)
+      .map((edge) => edge.target);
+  }
+
+  function outgoingEdgesUseConditionHandles(nodeId: string): boolean {
+    return getOutgoingEdges(nodeId).some(
+      (edge) => edge.sourceHandle === "true" || edge.sourceHandle === "false"
+    );
+  }
+
+  function coerceToArray(value: unknown): unknown[] | null {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (value && typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  async function executeLoopBody(
+    forEachNodeId: string,
+    item: unknown,
+    index: number,
+    total: number
+  ): Promise<void> {
+    const forEachNode = nodeMap.get(forEachNodeId);
+    if (!forEachNode) {
+      return;
+    }
+
+    const sanitizedNodeId = forEachNodeId.replace(/[^a-zA-Z0-9]/g, "_");
+    outputs[sanitizedNodeId] = {
+      label: forEachNode.data.label || forEachNodeId,
+      data: {
+        currentItem: item,
+        index,
+        count: total,
+      },
+    };
+
+    const loopTargets = getTargetNodeIds(forEachNodeId, "loop");
+    for (const targetId of loopTargets) {
+      await executeNode(targetId, new Set());
+    }
   }
 
   // Find trigger nodes
@@ -461,9 +534,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         data: null,
       };
 
-      const nextNodes = edgesBySource.get(nodeId) || [];
+      const nextTargets = getTargetNodeIds(nodeId);
       await Promise.all(
-        nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
+        nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
       );
       return;
     }
@@ -554,6 +627,64 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           processedConfig.condition = originalCondition;
         }
 
+        if (actionType === "For Each") {
+          const arraySource = config.arraySource as string | undefined;
+          if (!arraySource?.trim()) {
+            result = {
+              success: false,
+              error:
+                "For Each: arraySource is required. Configure a template reference to an array",
+            };
+          } else {
+            const resolved = resolveTemplateReference(arraySource, outputs);
+            const items = coerceToArray(resolved);
+            if (!items) {
+              result = {
+                success: false,
+                error:
+                  "For Each: arraySource did not resolve to an array. Check the upstream node output field.",
+              };
+            } else {
+              const stepContext: StepContext = {
+                executionId,
+                nodeId: node.id,
+                nodeName: getNodeName(node),
+                nodeType: actionType,
+              };
+              const forEachModule = await SYSTEM_ACTIONS["For Each"].importer();
+              await forEachModule.forEachStep({
+                arraySource,
+                itemCount: items.length,
+                _context: stepContext,
+              });
+              result = {
+                success: true,
+                data: { itemCount: items.length, completed: true },
+              };
+
+              results[nodeId] = result;
+              const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
+              outputs[sanitizedNodeId] = {
+                label: node.data.label || nodeId,
+                data: result.data,
+              };
+
+              for (let index = 0; index < items.length; index += 1) {
+                await executeLoopBody(nodeId, items[index], index, items.length);
+              }
+              return;
+            }
+          }
+
+          results[nodeId] = result;
+          const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
+          outputs[sanitizedNodeId] = {
+            label: node.data.label || nodeId,
+            data: result.data,
+          };
+          return;
+        }
+
         // Build step context for logging (stepHandler will handle the logging)
         const stepContext: StepContext = {
           executionId,
@@ -606,6 +737,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             data: stepResult,
           };
         }
+      } else if (node.data.type === "note") {
+        result = { success: true, data: {} };
       } else {
         console.log("[Workflow Executor] Unknown node type:", node.data.type);
         result = {
@@ -631,13 +764,11 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
       // Execute next nodes
       if (result.success) {
-        // Check if this is a condition node
+        const actionType = node.data.config?.actionType as string | undefined;
         const isConditionNode =
-          node.data.type === "action" &&
-          node.data.config?.actionType === "Condition";
+          node.data.type === "action" && actionType === "Condition";
 
         if (isConditionNode) {
-          // For condition nodes, only execute next nodes if condition is true
           const conditionResult = (result.data as { condition?: boolean })
             ?.condition;
           console.log(
@@ -645,35 +776,50 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             conditionResult
           );
 
+          const usesHandles = outgoingEdgesUseConditionHandles(nodeId);
+          if (usesHandles) {
+            const handle: "true" | "false" = conditionResult
+              ? "true"
+              : "false";
+            const nextTargets = getTargetNodeIds(nodeId, handle);
+            console.log(
+              `[Workflow Executor] Condition is ${handle}, executing`,
+              nextTargets.length,
+              "next nodes"
+            );
+            await Promise.all(
+              nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
+            );
+            return;
+          }
+
           if (conditionResult === true) {
-            const nextNodes = edgesBySource.get(nodeId) || [];
+            const nextTargets = getTargetNodeIds(nodeId);
             console.log(
               "[Workflow Executor] Condition is true, executing",
-              nextNodes.length,
+              nextTargets.length,
               "next nodes in parallel"
             );
-            // Execute all next nodes in parallel
             await Promise.all(
-              nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
+              nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
             );
           } else {
             console.log(
               "[Workflow Executor] Condition is false, skipping next nodes"
             );
           }
-        } else {
-          // For non-condition nodes, execute all next nodes in parallel
-          const nextNodes = edgesBySource.get(nodeId) || [];
-          console.log(
-            "[Workflow Executor] Executing",
-            nextNodes.length,
-            "next nodes in parallel"
-          );
-          // Execute all next nodes in parallel
-          await Promise.all(
-            nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited))
-          );
+          return;
         }
+
+        const nextTargets = getTargetNodeIds(nodeId);
+        console.log(
+          "[Workflow Executor] Executing",
+          nextTargets.length,
+          "next nodes in parallel"
+        );
+        await Promise.all(
+          nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
+        );
       }
     } catch (error) {
       console.error("[Workflow Executor] Error executing node:", nodeId, error);
