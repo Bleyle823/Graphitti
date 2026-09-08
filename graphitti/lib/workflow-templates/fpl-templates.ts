@@ -1,109 +1,46 @@
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 import type { WorkflowTemplate } from "./normalize-export";
 
-const PARTICIPANT_COUNT = 5;
 const PRIZES = ["5", "3", "2"] as const;
 
-function managerHistoryNodes(): WorkflowNode[] {
-  return Array.from({ length: PARTICIPANT_COUNT }, (_, index) => {
-    const n = index + 1;
-    return {
-      id: `fpl-mgr-${n}`,
-      type: "action" as const,
-      position: { x: 840, y: 24 + index * 88 },
-      data: {
-        label: `Manager ${n} History`,
-        type: "action" as const,
-        config: {
-          actionType: "fantasy-premier-league/get-manager-history",
-          managerId: String(n),
-        },
-        status: "idle" as const,
-        description: `Gameweek points for mini-league slot ${n}. Replace managerId with your FPL entry id.`,
-      },
-    };
-  });
-}
-
-function managerHistoryEdges(): WorkflowEdge[] {
-  const edges: WorkflowEdge[] = [
-    {
-      id: "e-fpl-gw-finished",
-      source: "fpl-gw-finished",
-      target: "fpl-mgr-1",
-    },
-  ];
-  for (let n = 1; n < PARTICIPANT_COUNT; n += 1) {
-    edges.push({
-      id: `e-fpl-mgr-${n}-to-${n + 1}`,
-      source: `fpl-mgr-${n}`,
-      target: `fpl-mgr-${n + 1}`,
-    });
-  }
-  edges.push({
-    id: "e-fpl-mgr-to-rank",
-    source: `fpl-mgr-${PARTICIPANT_COUNT}`,
-    target: "fpl-rank",
-  });
-  return edges;
-}
-
-function rankTopThreeCode(): string {
-  const roster = Array.from({ length: PARTICIPANT_COUNT }, (_, index) => {
-    const n = index + 1;
-    const slot = String(n).padStart(2, "0");
-    return `  { slot: ${n}, managerId: "${n}", name: "Team ${n}", address: "0xTEAM_${slot}_PAYOUT_ADDRESS" },`;
-  }).join("\n");
-
-  const histories = Array.from({ length: PARTICIPANT_COUNT }, (_, index) => {
-    const n = index + 1;
-    return `  [{{@fpl-mgr-${n}:Manager ${n} History.current}}].flat(),`;
-  }).join("\n");
-
+function rankLeagueTopThreeCode(): string {
   return `const gameweekId = Number("{{@fpl-prev-gw:Get Previous Gameweek.events.0.id}}" || "0");
 const gameweekName = "{{@fpl-prev-gw:Get Previous Gameweek.events.0.name}}" || "";
+const leagueId = "{{@fpl-standings:Get League Standings.league.id}}" || "";
 
-const roster = [
-${roster}
-];
+// Map FPL entry id -> Arc payout wallet (replace with your league members).
+const payoutByEntry = {
+  "REPLACE_ENTRY_ID_1": "0xTEAM_01_PAYOUT_ADDRESS",
+  "REPLACE_ENTRY_ID_2": "0xTEAM_02_PAYOUT_ADDRESS",
+  "REPLACE_ENTRY_ID_3": "0xTEAM_03_PAYOUT_ADDRESS",
+};
 
-const histories = [
-${histories}
-];
-
-function pointsForEvent(history, eventId) {
-  if (!Array.isArray(history)) {
-    return 0;
-  }
-  const row = history.find(function (item) {
-    return Number(item && item.event) === eventId;
-  });
-  return row ? Number(row.points) || 0 : 0;
-}
-
+const results = {{@fpl-standings:Get League Standings.standings.results}} || [];
 const prizes = ${JSON.stringify([...PRIZES])};
-const ranked = roster.map(function (team, index) {
+const placeholder = "PAYOUT_ADDRESS";
+
+const ranked = results.map(function (row) {
   return {
-    slot: team.slot,
-    managerId: team.managerId,
-    name: team.name,
-    address: team.address,
-    points: pointsForEvent(histories[index], gameweekId),
+    entry: Number(row && row.entry) || 0,
+    name: (row && (row.entry_name || row.player_name)) || "",
+    rank: Number(row && row.rank) || 0,
+    points: Number(row && (row.event_total != null ? row.event_total : row.total)) || 0,
   };
 }).sort(function (a, b) {
   if (b.points !== a.points) {
     return b.points - a.points;
   }
-  return a.slot - b.slot;
+  return a.rank - b.rank;
 });
 
 const top3 = ranked.slice(0, 3).map(function (team, index) {
+  const address = payoutByEntry[String(team.entry)] || "";
   return {
     place: index + 1,
-    managerId: team.managerId,
+    entry: team.entry,
     name: team.name,
-    address: team.address,
     points: team.points,
+    address: address,
     prizeUsdc: prizes[index],
   };
 });
@@ -111,7 +48,6 @@ const top3 = ranked.slice(0, 3).map(function (team, index) {
 const first = top3[0] || null;
 const second = top3[1] || null;
 const third = top3[2] || null;
-const placeholder = "PAYOUT_ADDRESS";
 const ready = Boolean(
   first &&
     second &&
@@ -124,6 +60,7 @@ const ready = Boolean(
 return {
   gameweekId: gameweekId,
   gameweekName: gameweekName,
+  leagueId: leagueId,
   participants: ranked.length,
   ready: ready,
   totalPrizeUsdc: "10",
@@ -147,9 +84,9 @@ return {
 
 export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
-    name: "FPL Mini-League USDC Payouts",
+    name: "FPL League Top Three USDC Payouts",
     description:
-      "After a finished gameweek, rank 5 FPL managers by points and send 5 / 3 / 2 USDC on Arc to the top three payout wallets. Circle checks the prize-pool balance first.",
+      "After a finished gameweek, load classic FPL league standings, rank the top three teams by score, and send 5 / 3 / 2 USDC on Arc to their payout wallets.",
     nodes: [
       {
         id: "fpl-payout-trigger",
@@ -168,14 +105,14 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: "fpl-payout-note",
         type: "note",
         dragHandle: ".sticky-note-drag-handle",
-        width: 280,
-        height: 220,
-        position: { x: -340, y: 200 },
+        width: 300,
+        height: 240,
+        position: { x: -360, y: 160 },
         data: {
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect FPL, Circle, and Arc. Link your Privy wallet. Replace manager IDs 1-5 and the 5 payout wallets in Rank Top Three (keep the same order). Set the prize-pool address on Get Prize Pool USDC. Pays 5 / 3 / 2 native USDC on Arc Testnet to 1st / 2nd / 3rd.",
+            text: "Set your classic league ID on Get League Standings. After the gameweek finishes, standings.event_total is used for weekly score (falls back to total). Edit payoutByEntry in Rank Top Three: map each FPL entry id to an Arc wallet. Set the prize-pool address on Get Prize Pool USDC. Pays 5 / 3 / 2 native USDC to 1st / 2nd / 3rd.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -214,27 +151,42 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           description: "Skip payouts until FPL has finalized the gameweek",
         },
       },
-      ...managerHistoryNodes(),
+      {
+        id: "fpl-standings",
+        type: "action",
+        position: { x: 840, y: 200 },
+        data: {
+          label: "Get League Standings",
+          type: "action",
+          config: {
+            actionType: "fantasy-premier-league/get-classic-standings",
+            leagueId: "YOUR_CLASSIC_LEAGUE_ID",
+          },
+          status: "idle",
+          description:
+            "Classic mini-league standings from FPL (top teams ranked by gameweek score)",
+        },
+      },
       {
         id: "fpl-rank",
         type: "action",
-        position: { x: 1160, y: 200 },
+        position: { x: 1120, y: 200 },
         data: {
           label: "Rank Top Three",
           type: "action",
           config: {
             actionType: "code/run-code",
-            code: rankTopThreeCode(),
+            code: rankLeagueTopThreeCode(),
           },
           status: "idle",
           description:
-            "Sorts the 5 managers by that gameweek's points and assigns 5 / 3 / 2 USDC",
+            "Sorts league members by score and assigns 5 / 3 / 2 USDC prizes",
         },
       },
       {
         id: "circle-lookup-usdc",
         type: "action",
-        position: { x: 1440, y: 80 },
+        position: { x: 1400, y: 80 },
         data: {
           label: "Lookup USDC",
           type: "action",
@@ -250,7 +202,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "circle-balance",
         type: "action",
-        position: { x: 1440, y: 320 },
+        position: { x: 1400, y: 320 },
         data: {
           label: "Get Prize Pool USDC",
           type: "action",
@@ -266,7 +218,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "fpl-funded",
         type: "action",
-        position: { x: 1720, y: 200 },
+        position: { x: 1680, y: 200 },
         data: {
           label: "Prize Pool Check",
           type: "action",
@@ -276,13 +228,13 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           },
           status: "idle",
           description:
-            "Requires replaced payout addresses and at least 10 native USDC",
+            "Requires payout addresses and at least 10 native USDC in the pool",
         },
       },
       {
         id: "fpl-funded-condition",
         type: "action",
-        position: { x: 2000, y: 200 },
+        position: { x: 1960, y: 200 },
         data: {
           label: "Prize Pool Funded?",
           type: "action",
@@ -297,7 +249,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "arc-pay-first",
         type: "action",
-        position: { x: 2280, y: 80 },
+        position: { x: 2240, y: 80 },
         data: {
           label: "Pay 1st Place",
           type: "action",
@@ -314,7 +266,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "arc-pay-second",
         type: "action",
-        position: { x: 2560, y: 200 },
+        position: { x: 2520, y: 200 },
         data: {
           label: "Pay 2nd Place",
           type: "action",
@@ -331,7 +283,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "arc-pay-third",
         type: "action",
-        position: { x: 2840, y: 320 },
+        position: { x: 2800, y: 320 },
         data: {
           label: "Pay 3rd Place",
           type: "action",
@@ -357,7 +309,17 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         source: "fpl-prev-gw",
         target: "fpl-gw-finished",
       },
-      ...managerHistoryEdges(),
+      {
+        id: "e-fpl-gw-standings",
+        source: "fpl-gw-finished",
+        target: "fpl-standings",
+        sourceHandle: "true",
+      },
+      {
+        id: "e-fpl-standings-rank",
+        source: "fpl-standings",
+        target: "fpl-rank",
+      },
       {
         id: "e-fpl-rank-lookup",
         source: "fpl-rank",
@@ -382,6 +344,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: "e-fpl-pay-first",
         source: "fpl-funded-condition",
         target: "arc-pay-first",
+        sourceHandle: "true",
       },
       {
         id: "e-fpl-pay-second",
