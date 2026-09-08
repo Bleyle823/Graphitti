@@ -11,7 +11,7 @@ type Logger = {
 };
 
 function createLogger(): Logger {
-  const noop = () => {};
+  const noop: LogFn = () => undefined;
   return {
     info: noop,
     error: noop,
@@ -23,4 +23,9 @@ function createLogger(): Logger {
   };
 }
 
-export default createLogger;
+function pino(): Logger {
+  return createLogger();
+}
+
+export default pino;
+export { pino };
