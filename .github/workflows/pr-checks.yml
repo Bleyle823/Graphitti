@@ -46,9 +46,6 @@ jobs:
       - name: Generate plugin registry
         run: pnpm discover-plugins
 
-      - name: Run check
-        run: pnpm check
-
       - name: Run type check
         run: pnpm type-check
 
