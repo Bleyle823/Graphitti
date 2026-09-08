@@ -1,6 +1,5 @@
 import "server-only";
 
-import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import {
@@ -8,7 +7,7 @@ import {
   packageSpkgUrl,
   searchSubstreamsPackages,
 } from "@/lib/the-graph/substreams-registry";
-import type { TheGraphCredentials } from "../credentials";
+import { loadTheGraphCredentials, type TheGraphCredentials } from "../credentials";
 import { aliasNetwork, asRecordArray, asString, isRecord } from "./shared";
 
 type SubstreamsInput = StepInput & {
@@ -139,9 +138,7 @@ function withCreds(
   ) => Promise<ReturnType<typeof ok> | ReturnType<typeof fail>>
 ) {
   return withStepLogging(input, async () => {
-    const credentials = input.integrationId
-      ? ((await fetchCredentials(input.integrationId)) as TheGraphCredentials)
-      : {};
+    const credentials = await loadTheGraphCredentials(input.integrationId);
     return handler(input, credentials);
   });
 }

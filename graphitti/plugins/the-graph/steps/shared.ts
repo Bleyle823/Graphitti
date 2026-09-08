@@ -1,6 +1,7 @@
 import { fail } from "@/lib/http-json";
 import { graphQlPost, subgraphQueryUrl, subgraphX402Url } from "@/lib/the-graph/gateway";
 import type { TheGraphCredentials } from "../credentials";
+import { validateGatewayApiKey } from "../credentials";
 
 export const GRAPH_NETWORK_SUBGRAPH_ID =
   "DZz4kDTdmzWLWsV373w2bSmoar3umKKH9y82SUKr5qmp";
@@ -24,13 +25,11 @@ export function aliasNetwork(network?: string): string | undefined {
 }
 
 export function requireGatewayKey(credentials: TheGraphCredentials) {
-  const apiKey = credentials.THEGRAPH_API_KEY?.trim();
-  if (!apiKey) {
-    return fail(
-      "THEGRAPH_API_KEY is not configured. Please add it in Project Integrations."
-    );
+  const validated = validateGatewayApiKey(credentials.THEGRAPH_API_KEY);
+  if (!validated.ok) {
+    return fail(validated.error);
   }
-  return apiKey;
+  return validated.apiKey;
 }
 
 export function requireMarketBearer(credentials: TheGraphCredentials) {
@@ -49,7 +48,11 @@ export function graphqlErrorMessage(
   if (!errors?.length) {
     return undefined;
   }
-  return errors.map((item) => item.message).join("; ");
+  const message = errors.map((item) => item.message).join("; ");
+  if (message.includes("malformed API key")) {
+    return `${message}. Use the 32-character Studio key from thegraph.com/studio in Project Integrations → The Graph → Studio / Gateway API Key (not SUBSTREAMS_API_KEY).`;
+  }
+  return message;
 }
 
 export function parseVariablesJson(

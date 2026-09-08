@@ -1,10 +1,9 @@
 import "server-only";
 
-import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { tokenApiGet } from "@/lib/the-graph/token-api";
-import type { TheGraphCredentials } from "../credentials";
+import { loadTheGraphCredentials, type TheGraphCredentials } from "../credentials";
 import { aliasNetwork, requireGatewayKey } from "./shared";
 
 type TokenApiInput = StepInput & {
@@ -147,9 +146,7 @@ function withCreds(
   ) => Promise<ReturnType<typeof ok> | ReturnType<typeof fail>>
 ) {
   return withStepLogging(input, async () => {
-    const credentials = input.integrationId
-      ? ((await fetchCredentials(input.integrationId)) as TheGraphCredentials)
-      : {};
+    const credentials = await loadTheGraphCredentials(input.integrationId);
     return handler(input, credentials);
   });
 }
