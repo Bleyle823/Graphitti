@@ -380,9 +380,13 @@ export const apiKeys = pgTable("api_keys", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
+  organizationId: text("organization_id").references(() => organization.id, {
+    onDelete: "cascade",
+  }),
   name: text("name"), // Optional label for the API key
   keyHash: text("key_hash").notNull(), // Store hashed version of the key
   keyPrefix: text("key_prefix").notNull(), // Store first few chars for display (e.g., "wf_abc...")
+  scopes: jsonb("scopes").$type<string[]>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastUsedAt: timestamp("last_used_at"),
 });
