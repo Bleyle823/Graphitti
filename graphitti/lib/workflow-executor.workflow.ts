@@ -15,8 +15,8 @@ import {
 } from "./step-registry";
 import type { StepContext } from "./steps/step-handler";
 import { triggerStep } from "./steps/trigger";
-import { resolveTemplateReference } from "./utils/template";
 import { getErrorMessageAsync } from "./utils";
+import { resolveTemplateReference } from "./utils/template";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
 // System actions that don't have plugins - maps to module import functions
@@ -108,6 +108,7 @@ export type WorkflowExecutionInput = {
   triggerInput?: Record<string, unknown>;
   executionId?: string;
   workflowId?: string; // Used by steps to fetch credentials
+  organizationId?: string;
 };
 
 /**
@@ -416,7 +417,14 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
   console.log("[Workflow Executor] Starting workflow execution");
 
-  const { nodes, edges, triggerInput = {}, executionId, workflowId } = input;
+  const {
+    nodes,
+    edges,
+    triggerInput = {},
+    executionId,
+    workflowId,
+    organizationId,
+  } = input;
 
   console.log("[Workflow Executor] Input:", {
     nodeCount: nodes.length,
@@ -662,24 +670,13 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
         if (actionType === "For Each") {
           const arraySource = config.arraySource as string | undefined;
-          if (!arraySource?.trim()) {
-            result = {
-              success: false,
-              error:
-                "For Each: arraySource is required. Configure a template reference to an array",
-            };
-          } else {
+          if (arraySource?.trim()) {
             const resolved = resolveTemplateReference(arraySource, outputs);
             const items = coerceToArray(resolved);
-            if (!items) {
-              result = {
-                success: false,
-                error:
-                  "For Each: arraySource did not resolve to an array. Check the upstream node output field.",
-              };
-            } else {
+            if (items) {
               const stepContext: StepContext = {
                 executionId,
+                organizationId,
                 nodeId: node.id,
                 nodeName: getNodeName(node),
                 nodeType: actionType,
@@ -705,10 +702,26 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
               };
 
               for (let index = 0; index < items.length; index += 1) {
-                await executeLoopBody(nodeId, items[index], index, items.length);
+                await executeLoopBody(
+                  nodeId,
+                  items[index],
+                  index,
+                  items.length
+                );
               }
               return;
             }
+            result = {
+              success: false,
+              error:
+                "For Each: arraySource did not resolve to an array. Check the upstream node output field.",
+            };
+          } else {
+            result = {
+              success: false,
+              error:
+                "For Each: arraySource is required. Configure a template reference to an array",
+            };
           }
 
           results[nodeId] = result;
@@ -723,6 +736,8 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         // Build step context for logging (stepHandler will handle the logging)
         const stepContext: StepContext = {
           executionId,
+          organizationId,
+          workflowId,
           nodeId: node.id,
           nodeName: getNodeName(node),
           nodeType: actionType,
@@ -814,9 +829,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
 
           const usesHandles = outgoingEdgesUseConditionHandles(nodeId);
           if (usesHandles) {
-            const handle: "true" | "false" = conditionResult
-              ? "true"
-              : "false";
+            const handle: "true" | "false" = conditionResult ? "true" : "false";
             const nextTargets = getTargetNodeIds(nodeId, handle);
             console.log(
               `[Workflow Executor] Condition is ${handle}, executing`,

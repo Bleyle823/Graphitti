@@ -17,7 +17,9 @@ type WalletLike = {
   chainType?: string | null;
 };
 
-function isExternalWalletClient(walletClientType: string | null | undefined): boolean {
+function isExternalWalletClient(
+  walletClientType: string | null | undefined
+): boolean {
   if (!walletClientType) {
     return false;
   }

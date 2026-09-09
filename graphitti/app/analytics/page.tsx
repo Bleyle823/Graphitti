@@ -7,7 +7,7 @@ import { PageEmptyState } from "@/components/page-empty-state";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { api, type ActivityItem } from "@/lib/api-client";
+import { type ActivityItem, api } from "@/lib/api-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { cn } from "@/lib/utils";
 
@@ -67,10 +67,77 @@ export default function AnalyticsPage() {
         <div className="flex justify-center py-12">
           <Spinner />
         </div>
-      ) : !hasWalletAccess ? (
+      ) : hasWalletAccess ? (
+        !data || data.executions === 0 ? (
+          <PageEmptyState
+            action={
+              <Button onClick={() => router.push("/")} size="sm">
+                Create a workflow
+              </Button>
+            }
+            description="Run a workflow to see counts, success rate, and recent activity here."
+            icon={BarChart3}
+            title="No runs yet"
+          />
+        ) : (
+          <div className="space-y-8">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {cards.map((card) => (
+                <div className="rounded-xl border bg-card p-4" key={card.label}>
+                  <p className="text-muted-foreground text-xs">{card.label}</p>
+                  <p className="mt-2 font-semibold text-2xl tabular-nums">
+                    {card.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {successRate !== null ? (
+              <p className="text-muted-foreground text-sm">
+                Success rate {successRate}% across {data.executions} runs.
+              </p>
+            ) : null}
+            {recent.length > 0 ? (
+              <div>
+                <h2 className="mb-3 font-medium text-sm">Recent runs</h2>
+                <ul className="divide-y rounded-xl border bg-card">
+                  {recent.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm hover:bg-muted/50"
+                        onClick={() =>
+                          router.push(`/workflows/${item.workflowId}`)
+                        }
+                        type="button"
+                      >
+                        <span className="truncate font-medium">
+                          {item.workflowName}
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-xs capitalize",
+                            item.status === "success" &&
+                              "bg-primary/10 text-foreground",
+                            item.status === "error" &&
+                              "bg-destructive/10 text-destructive"
+                          )}
+                        >
+                          {item.status}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        )
+      ) : (
         <PageEmptyState
           action={
-            <Button onClick={() => router.push("/hub?tab=marketplace")} size="sm">
+            <Button
+              onClick={() => router.push("/hub?tab=marketplace")}
+              size="sm"
+            >
               Browse examples
             </Button>
           }
@@ -78,66 +145,6 @@ export default function AnalyticsPage() {
           icon={BarChart3}
           title="Connect wallet for your analytics"
         />
-      ) : !data || data.executions === 0 ? (
-        <PageEmptyState
-          action={
-            <Button onClick={() => router.push("/")} size="sm">
-              Create a workflow
-            </Button>
-          }
-          description="Run a workflow to see counts, success rate, and recent activity here."
-          icon={BarChart3}
-          title="No runs yet"
-        />
-      ) : (
-        <div className="space-y-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {cards.map((card) => (
-              <div className="rounded-xl border bg-card p-4" key={card.label}>
-                <p className="text-muted-foreground text-xs">{card.label}</p>
-                <p className="mt-2 font-semibold text-2xl tabular-nums">
-                  {card.value}
-                </p>
-              </div>
-            ))}
-          </div>
-          {successRate !== null ? (
-            <p className="text-muted-foreground text-sm">
-              Success rate {successRate}% across {data.executions} runs.
-            </p>
-          ) : null}
-          {recent.length > 0 ? (
-            <div>
-              <h2 className="mb-3 font-medium text-sm">Recent runs</h2>
-              <ul className="divide-y rounded-xl border bg-card">
-                {recent.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm hover:bg-muted/50"
-                      onClick={() => router.push(`/workflows/${item.workflowId}`)}
-                      type="button"
-                    >
-                      <span className="truncate font-medium">
-                        {item.workflowName}
-                      </span>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-xs capitalize",
-                          item.status === "success" &&
-                            "bg-primary/10 text-foreground",
-                          item.status === "error" &&
-                            "bg-destructive/10 text-destructive"
-                        )}
-                      >
-                        {item.status}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
       )}
     </PageShell>
   );

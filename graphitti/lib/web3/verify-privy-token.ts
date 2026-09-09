@@ -67,7 +67,9 @@ export function pickEmbeddedWallet(user?: PrivyUser): {
   chainType: string;
 } | null {
   // Prefer explicitly tagged Privy embedded linked accounts.
-  const embeddedLinked = user?.linked_accounts?.find(isPrivyEmbeddedLinkedAccount);
+  const embeddedLinked = user?.linked_accounts?.find(
+    isPrivyEmbeddedLinkedAccount
+  );
   if (embeddedLinked?.address) {
     return {
       walletId: embeddedLinked.id || embeddedLinked.address,
@@ -106,7 +108,8 @@ export function isEmbeddedWalletId(
   const linked = user?.linked_accounts?.find(
     (account) =>
       isPrivyEmbeddedLinkedAccount(account) &&
-      (account.id === walletId || account.address?.toLowerCase() === walletId.toLowerCase())
+      (account.id === walletId ||
+        account.address?.toLowerCase() === walletId.toLowerCase())
   );
   if (linked) {
     return true;

@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Overlay } from "@/components/overlays/overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
 import type { OverlayComponentProps } from "@/components/overlays/types";
-import { SchemaBuilder, type SchemaField } from "@/components/workflow/config/schema-builder";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,6 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  SchemaBuilder,
+  type SchemaField,
+} from "@/components/workflow/config/schema-builder";
 import { api } from "@/lib/api-client";
 import { NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
 
@@ -82,9 +85,15 @@ export function ListingOverlay({
         category,
         chain,
         workflowType,
-        inputSchema: fieldsToJsonSchema(schema.length ? schema : [
-          ...(existingSchema ? [] : [{ name: "input", type: "string" as const }]),
-        ]),
+        inputSchema: fieldsToJsonSchema(
+          schema.length
+            ? schema
+            : [
+                ...(existingSchema
+                  ? []
+                  : [{ name: "input", type: "string" as const }]),
+              ]
+        ),
         outputMapping: outputField ? { field: outputField } : undefined,
         listed,
       });
@@ -102,7 +111,14 @@ export function ListingOverlay({
       actions={[
         { label: "Cancel", variant: "outline", onClick: closeAll },
         ...(isListed
-          ? [{ label: "Unlist", variant: "outline" as const, onClick: () => publish(false), loading: saving }]
+          ? [
+              {
+                label: "Unlist",
+                variant: "outline" as const,
+                onClick: () => publish(false),
+                loading: saving,
+              },
+            ]
           : []),
         {
           label: isListed ? "Update listing" : "List workflow",
@@ -140,7 +156,9 @@ export function ListingOverlay({
         <div className="space-y-2">
           <Label>Type</Label>
           <Select
-            onValueChange={(value) => setWorkflowType(value as "read" | "write")}
+            onValueChange={(value) =>
+              setWorkflowType(value as "read" | "write")
+            }
             value={workflowType}
           >
             <SelectTrigger>

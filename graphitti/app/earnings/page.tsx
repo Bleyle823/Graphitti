@@ -45,7 +45,39 @@ export default function EarningsPage() {
         <div className="flex justify-center py-12">
           <Spinner />
         </div>
-      ) : !hasWalletAccess ? (
+      ) : hasWalletAccess ? (
+        !data || data.invocations === 0 ? (
+          <PageEmptyState
+            action={
+              <Button
+                onClick={() => router.push("/hub?tab=marketplace")}
+                size="sm"
+              >
+                Browse marketplace
+              </Button>
+            }
+            description="List a workflow on the marketplace to start earning Arc USDC per call."
+            icon={DollarSign}
+            title="No earnings yet"
+          />
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Stat label="Invocations" value={String(data.invocations)} />
+              <Stat label="Gross USDC" value={data.grossUsdc} />
+              <Stat
+                label="Platform fee"
+                value={`${(data.platformFeeBps / 100).toFixed(0)}%`}
+              />
+              <Stat label="Net USDC" value={data.netUsdc} />
+            </div>
+            <p className="mt-6 text-muted-foreground text-sm">
+              Paid listings settle on Arc Testnet as USDC (6-decimal ERC-20)
+              {data.chain ? ` on ${data.chain}` : ""}.
+            </p>
+          </>
+        )
+      ) : (
         <PageEmptyState
           action={
             <Button
@@ -59,36 +91,6 @@ export default function EarningsPage() {
           icon={DollarSign}
           title="Connect wallet for earnings"
         />
-      ) : !data || data.invocations === 0 ? (
-        <PageEmptyState
-          action={
-            <Button
-              onClick={() => router.push("/hub?tab=marketplace")}
-              size="sm"
-            >
-              Browse marketplace
-            </Button>
-          }
-          description="List a workflow on the marketplace to start earning Arc USDC per call."
-          icon={DollarSign}
-          title="No earnings yet"
-        />
-      ) : (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Invocations" value={String(data.invocations)} />
-            <Stat label="Gross USDC" value={data.grossUsdc} />
-            <Stat
-              label="Platform fee"
-              value={`${(data.platformFeeBps / 100).toFixed(0)}%`}
-            />
-            <Stat label="Net USDC" value={data.netUsdc} />
-          </div>
-          <p className="mt-6 text-muted-foreground text-sm">
-            Paid listings settle on Arc Testnet as USDC (6-decimal ERC-20)
-            {data.chain ? ` on ${data.chain}` : ""}.
-          </p>
-        </>
       )}
     </PageShell>
   );
