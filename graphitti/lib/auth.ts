@@ -74,28 +74,92 @@ const schema = {
   workflowExecutionsRelations,
 };
 
+function isLocalhostUrl(value: string): boolean {
+  try {
+    const host = new URL(
+      value.includes("://") ? value : `https://${value}`
+    ).hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return /localhost|127\.0\.0\.1|::1/i.test(value);
+  }
+}
+
+function withHttps(hostOrUrl: string): string {
+  if (hostOrUrl.startsWith("http://") || hostOrUrl.startsWith("https://")) {
+    return hostOrUrl.replace(/\/$/, "");
+  }
+  return `https://${hostOrUrl.replace(/\/$/, "")}`;
+}
+
 // Determine the base URL for authentication
 // This supports Vercel Preview deployments with dynamic URLs
-function getBaseURL() {
-  // Priority 1: Explicit BETTER_AUTH_URL (set manually for production/dev)
-  if (process.env.BETTER_AUTH_URL) {
-    return process.env.BETTER_AUTH_URL;
+function getBaseURL(): string {
+  const envUrl = process.env.BETTER_AUTH_URL;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const vercelProduction = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const vercelUrl = process.env.VERCEL_URL;
+
+  // A leftover localhost BETTER_AUTH_URL in Vercel env would reject every
+  // production Origin and surface "Invalid origin" on anonymous sign-in.
+  if (process.env.VERCEL) {
+    if (envUrl && !isLocalhostUrl(envUrl)) {
+      return envUrl.replace(/\/$/, "");
+    }
+    if (appUrl && !isLocalhostUrl(appUrl)) {
+      return appUrl.replace(/\/$/, "");
+    }
+    if (process.env.VERCEL_ENV === "production" && vercelProduction) {
+      return withHttps(vercelProduction);
+    }
+    if (vercelUrl) {
+      return withHttps(vercelUrl);
+    }
   }
 
-  // Priority 2: NEXT_PUBLIC_APP_URL
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
   }
-
-  // Priority 3: Check if we're on Vercel (for preview deployments)
-  if (process.env.VERCEL_URL) {
-    // VERCEL_URL doesn't include protocol, so add it
-    // Use https for Vercel deployments (both production and preview)
-    return `https://${process.env.VERCEL_URL}`;
+  if (appUrl) {
+    return appUrl.replace(/\/$/, "");
   }
-
-  // Fallback: Local development
   return "http://localhost:3000";
+}
+
+function getTrustedOrigins(): string[] {
+  const origins = new Set<string>([
+    getBaseURL(),
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+    "https://graphitti-five.vercel.app",
+  ]);
+
+  const extras = [
+    process.env.BETTER_AUTH_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.VERCEL_URL ? withHttps(process.env.VERCEL_URL) : undefined,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? withHttps(process.env.VERCEL_PROJECT_PRODUCTION_URL)
+      : undefined,
+  ];
+  for (const extra of extras) {
+    if (extra) {
+      origins.add(extra.replace(/\/$/, ""));
+    }
+  }
+  for (const extra of (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "").split(
+    ","
+  )) {
+    const trimmed = extra.trim().replace(/\/$/, "");
+    if (trimmed) {
+      origins.add(trimmed);
+    }
+  }
+  if (process.env.NODE_ENV === "development") {
+    origins.add("https://localhost:*");
+    origins.add("https://127.0.0.1:*");
+  }
+  return [...origins];
 }
 
 async function provisionOrganizationTreasury(input: {
@@ -243,6 +307,7 @@ const plugins = [
 
 export const auth = betterAuth({
   baseURL: getBaseURL(),
+  trustedOrigins: getTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,

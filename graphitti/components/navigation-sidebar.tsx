@@ -1,6 +1,6 @@
 "use client";
 
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import {
   Activity,
   BarChart3,
@@ -48,7 +48,7 @@ import { WorkflowPicker } from "@/components/workflows/workflow-picker";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { SavedWorkflow } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 import {
   COLLAPSED_WIDTH,
   EXPANDED_WIDTH,
@@ -57,7 +57,7 @@ import {
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { marketplaceListingToExampleWorkflow } from "@/lib/marketplace/catalog";
 import { registerSidebarRefetch } from "@/lib/refetch-sidebar";
-import { authPromptOpenAtom, navMobileOpenAtom } from "@/lib/ui-store";
+import { navMobileOpenAtom } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
 
 const DOCS_URL = "https://na-834f3010.mintlify.app";
@@ -282,9 +282,8 @@ function SidebarBody({
 
 export function NavigationSidebar(): React.ReactElement | null {
   const isMobile = useIsMobile();
-  const { isPending: sessionPending } = useSession();
-  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
-  const setAuthPromptOpen = useSetAtom(authPromptOpenAtom);
+  const { data: session, isPending: sessionPending } = useSession();
+  const { hasWalletAccess } = useWalletAccess();
   const [mobileOpen, setMobileOpen] = useAtom(navMobileOpenAtom);
   const { open: openOverlay } = useOverlay();
   const router = useRouter();
@@ -360,7 +359,6 @@ export function NavigationSidebar(): React.ReactElement | null {
       window.removeEventListener("graphitti:wallet-linked", onWalletLinked);
   }, [fetchData, router]);
 
-  const needsWalletConnect = !(walletAccessPending || hasWalletAccess);
   const workflowId =
     typeof params.workflowId === "string" ? params.workflowId : undefined;
   const expanded = navState.state.sidebar;
@@ -469,21 +467,30 @@ export function NavigationSidebar(): React.ReactElement | null {
   }
 
   async function handleNewWorkflow(): Promise<void> {
-    if (needsWalletConnect) {
-      setAuthPromptOpen(true);
-      toast.info("Connect a wallet to create and run workflows.");
-      return;
+    try {
+      if (!session?.user) {
+        await authClient.signIn.anonymous();
+        await new Promise((resolve) => {
+          setTimeout(resolve, 100);
+        });
+      }
+      const created = await api.workflow.create({
+        name: "Untitled Workflow",
+        description: "",
+        nodes: [],
+        edges: [],
+      });
+      await fetchData();
+      navState.setFlyout("open");
+      sessionStorage.setItem("animate-sidebar", "true");
+      router.push(`/workflows/${created.id}`);
+    } catch (error) {
+      console.error("[Nav] Failed to create workflow", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create workflow"
+      );
+      throw error;
     }
-    const created = await api.workflow.create({
-      name: "Untitled Workflow",
-      description: "",
-      nodes: [],
-      edges: [],
-    });
-    await fetchData();
-    navState.setFlyout("open");
-    sessionStorage.setItem("animate-sidebar", "true");
-    router.push(`/workflows/${created.id}`);
   }
 
   function handleNavClick(item: NavItemDef): void {

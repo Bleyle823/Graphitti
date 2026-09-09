@@ -1,0 +1,79 @@
+{
+  "id": "the-graph",
+  "name": "The Graph",
+  "description": "Subgraph discovery, GraphQL, Token API, Substreams, and Graphitti workflows",
+  "contracts": {
+    "tools": [
+      "graph_search_subgraphs",
+      "graph_get_query_counts",
+      "graph_recommend_subgraph",
+      "graph_find_by_contract",
+      "graph_get_schema",
+      "graph_query_subgraph",
+      "graph_get_subgraph_detail",
+      "graph_get_indexing_status",
+      "graph_query_lending_snapshot",
+      "graph_get_token_balances",
+      "graph_get_token_transfers",
+      "graph_get_token_holders",
+      "graph_get_dex_swaps",
+      "graph_get_nft_activity",
+      "graph_search_substreams_packages",
+      "graph_get_substreams_package",
+      "graph_get_substreams_endpoint",
+      "graph_resolve_substreams_package",
+      "graph_query_substreams_entity",
+      "graph_get_substreams_stream_status",
+      "graph_substreams_webhook_setup",
+      "graph_substreams_run",
+      "graph_get_subscription",
+      "graph_get_usage_summary",
+      "graph_get_bill_preview",
+      "graph_get_active_connections",
+      "graph_list_hosted_deployments",
+      "graph_get_deployment_state",
+      "graph_get_deployment_events",
+      "graph_get_deployment_logs",
+      "graph_whoami",
+      "graph_search_workflows",
+      "graph_get_listing",
+      "graph_call_workflow",
+      "graph_execute_workflow",
+      "graph_get_execution"
+    ]
+  },
+  "toolMetadata": {
+    "graph_substreams_webhook_setup": { "optional": true },
+    "graph_substreams_run": { "optional": true },
+    "graph_call_workflow": { "optional": true },
+    "graph_execute_workflow": { "optional": true }
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "thegraphApiKey": { "type": "string" },
+      "substreamsApiKey": { "type": "string" },
+      "marketBearer": { "type": "string" },
+      "graphittiBaseUrl": { "type": "string" },
+      "graphittiApiKey": { "type": "string" }
+    }
+  },
+  "setup": {
+    "providers": [
+      {
+        "id": "the-graph",
+        "envVars": [
+          "THEGRAPH_API_KEY",
+          "SUBSTREAMS_API_KEY",
+          "THEGRAPH_MARKET_BEARER",
+          "GRAPHITTI_BASE_URL",
+          "GRAPHITTI_API_KEY"
+        ]
+      }
+    ]
+  }
+}

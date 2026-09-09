@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "privy": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["../privy-core/dist/mcp-server.js"],
+      "env": {
+        "PRIVY_APP_ID": "${PRIVY_APP_ID}",
+        "PRIVY_APP_SECRET": "${PRIVY_APP_SECRET}",
+        "PRIVY_AUTHORIZATION_KEY": "${PRIVY_AUTHORIZATION_KEY}",
+        "GRAPHITTI_BASE_URL": "${GRAPHITTI_BASE_URL}",
+        "GRAPHITTI_API_KEY": "${GRAPHITTI_API_KEY}"
+      }
+    }
+  }
+}
