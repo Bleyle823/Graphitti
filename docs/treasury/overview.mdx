@@ -1,0 +1,39 @@
+---
+title: Organization treasury
+description: Shared Privy org wallets with policies, payees, and quorum approvals.
+---
+
+Graphitti teams use **Better Auth organizations** mapped to **Privy organization wallets**. Each org gets a treasury wallet on Base Sepolia with:
+
+- An **owner key quorum** for high-value actions
+- An **operator policy** for automated payroll under a USDC cap
+- A **payee book** of allowlisted contractor addresses
+- **Privy intents** when a payment needs owner approval
+
+Open **Treasury** in the app to create an org, fund the wallet, manage payees, and approve pending intents.
+
+## How Privy enables Graphitti
+
+| Privy control | Graphitti surface |
+|---|---|
+| Organization wallet | One treasury wallet per team |
+| Policies | Auto payroll cap + allowlist |
+| Key quorums | Owner approvals on high-value transfers |
+| Intents | Async quorum signing in Treasury UI |
+| Wallet transfer API | Fund treasury + payroll without raw calldata |
+
+Personal embedded wallets remain for login and marketplace pay-to. Org treasury wallets are separate and policy-governed.
+
+## Demo script for judges
+
+1. Sign in and click **Connect wallet**.
+2. Open **Treasury** and create **Acme Treasury**.
+3. Add two payees with default USDC amounts.
+4. Click **Fund treasury** (Privy wallet transfer from your embedded wallet).
+5. Run the **Policy-gated contractor payroll** workflow template.
+6. Submit a **Quorum vendor bill** over the auto cap and approve the intent as an owner.
+7. Point reviewers to this page and the open-source repo.
+
+## Mocked flows
+
+Privy Cards and Bridge fiat onramps are shown as **mock** UI in Treasury. They do not count toward hackathon eligibility. The live qualifying financial flow is **Privy wallet transfer** on Base Sepolia.
