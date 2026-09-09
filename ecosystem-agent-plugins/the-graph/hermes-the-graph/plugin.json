@@ -1,0 +1,8 @@
+{
+  "id": "the-graph",
+  "name": "The Graph",
+  "version": "0.1.0",
+  "description": "Subgraph discovery, GraphQL, Token API, Substreams, and Graphitti workflows",
+  "author": "Graphitti",
+  "license": "Apache-2.0"
+}

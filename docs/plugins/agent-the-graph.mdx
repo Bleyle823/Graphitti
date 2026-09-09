@@ -1,0 +1,98 @@
+---
+title: The Graph agent plugins
+description: Install The Graph protocol plugins for Eliza, OpenClaw, Hermes, and Eve.
+---
+
+The Graph agent plugins expose one tool group (`graph_*`) for subgraph discovery, GraphQL queries, Token API reads, Substreams package/registry operations, optional Market Portal reads, and Graphitti listed workflows.
+
+Packages live under `ecosystem-agent-plugins/the-graph/` in the Graphitti repo.
+
+## Credentials
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `THEGRAPH_API_KEY` | Yes | 32-character Studio/gateway key from [thegraph.com/studio](https://thegraph.com/studio) |
+| `SUBSTREAMS_API_KEY` | No | Substreams registry and data plane |
+| `THEGRAPH_MARKET_BEARER` | No | Market Portal billing and hosted deployment reads |
+| `GRAPHITTI_BASE_URL` | No | Graphitti host (default production deployment) |
+| `GRAPHITTI_API_KEY` | No | Owner marketplace execute and workflow APIs |
+
+Never auto-pay Graph x402. Tools return `query_url` (Bearer) and `query_url_x402` (display only).
+
+## Subgraph discovery sequence
+
+1. Search with a generic keyword (`graph_search_subgraphs` or `graph_recommend_subgraph`).
+2. Check 30-day query volume before selecting a deployment (`graph_get_query_counts`).
+3. Fetch schema (`graph_get_schema`).
+4. Query (`graph_query_subgraph`).
+
+Contract lookups use `graph_find_by_contract` with chain `mainnet` for Ethereum.
+
+## Substreams
+
+| Tool | Purpose |
+|---|---|
+| `graph_search_substreams_packages` | Search substreams.dev registry |
+| `graph_get_substreams_package` | Resolve slug to spkg URL |
+| `graph_get_substreams_endpoint` | Network to gRPC endpoint |
+| `graph_resolve_substreams_package` | Deploy checklist + endpoint |
+| `graph_query_substreams_entity` | Read graph_out entities via subgraph GraphQL |
+| `graph_substreams_webhook_setup` | Sink webhook CLI + Graphitti webhook URL |
+| `graph_get_substreams_stream_status` | Subgraph `_meta` sync check |
+
+Substreams gRPC runs outside the agent. Use entity queries or an external sink for production paths.
+
+## ElizaOS
+
+```bash
+cd ecosystem-agent-plugins/the-graph
+pnpm install
+pnpm --filter @graphitti/graph-core build
+pnpm --filter plugin-the-graph build
+```
+
+Add to your character:
+
+```typescript
+plugins: ['./ecosystem-agent-plugins/the-graph/plugin-the-graph'],
+```
+
+Set `THEGRAPH_API_KEY` in `.env`.
+
+## OpenClaw
+
+```bash
+openclaw plugins install npm-pack:/path/to/openclaw-the-graph.tgz
+```
+
+Or link from the monorepo after `pnpm --filter openclaw-the-graph build`.
+
+Plugin id: `the-graph`. Enable with `tools.allow: ["the-graph"]` or list individual `graph_*` tools.
+
+## Hermes
+
+Portable plugin at `ecosystem-agent-plugins/the-graph/hermes-the-graph/`:
+
+```bash
+hermes plugins install /path/to/ecosystem-agent-plugins/the-graph/hermes-the-graph
+hermes plugins enable the-graph
+```
+
+Configure MCP env vars in `~/.hermes/config.yaml` under `mcp_servers.the-graph`.
+
+## Eve
+
+Mount `@graphitti/eve-the-graph` as extension `the-graph`. Tools are generated from the shared catalog under `ecosystem-agent-plugins/the-graph/eve-the-graph/src/tools/`.
+
+## Graphitti workflows
+
+When `GRAPHITTI_API_KEY` is set, the same plugin adds:
+
+- `graph_search_workflows` (category `the-graph`)
+- `graph_get_listing`
+- `graph_call_workflow`
+- `graph_execute_workflow`
+- `graph_get_execution`
+- `graph_whoami`
+
+Compose Substreams push with Graphitti: run `graph_substreams_webhook_setup`, then execute the webhook workflow with `graph_call_workflow`.

@@ -1,0 +1,78 @@
+---
+title: Privy agent plugins
+description: Install Privy protocol plugins for Eliza, OpenClaw, Hermes, and Eve.
+---
+
+Privy agent plugins expose one tool group (`privy_*`) for native Privy REST (users, wallets, sign/send, policies, intents) and Graphitti-backed workflows and org treasury when `GRAPHITTI_API_KEY` is set.
+
+Packages live under `ecosystem-agent-plugins/privy/` in the Graphitti repo.
+
+## Credentials
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `PRIVY_APP_ID` | Yes | Privy app ID from [dashboard.privy.io](https://dashboard.privy.io) |
+| `PRIVY_APP_SECRET` | Yes | Privy app secret |
+| `PRIVY_AUTHORIZATION_KEY` | No | Owner-signed wallet RPC when policies require it |
+| `GRAPHITTI_BASE_URL` | No | Graphitti host for B2B tools |
+| `GRAPHITTI_API_KEY` | No | `wfb_` API key for workflows, listings, treasury |
+
+## Native Privy vs Graphitti tools
+
+| Use case | Tool |
+|---|---|
+| Read a Privy server wallet by ID | `privy_get_wallet` |
+| Direct USDC send via Privy | `privy_wallet_transfer` |
+| Listed payroll / treasury flow | `privy_call_workflow` |
+| Org treasury wallet metadata | `privy_get_treasury` |
+| User embedded wallet | `privy_get_linked_wallet` |
+
+Tool descriptions in the catalog repeat this guidance so models pick the right path.
+
+## ElizaOS
+
+```bash
+cd ecosystem-agent-plugins/privy
+pnpm install
+pnpm --filter @graphitti/privy-core build
+pnpm --filter plugin-privy build
+```
+
+Add to your character:
+
+```typescript
+plugins: ['./ecosystem-agent-plugins/privy/plugin-privy'],
+```
+
+Set `PRIVY_APP_ID` and `PRIVY_APP_SECRET` in `.env`. Graphitti-backed actions validate when `GRAPHITTI_API_KEY` is present.
+
+## OpenClaw
+
+Plugin id: `privy`. Enable with `tools.allow: ["privy"]` or list individual `privy_*` tools.
+
+Write tools (send, sign, swap, intents, treasury approve) are optional in `toolMetadata`.
+
+```bash
+pnpm --filter openclaw-privy build
+```
+
+## Hermes
+
+Portable plugin at `ecosystem-agent-plugins/privy/hermes-privy/`:
+
+```bash
+hermes plugins install /path/to/ecosystem-agent-plugins/privy/hermes-privy
+hermes plugins enable privy
+```
+
+MCP stdio runs `privy-mcp` from `@graphitti/privy-core` with the same env vars.
+
+## Eve
+
+Extension `@graphitti/eve-privy`, mount `privy`. Tools are generated from the shared catalog. User approval is required on send, execute, and treasury approve tools.
+
+## Graphitti B2B
+
+When `GRAPHITTI_API_KEY` is set, the same plugin adds workflow and treasury tools backed by `/api/b2b/v1/` (not a Privy REST proxy).
+
+Org-scoped keys with `organizationId` and `treasury:*` scopes unlock treasury reads and writes. Standard `wfb_` keys keep `workflows:*`, `marketplace:*`, and `wallet:read`.

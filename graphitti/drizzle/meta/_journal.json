@@ -50,6 +50,13 @@
       "when": 1788969224919,
       "tag": "0006_fancy_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788983474155,
+      "tag": "0007_motionless_ser_duncan",
+      "breakpoints": true
     }
   ]
 }
