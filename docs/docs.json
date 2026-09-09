@@ -56,7 +56,9 @@
           "plugins/overview",
           "plugins/web3",
           "plugins/privy",
+          "plugins/agent-privy",
           "plugins/the-graph",
+          "plugins/agent-the-graph",
           "plugins/circle",
           "plugins/arc",
           "plugins/fantasy-premier-league"
