@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { isPubliclyReadable } from "@/lib/marketplace/listing";
 import { generateId } from "@/lib/utils/id";
 
 // Node type for type-safe node manipulation
@@ -94,8 +95,7 @@ export async function POST(
 
     const isOwner = session.user.id === sourceWorkflow.userId;
 
-    // If not owner, check if workflow is public
-    if (!isOwner && sourceWorkflow.visibility !== "public") {
+    if (!isOwner && !isPubliclyReadable(sourceWorkflow)) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }

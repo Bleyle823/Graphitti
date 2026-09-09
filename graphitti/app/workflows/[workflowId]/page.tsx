@@ -368,6 +368,10 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       setWorkflowNotFound(false);
     } catch (error) {
       console.error("Failed to load workflow:", error);
+      if (error instanceof ApiError && error.status === 404) {
+        setWorkflowNotFound(true);
+        return;
+      }
       toast.error("Failed to load workflow");
     }
   }, [

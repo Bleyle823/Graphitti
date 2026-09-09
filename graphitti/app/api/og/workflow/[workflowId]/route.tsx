@@ -24,6 +24,7 @@ type WorkflowResponse = {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   visibility: "private" | "public";
+  isListed?: boolean;
   isOwner?: boolean;
 };
 
@@ -123,8 +124,7 @@ export async function GET(
 
     const workflow: WorkflowResponse = await response.json();
 
-    // Only allow OG for public workflows
-    if (workflow.visibility !== "public") {
+    if (workflow.visibility !== "public" && !workflow.isListed) {
       return new Response("Workflow is private", { status: 403 });
     }
 

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
 import { workflows } from "@/lib/db/schema";
+import { isPubliclyReadable } from "@/lib/marketplace/listing";
 
 // Helper to strip sensitive data from nodes for public viewing
 function sanitizeNodesForPublicView(
@@ -57,15 +58,14 @@ export async function GET(
 
     const isOwner = session?.user?.id === workflow.userId;
 
-    // If not owner, check if workflow is public
-    if (!isOwner && workflow.visibility !== "public") {
+    if (!isOwner && !isPubliclyReadable(workflow)) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }
       );
     }
 
-    // For public workflows viewed by non-owners, sanitize sensitive data
+    // For public or listed workflows viewed by non-owners, sanitize sensitive data
     const responseData = {
       ...workflow,
       nodes: isOwner

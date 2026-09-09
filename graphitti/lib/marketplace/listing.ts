@@ -3,6 +3,18 @@ import { db } from "@/lib/db";
 import { userWallets, workflowExecutions, workflows } from "@/lib/db/schema";
 import { isReservedSlug, toKebabSlug } from "./constants";
 
+/** Listed marketplace workflows are readable by anyone, even if visibility is still private. */
+export function isPubliclyReadable(workflow: {
+  visibility: string;
+  isListed?: boolean | null;
+  deletedAt?: Date | string | null;
+}): boolean {
+  if (workflow.deletedAt) {
+    return false;
+  }
+  return workflow.visibility === "public" || Boolean(workflow.isListed);
+}
+
 export const LISTING_PUBLIC_COLUMNS = {
   id: workflows.id,
   name: workflows.name,
@@ -116,6 +128,7 @@ export async function upsertListing(
     .update(workflows)
     .set({
       isListed: true,
+      visibility: "public",
       listedSlug: workflow.listedSlug || slug,
       listedAt: workflow.listedAt ?? new Date(),
       listingVersion: (workflow.listingVersion ?? 1) + (workflow.isListed ? 1 : 0),

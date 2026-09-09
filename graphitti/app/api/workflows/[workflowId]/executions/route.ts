@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflowExecutions, workflows } from "@/lib/db/schema";
+import { isPubliclyReadable } from "@/lib/marketplace/listing";
 
 export async function GET(
   request: Request,
@@ -30,7 +31,7 @@ export async function GET(
     }
 
     const isOwner = session.user.id === workflow.userId;
-    if (!isOwner && workflow.visibility !== "public") {
+    if (!isOwner && !isPubliclyReadable(workflow)) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { isPubliclyReadable } from "@/lib/marketplace/listing";
 
 type WorkflowLayoutProps = {
   children: ReactNode;
@@ -24,11 +25,13 @@ export async function generateMetadata({
       columns: {
         name: true,
         visibility: true,
+        isListed: true,
+        deletedAt: true,
       },
     });
 
     if (workflow) {
-      isPublic = workflow.visibility === "public";
+      isPublic = isPubliclyReadable(workflow);
       // Only expose workflow name in metadata if it's public
       // This prevents private workflow name enumeration
       if (isPublic) {
