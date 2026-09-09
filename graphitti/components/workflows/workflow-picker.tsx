@@ -3,6 +3,7 @@
 import { Copy, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useSetAtom } from "jotai";
 import { toast } from "sonner";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
@@ -26,6 +27,7 @@ import type { SavedWorkflow } from "@/lib/api-client";
 import { ApiError, api } from "@/lib/api-client";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { cn } from "@/lib/utils";
+import { resetEditorAtom } from "@/lib/workflow-store";
 
 type WorkflowPickerProps = {
   workflows: SavedWorkflow[];
@@ -205,6 +207,7 @@ function WorkflowRow({
 }): React.ReactElement {
   const router = useRouter();
   const { open } = useOverlay();
+  const resetEditor = useSetAtom(resetEditorAtom);
   const [draft, setDraft] = useState(workflow.name);
   const categoryLabel = workflow.category
     ? CATEGORY_LABELS[workflow.category] ?? workflow.category
@@ -251,6 +254,7 @@ function WorkflowRow({
           await api.workflow.delete(workflow.id);
           refetchSidebar();
           if (isActive) {
+            resetEditor();
             router.push("/");
           }
         } catch (error) {

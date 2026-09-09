@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
 import { generateId } from "@/lib/utils/id";
@@ -22,8 +22,7 @@ export async function cloneCatalogTemplatesForUser(
     const existing = await db.query.workflows.findFirst({
       where: and(
         eq(workflows.userId, userId),
-        eq(workflows.name, template.name),
-        isNull(workflows.deletedAt)
+        eq(workflows.name, template.name)
       ),
     });
 

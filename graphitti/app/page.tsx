@@ -8,15 +8,16 @@ import { toast } from "sonner";
 import { api } from "@/lib/api-client";
 import { authClient, useSession } from "@/lib/auth-client";
 import {
+  currentWorkflowIdAtom,
   currentWorkflowNameAtom,
   edgesAtom,
   hasSidebarBeenShownAtom,
   isTransitioningFromHomepageAtom,
   nodesAtom,
+  resetEditorAtom,
   type WorkflowNode,
 } from "@/lib/workflow-store";
 
-// Helper function to create a default trigger node
 function createDefaultTriggerNode() {
   return {
     id: nanoid(),
@@ -40,24 +41,24 @@ const Home = () => {
   const setNodes = useSetAtom(nodesAtom);
   const setEdges = useSetAtom(edgesAtom);
   const setCurrentWorkflowName = useSetAtom(currentWorkflowNameAtom);
+  const setCurrentWorkflowId = useSetAtom(currentWorkflowIdAtom);
+  const resetEditor = useSetAtom(resetEditorAtom);
   const setHasSidebarBeenShown = useSetAtom(hasSidebarBeenShownAtom);
   const setIsTransitioningFromHomepage = useSetAtom(
     isTransitioningFromHomepageAtom
   );
   const hasCreatedWorkflowRef = useRef(false);
+  const shouldCreateRef = useRef(false);
   const currentWorkflowName = useAtomValue(currentWorkflowNameAtom);
 
-  // Reset sidebar animation state when on homepage
   useEffect(() => {
     setHasSidebarBeenShown(false);
   }, [setHasSidebarBeenShown]);
 
-  // Update page title when workflow name changes
   useEffect(() => {
     document.title = `${currentWorkflowName} | Graphitti`;
   }, [currentWorkflowName]);
 
-  // Helper to create anonymous session if needed
   const ensureSession = useCallback(async () => {
     if (!session) {
       await authClient.signIn.anonymous();
@@ -65,15 +66,16 @@ const Home = () => {
     }
   }, [session]);
 
-  // Handler to add the first node (replaces the "add" node)
   const handleAddNode = useCallback(() => {
+    shouldCreateRef.current = true;
     const newNode: WorkflowNode = createDefaultTriggerNode();
-    // Replace all nodes (removes the "add" node)
     setNodes([newNode]);
   }, [setNodes]);
 
-  // Initialize with a temporary "add" node on mount
   useEffect(() => {
+    resetEditor();
+    shouldCreateRef.current = false;
+    hasCreatedWorkflowRef.current = false;
     const addNodePlaceholder: WorkflowNode = {
       id: "add-node-placeholder",
       type: "add",
@@ -89,17 +91,25 @@ const Home = () => {
     setNodes([addNodePlaceholder]);
     setEdges([]);
     setCurrentWorkflowName("New Workflow");
-    hasCreatedWorkflowRef.current = false;
-  }, [setNodes, setEdges, setCurrentWorkflowName, handleAddNode]);
+    setCurrentWorkflowId(null);
+  }, [
+    handleAddNode,
+    resetEditor,
+    setCurrentWorkflowId,
+    setCurrentWorkflowName,
+    setEdges,
+    setNodes,
+  ]);
 
-  // Create workflow when first real node is added
   useEffect(() => {
     const createWorkflowAndRedirect = async () => {
-      // Filter out the placeholder "add" node
       const realNodes = nodes.filter((node) => node.type !== "add");
 
-      // Only create when we have at least one real node and haven't created a workflow yet
-      if (realNodes.length === 0 || hasCreatedWorkflowRef.current) {
+      if (
+        !shouldCreateRef.current ||
+        realNodes.length === 0 ||
+        hasCreatedWorkflowRef.current
+      ) {
         return;
       }
       hasCreatedWorkflowRef.current = true;
@@ -107,7 +117,6 @@ const Home = () => {
       try {
         await ensureSession();
 
-        // Create workflow with all real nodes
         const newWorkflow = await api.workflow.create({
           name: "Untitled Workflow",
           description: "",
@@ -115,14 +124,12 @@ const Home = () => {
           edges,
         });
 
-        // Set flags to indicate we're coming from homepage (for sidebar animation)
         sessionStorage.setItem("animate-sidebar", "true");
         setIsTransitioningFromHomepage(true);
-
-        // Redirect to the workflow page
-        console.log("[Homepage] Navigating to workflow page");
         router.replace(`/workflows/${newWorkflow.id}`);
       } catch (error) {
+        hasCreatedWorkflowRef.current = false;
+        shouldCreateRef.current = false;
         console.error("Failed to create workflow:", error);
         toast.error("Failed to create workflow");
       }
@@ -131,7 +138,6 @@ const Home = () => {
     createWorkflowAndRedirect();
   }, [nodes, edges, router, ensureSession, setIsTransitioningFromHomepage]);
 
-  // Canvas and toolbar are rendered by PersistentCanvas in the layout
   return null;
 };
 

@@ -13,6 +13,7 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
@@ -39,6 +40,7 @@ import {
   newlyCreatedNodeIdAtom,
   nodesAtom,
   propertiesPanelActiveTabAtom,
+  resetEditorAtom,
   selectedEdgeAtom,
   selectedNodeAtom,
   updateNodeDataAtom,
@@ -83,7 +85,9 @@ type ConfigurationOverlayProps = OverlayComponentProps;
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex UI logic with multiple conditions
 export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
+  const router = useRouter();
   const { push, closeAll } = useOverlay();
+  const resetEditor = useSetAtom(resetEditorAtom);
   const [selectedNodeId] = useAtom(selectedNodeAtom);
   const [selectedEdgeId] = useAtom(selectedEdgeAtom);
   const [nodes] = useAtom(nodesAtom);
@@ -321,9 +325,10 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
         if (!currentWorkflowId) return;
         try {
           await api.workflow.delete(currentWorkflowId);
+          resetEditor();
           closeAll();
           toast.success("Workflow deleted successfully");
-          window.location.href = "/";
+          router.push("/");
         } catch (error) {
           console.error("Failed to delete workflow:", error);
           toast.error("Failed to delete workflow. Please try again.");

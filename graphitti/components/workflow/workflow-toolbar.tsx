@@ -62,6 +62,7 @@ import {
   nodesAtom,
   propertiesPanelActiveTabAtom,
   redoAtom,
+  resetEditorAtom,
   rightPanelWidthAtom,
   selectedEdgeAtom,
   selectedExecutionIdAtom,
@@ -804,6 +805,7 @@ function useWorkflowActions(
   routeWorkflowId?: string
 ) {
   const { open: openOverlay } = useOverlay();
+  const resetEditor = useSetAtom(resetEditorAtom);
   const {
     currentWorkflowId,
     workflowName,
@@ -887,8 +889,10 @@ function useWorkflowActions(
         if (!currentWorkflowId) return;
         try {
           await api.workflow.delete(currentWorkflowId);
+          resetEditor();
+          refetchSidebar();
           toast.success("Workflow deleted successfully");
-          window.location.href = "/";
+          router.push("/");
         } catch (error) {
           console.error("Failed to delete workflow:", error);
           toast.error(

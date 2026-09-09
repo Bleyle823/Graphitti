@@ -517,6 +517,20 @@ type HistoryState = {
 const historyAtom = atom<HistoryState[]>([]);
 const futureAtom = atom<HistoryState[]>([]);
 
+export const resetEditorAtom = atom(null, (_get, set) => {
+  set(nodesAtom, []);
+  set(edgesAtom, []);
+  set(selectedNodeAtom, null);
+  set(selectedEdgeAtom, null);
+  set(currentWorkflowIdAtom, null);
+  set(currentWorkflowNameAtom, "New Workflow");
+  set(isWorkflowOwnerAtom, true);
+  set(hasUnsavedChangesAtom, false);
+  set(workflowNotFoundAtom, false);
+  set(historyAtom, []);
+  set(futureAtom, []);
+});
+
 // Undo atom
 export const undoAtom = atom(null, (get, set) => {
   const history = get(historyAtom);
