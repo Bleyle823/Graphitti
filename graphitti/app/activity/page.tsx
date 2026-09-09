@@ -3,12 +3,11 @@
 import { Activity } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { PageEmptyState, SignInGate } from "@/components/page-empty-state";
+import { PageEmptyState } from "@/components/page-empty-state";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { api, type ActivityItem } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { cn } from "@/lib/utils";
 
@@ -16,17 +15,14 @@ const FILTERS = ["all", "success", "error"] as const;
 type StatusFilter = (typeof FILTERS)[number];
 
 export default function ActivityPage() {
-  const { isPending: sessionPending } = useSession();
   const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const router = useRouter();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const needsWalletConnect =
-    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   useEffect(() => {
-    if (sessionPending || walletAccessPending || !hasWalletAccess) {
+    if (walletAccessPending || !hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -35,7 +31,7 @@ export default function ActivityPage() {
       .then((result) => setItems(result.items))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [hasWalletAccess, sessionPending, walletAccessPending]);
+  }, [hasWalletAccess, walletAccessPending]);
 
   const visible = useMemo(() => {
     if (filter === "all") {
@@ -44,30 +40,26 @@ export default function ActivityPage() {
     return items.filter((item) => item.status === filter);
   }, [filter, items]);
 
-  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
-    return (
-      <PageShell
-        description="Recent workflow runs across your account."
-        title="Activity"
-      >
-        <SignInGate
-          description="Connect a wallet to see recent runs, status, and duration."
-          icon={Activity}
-          title="Connect wallet to view activity"
-        />
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell
       description="Recent workflow runs across your account."
       title="Activity"
     >
-      {loading || sessionPending || walletAccessPending ? (
+      {loading || walletAccessPending ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>
+      ) : !hasWalletAccess ? (
+        <PageEmptyState
+          action={
+            <Button onClick={() => router.push("/hub?tab=marketplace")} size="sm">
+              Browse examples
+            </Button>
+          }
+          description="Connect a wallet to run workflows and see execution history here."
+          icon={Activity}
+          title="Connect wallet for activity"
+        />
       ) : items.length === 0 ? (
         <PageEmptyState
           action={

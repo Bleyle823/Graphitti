@@ -13,12 +13,13 @@ export async function verifyPrivyAccessToken(token: string): Promise<{
   }
 
   const jwks = createRemoteJWKSet(
-    new URL(`https://auth.privy.io/api/v1/apps/${appId}/jwks`)
+    new URL(`https://auth.privy.io/api/v1/apps/${appId}/jwks.json`)
   );
 
   const { payload } = await jwtVerify(token, jwks, {
     issuer: "privy.io",
     audience: appId,
+    algorithms: ["ES256"],
   });
 
   const privyUserId = typeof payload.sub === "string" ? payload.sub : "";

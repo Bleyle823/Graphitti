@@ -37,7 +37,8 @@ import { WorkflowPicker } from "@/components/workflows/workflow-picker";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { SavedWorkflow } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
-import { authClient, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
+import { marketplaceListingToExampleWorkflow } from "@/lib/marketplace/catalog";
 import {
   COLLAPSED_WIDTH,
   EXPANDED_WIDTH,
@@ -72,35 +73,35 @@ const NAV_ITEMS: NavItemDef[] = [
     icon: Store,
     label: "Marketplace",
     href: "/hub?tab=marketplace",
-    requireAuth: true,
+    requireAuth: false,
   },
   {
     id: "analytics",
     icon: BarChart3,
     label: "Analytics",
     href: "/analytics",
-    requireAuth: true,
+    requireAuth: false,
   },
   {
     id: "earnings",
     icon: DollarSign,
     label: "Earnings",
     href: "/earnings",
-    requireAuth: true,
+    requireAuth: false,
   },
   {
     id: "activity",
     icon: Activity,
     label: "Activity",
     href: "/activity",
-    requireAuth: true,
+    requireAuth: false,
   },
   {
     id: "wallet",
     icon: Wallet,
     label: "Wallet",
     href: null,
-    requireAuth: true,
+    requireAuth: false,
   },
 ];
 
@@ -109,7 +110,7 @@ const SETTINGS_NAV_ITEM: NavItemDef = {
   icon: Settings,
   label: "Settings",
   href: "/settings",
-  requireAuth: true,
+  requireAuth: false,
 };
 
 function visibleWorkflows(workflows: SavedWorkflow[]): SavedWorkflow[] {
@@ -250,7 +251,7 @@ function SidebarBody({
 
 export function NavigationSidebar(): React.ReactElement | null {
   const isMobile = useIsMobile();
-  const { data: session, isPending: sessionPending } = useSession();
+  const { isPending: sessionPending } = useSession();
   const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const setAuthPromptOpen = useSetAtom(authPromptOpenAtom);
   const [mobileOpen, setMobileOpen] = useAtom(navMobileOpenAtom);
@@ -261,7 +262,9 @@ export function NavigationSidebar(): React.ReactElement | null {
   const params = useParams();
   const navState = usePersistedNavState();
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([]);
+  const [catalogExamples, setCatalogExamples] = useState<SavedWorkflow[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const isDragging = useRef(false);
 
@@ -271,6 +274,19 @@ export function NavigationSidebar(): React.ReactElement | null {
     } finally {
       setDataLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    setCatalogLoading(true);
+    api.marketplace
+      .search({ sort: "recent" })
+      .then((result) =>
+        setCatalogExamples(
+          result.items.map(marketplaceListingToExampleWorkflow)
+        )
+      )
+      .catch(() => setCatalogExamples([]))
+      .finally(() => setCatalogLoading(false));
   }, []);
 
   useEffect(() => {
@@ -419,36 +435,11 @@ export function NavigationSidebar(): React.ReactElement | null {
     return false;
   }
 
-  function requireSignIn(): boolean {
-    if (walletAccessPending) {
-      return false;
-    }
-    if (!hasWalletAccess) {
-      setAuthPromptOpen(true);
-      return true;
-    }
-    return false;
-  }
-
   async function handleNewWorkflow(): Promise<void> {
     if (needsWalletConnect) {
-      if (!session) {
-        await authClient.signIn.anonymous();
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      const existing = await api.workflow
-        .getAll()
-        .catch(() => [] as SavedWorkflow[]);
-      const visible = visibleWorkflows(existing);
-      if (visible.length > 0) {
-        toast.info("Connect a wallet to create more workflows.");
-        const latest = [...visible].sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        )[0];
-        router.push(`/workflows/${latest.id}`);
-        return;
-      }
+      setAuthPromptOpen(true);
+      toast.info("Connect a wallet to create and run workflows.");
+      return;
     }
     const created = await api.workflow.create({
       name: "Untitled Workflow",
@@ -463,9 +454,6 @@ export function NavigationSidebar(): React.ReactElement | null {
   }
 
   function handleNavClick(item: NavItemDef): void {
-    if (item.requireAuth && requireSignIn()) {
-      return;
-    }
     if (item.id === "workflows") {
       navState.toggleFlyout();
       return;
@@ -482,7 +470,7 @@ export function NavigationSidebar(): React.ReactElement | null {
 
   const picker = visibleWorkflows(workflows);
 
-  if (sessionPending || walletAccessPending || !navState.hasMounted) {
+  if (sessionPending || !navState.hasMounted) {
     return (
       <div
         aria-hidden="true"
@@ -519,7 +507,9 @@ export function NavigationSidebar(): React.ReactElement | null {
           <div className="border-t p-2">
             <WorkflowPicker
               activeWorkflowId={workflowId}
-              isAnonymous={needsWalletConnect}
+              catalogExamples={catalogExamples}
+              catalogLoading={catalogLoading}
+              hasWalletAccess={hasWalletAccess}
               loading={dataLoading}
               workflows={picker}
             />
@@ -561,7 +551,9 @@ export function NavigationSidebar(): React.ReactElement | null {
       >
         <WorkflowPicker
           activeWorkflowId={workflowId}
-          isAnonymous={needsWalletConnect}
+          catalogExamples={catalogExamples}
+          catalogLoading={catalogLoading}
+          hasWalletAccess={hasWalletAccess}
           loading={dataLoading}
           workflows={picker}
         />

@@ -3,12 +3,11 @@
 import { DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PageEmptyState, SignInGate } from "@/components/page-empty-state";
+import { PageEmptyState } from "@/components/page-empty-state";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 
 type EarningsData = {
@@ -20,16 +19,13 @@ type EarningsData = {
 };
 
 export default function EarningsPage() {
-  const { isPending: sessionPending } = useSession();
   const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const router = useRouter();
   const [data, setData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const needsWalletConnect =
-    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   useEffect(() => {
-    if (sessionPending || walletAccessPending || !hasWalletAccess) {
+    if (walletAccessPending || !hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -38,32 +34,31 @@ export default function EarningsPage() {
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [hasWalletAccess, sessionPending, walletAccessPending]);
-
-  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
-    return (
-      <PageShell
-        description="Revenue from listed workflows, settled in Arc USDC."
-        title="Earnings"
-      >
-        <SignInGate
-          description="Connect a wallet to see invocations and USDC settled from listed workflows."
-          icon={DollarSign}
-          title="Connect wallet to view earnings"
-        />
-      </PageShell>
-    );
-  }
+  }, [hasWalletAccess, walletAccessPending]);
 
   return (
     <PageShell
       description="Revenue from listed workflows, settled in Arc USDC."
       title="Earnings"
     >
-      {loading || sessionPending || walletAccessPending ? (
+      {loading || walletAccessPending ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>
+      ) : !hasWalletAccess ? (
+        <PageEmptyState
+          action={
+            <Button
+              onClick={() => router.push("/hub?tab=marketplace")}
+              size="sm"
+            >
+              Browse marketplace
+            </Button>
+          }
+          description="Connect a wallet to list workflows and track USDC earnings from agent calls."
+          icon={DollarSign}
+          title="Connect wallet for earnings"
+        />
       ) : !data || data.invocations === 0 ? (
         <PageEmptyState
           action={

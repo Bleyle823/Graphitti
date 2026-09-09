@@ -30,9 +30,11 @@ import { cn } from "@/lib/utils";
 
 type WorkflowPickerProps = {
   workflows: SavedWorkflow[];
+  catalogExamples: SavedWorkflow[];
   activeWorkflowId: string | undefined;
   loading: boolean;
-  isAnonymous: boolean;
+  catalogLoading: boolean;
+  hasWalletAccess: boolean;
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -52,9 +54,11 @@ function matchesQuery(workflow: SavedWorkflow, needle: string): boolean {
 
 export function WorkflowPicker({
   workflows,
+  catalogExamples,
   activeWorkflowId,
   loading,
-  isAnonymous,
+  catalogLoading,
+  hasWalletAccess,
 }: WorkflowPickerProps): React.ReactElement {
   const [query, setQuery] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -62,19 +66,22 @@ export function WorkflowPicker({
   const needle = query.trim().toLowerCase();
 
   const { examples, userWorkflows } = useMemo(() => {
-    const examplesList: SavedWorkflow[] = [];
+    const exampleIds = new Set(catalogExamples.map((workflow) => workflow.id));
+    const examplesList = [...catalogExamples];
     const userList: SavedWorkflow[] = [];
 
     for (const workflow of workflows) {
-      if (isCatalogWorkflowName(workflow.name)) {
-        examplesList.push(workflow);
-      } else {
-        userList.push(workflow);
+      if (exampleIds.has(workflow.id) || isCatalogWorkflowName(workflow.name)) {
+        if (!exampleIds.has(workflow.id)) {
+          examplesList.push(workflow);
+        }
+        continue;
       }
+      userList.push(workflow);
     }
 
     return { examples: examplesList, userWorkflows: userList };
-  }, [workflows]);
+  }, [catalogExamples, workflows]);
 
   const filteredExamples = useMemo(
     () => examples.filter((workflow) => matchesQuery(workflow, needle)),
@@ -86,9 +93,11 @@ export function WorkflowPicker({
     [userWorkflows, needle]
   );
 
-  const hasResults = filteredExamples.length > 0 || filteredUserWorkflows.length > 0;
+  const hasResults =
+    filteredExamples.length > 0 || filteredUserWorkflows.length > 0;
+  const isLoading = loading || catalogLoading;
 
-  if (loading) {
+  if (isLoading && examples.length === 0 && userWorkflows.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -96,18 +105,12 @@ export function WorkflowPicker({
     );
   }
 
-  if (isAnonymous) {
+  if (!hasResults && !needle) {
     return (
       <p className="py-4 text-center text-muted-foreground text-sm">
-        Connect wallet to save workflows
-      </p>
-    );
-  }
-
-  if (workflows.length === 0) {
-    return (
-      <p className="py-4 text-center text-muted-foreground text-sm">
-        No workflows yet
+        {catalogLoading
+          ? "Loading examples..."
+          : "No workflows yet. Browse Examples above or connect a wallet to create your own."}
       </p>
     );
   }
@@ -129,6 +132,7 @@ export function WorkflowPicker({
           {filteredExamples.length > 0 ? (
             <WorkflowSection
               activeWorkflowId={activeWorkflowId}
+              readOnly
               renamingId={renamingId}
               setRenamingId={setRenamingId}
               title="Examples"
@@ -143,7 +147,11 @@ export function WorkflowPicker({
               title="Your workflows"
               workflows={filteredUserWorkflows}
             />
-          ) : null}
+          ) : hasWalletAccess ? null : (
+            <p className="px-1 text-muted-foreground text-xs">
+              Connect a wallet to save and run your own workflows.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -156,12 +164,14 @@ function WorkflowSection({
   activeWorkflowId,
   renamingId,
   setRenamingId,
+  readOnly = false,
 }: {
   title: string;
   workflows: SavedWorkflow[];
   activeWorkflowId: string | undefined;
   renamingId: string | null;
   setRenamingId: (id: string | null) => void;
+  readOnly?: boolean;
 }): React.ReactElement {
   return (
     <div className="flex flex-col gap-1">
@@ -175,6 +185,7 @@ function WorkflowSection({
             key={workflow.id}
             onRename={() => setRenamingId(workflow.id)}
             onRenameDone={() => setRenamingId(null)}
+            readOnly={readOnly}
             renaming={renamingId === workflow.id}
             workflow={workflow}
           />
@@ -190,12 +201,14 @@ function WorkflowRow({
   renaming,
   onRename,
   onRenameDone,
+  readOnly = false,
 }: {
   workflow: SavedWorkflow;
   isActive: boolean;
   renaming: boolean;
   onRename: () => void;
   onRenameDone: () => void;
+  readOnly?: boolean;
 }): React.ReactElement {
   const router = useRouter();
   const { open } = useOverlay();
@@ -286,6 +299,23 @@ function WorkflowRow({
           value={draft}
         />
       </div>
+    );
+  }
+
+  if (readOnly) {
+    return (
+      <button
+        className={cn(rowClass, "px-2 py-1")}
+        onClick={openWorkflow}
+        type="button"
+      >
+        <TruncatedTooltip side="right" text={workflow.name} />
+        <span className="ml-auto flex shrink-0 items-center gap-1.5">
+          {categoryLabel ? (
+            <span className="text-muted-foreground text-xs">{categoryLabel}</span>
+          ) : null}
+        </span>
+      </button>
     );
   }
 

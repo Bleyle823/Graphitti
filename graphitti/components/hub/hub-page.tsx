@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ListingDetailOverlay } from "@/components/overlays/listing-detail-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
-import { PageEmptyState, SignInGate } from "@/components/page-empty-state";
+import { PageEmptyState } from "@/components/page-empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,8 +20,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type MarketplaceListing } from "@/lib/api-client";
-import { useSession } from "@/lib/auth-client";
-import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { getAllIntegrations } from "@/plugins";
 
 const TABS = ["integrations", "marketplace"] as const;
@@ -34,13 +32,9 @@ function isHubTab(value: string | null): value is HubTab {
 export function HubPage(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, isPending: sessionPending } = useSession();
-  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const { open } = useOverlay();
   const tabParam = searchParams.get("tab");
   const tab: HubTab = isHubTab(tabParam) ? tabParam : "integrations";
-  const needsWalletConnect =
-    !sessionPending && !walletAccessPending && !hasWalletAccess;
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "recent");
@@ -85,8 +79,7 @@ export function HubPage(): React.ReactElement {
   }, [integrations, debouncedQuery, tab]);
 
   useEffect(() => {
-    if (tab !== "marketplace" || sessionPending || walletAccessPending || !hasWalletAccess) {
-      setLoading(false);
+    if (tab !== "marketplace") {
       return;
     }
     setLoading(true);
@@ -95,7 +88,7 @@ export function HubPage(): React.ReactElement {
       .then((result) => setItems(result.items))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [debouncedQuery, hasWalletAccess, sessionPending, sort, tab, walletAccessPending]);
+  }, [debouncedQuery, sort, tab]);
 
   const setTab = (next: string): void => {
     const params = new URLSearchParams(searchParams.toString());
@@ -189,13 +182,7 @@ export function HubPage(): React.ReactElement {
           </TabsContent>
 
           <TabsContent value="marketplace">
-            {!sessionPending && !walletAccessPending && needsWalletConnect ? (
-              <SignInGate
-                description="Connect a wallet to browse listed workflows and open examples in your editor."
-                icon={Store}
-                title="Connect wallet to view marketplace"
-              />
-            ) : loading ? (
+            {loading ? (
               <div className="flex justify-center py-12">
                 <Spinner />
               </div>

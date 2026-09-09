@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ApiError, api } from "@/lib/api-client";
 import { authClient, useSession } from "@/lib/auth-client";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { integrationsAtom } from "@/lib/integrations-store";
+import { authPromptOpenAtom } from "@/lib/ui-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import {
   addNodeAtom,
@@ -558,6 +560,8 @@ function useWorkflowHandlers({
   userIntegrations,
 }: WorkflowHandlerParams) {
   const { open: openOverlay } = useOverlay();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
+  const setAuthPromptOpen = useSetAtom(authPromptOpenAtom);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup polling interval on unmount
@@ -632,6 +636,12 @@ function useWorkflowHandlers({
   const handleExecute = async () => {
     // Guard against concurrent executions
     if (isExecuting) {
+      return;
+    }
+
+    if (!walletAccessPending && !hasWalletAccess) {
+      setAuthPromptOpen(true);
+      toast.info("Connect a wallet to run workflows.");
       return;
     }
 

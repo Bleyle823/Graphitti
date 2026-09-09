@@ -99,6 +99,7 @@ async function main(): Promise<void> {
     const listingFields =
       listOnly && catalog
         ? {
+            visibility: "public" as const,
             isListed: true,
             listedSlug: catalog.slug,
             listedAt: new Date(),

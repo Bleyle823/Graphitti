@@ -1,9 +1,7 @@
 "use client";
 
-import { Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { SignInGate } from "@/components/page-empty-state";
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
@@ -28,8 +26,6 @@ export default function SettingsPage() {
   const [gaslessEnabled, setGaslessEnabled] = useState(false);
   const [gasMode, setGasMode] = useState<string | null>(null);
   const [gasAsset, setGasAsset] = useState<string | null>(null);
-  const needsWalletConnect =
-    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   const loadAll = useCallback(async () => {
     if (!hasWalletAccess) {
@@ -57,13 +53,17 @@ export default function SettingsPage() {
     if (sessionPending || walletAccessPending) {
       return;
     }
+    if (!hasWalletAccess) {
+      setLoading(false);
+      return;
+    }
     loadAll();
     const onLinked = () => {
       void loadAll();
     };
     window.addEventListener("graphitti:wallet-linked", onLinked);
     return () => window.removeEventListener("graphitti:wallet-linked", onLinked);
-  }, [sessionPending, walletAccessPending, loadAll]);
+  }, [hasWalletAccess, sessionPending, walletAccessPending, loadAll]);
 
   const saveAccount = async (): Promise<void> => {
     try {
@@ -78,21 +78,6 @@ export default function SettingsPage() {
     }
   };
 
-  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
-    return (
-      <PageShell
-        description="Account, wallet, connections, and API keys."
-        title="Settings"
-      >
-        <SignInGate
-          description="Connect a wallet to manage your account, connections, and API keys."
-          icon={Settings}
-          title="Connect wallet to manage settings"
-        />
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell
       description="Account, wallet, connections, and API keys."
@@ -106,15 +91,23 @@ export default function SettingsPage() {
         <div className="max-w-xl space-y-8">
           <section className="space-y-4">
             <h2 className="font-medium text-sm">Account</h2>
-            <AccountSettings
-              accountEmail={accountEmail}
-              accountName={accountName}
-              onEmailChange={setAccountEmail}
-              onNameChange={setAccountName}
-            />
-            <Button disabled={saving} onClick={saveAccount}>
-              {saving ? "Saving..." : "Save account"}
-            </Button>
+            {hasWalletAccess ? (
+              <>
+                <AccountSettings
+                  accountEmail={accountEmail}
+                  accountName={accountName}
+                  onEmailChange={setAccountEmail}
+                  onNameChange={setAccountName}
+                />
+                <Button disabled={saving} onClick={saveAccount}>
+                  {saving ? "Saving..." : "Save account"}
+                </Button>
+              </>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Connect a wallet to save account details.
+              </p>
+            )}
           </section>
 
           <section className="space-y-3">
@@ -140,6 +133,7 @@ export default function SettingsPage() {
               Credentials used by workflow steps.
             </p>
             <Button
+              disabled={!hasWalletAccess}
               onClick={() => open(IntegrationsOverlay)}
               variant="outline"
             >
@@ -152,7 +146,11 @@ export default function SettingsPage() {
             <p className="text-muted-foreground text-sm">
               Keys for calling your listed workflows and the HTTP API.
             </p>
-            <Button onClick={() => open(ApiKeysOverlay)} variant="outline">
+            <Button
+              disabled={!hasWalletAccess}
+              onClick={() => open(ApiKeysOverlay)}
+              variant="outline"
+            >
               Manage API keys
             </Button>
           </section>

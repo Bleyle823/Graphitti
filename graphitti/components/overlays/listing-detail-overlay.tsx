@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { MarketplaceListing } from "@/lib/api-client";
@@ -14,6 +15,7 @@ export function ListingDetailOverlay({
   overlayId,
   listing,
 }: ListingDetailOverlayProps) {
+  const router = useRouter();
   const mcpPath = listing.listedSlug
     ? `/mcp/w/${listing.listedSlug}`
     : null;
@@ -69,6 +71,12 @@ export function ListingDetailOverlay({
             Copy agent endpoint
           </Button>
         ) : null}
+        <Button
+          onClick={() => router.push(`/workflows/${listing.id}`)}
+          size="sm"
+        >
+          Open in editor
+        </Button>
       </div>
     </Overlay>
   );

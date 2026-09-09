@@ -1,3 +1,4 @@
+import type { MarketplaceListing, SavedWorkflow } from "@/lib/api-client";
 import type { WorkflowTemplate } from "@/lib/workflow-templates/normalize-export";
 import { toKebabSlug } from "./constants";
 
@@ -94,3 +95,27 @@ export function isCatalogWorkflowName(name: string): boolean {
 }
 
 export const CATALOG_TEMPLATE_NAMES = Object.keys(MARKETPLACE_CATALOG);
+
+/** Map a public marketplace row to a sidebar/picker entry (canvas opened by workflow id). */
+export function marketplaceListingToExampleWorkflow(
+  listing: MarketplaceListing
+): SavedWorkflow {
+  const timestamp = listing.listedAt ?? new Date().toISOString();
+  return {
+    id: listing.id,
+    name: listing.name,
+    description: listing.description ?? "",
+    nodes: [],
+    edges: [],
+    visibility: "public",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    isListed: true,
+    isOwner: false,
+    listedSlug: listing.listedSlug,
+    category: listing.category,
+    chain: listing.chain,
+    workflowType: listing.workflowType,
+    priceUsdcPerCall: listing.priceUsdcPerCall,
+  };
+}
