@@ -1,0 +1,29 @@
+{
+  "name": "@graphitti/eve-the-graph",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tools/*": "./dist/tools/*"
+  },
+  "scripts": {
+    "prebuild": "node ./scripts/generate-tools.mjs",
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@graphitti/graph-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "eve": ">=0.37.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "id": "privy",
+  "name": "Privy",
+  "description": "Server wallets, signing, transfers, policies, intents, and Graphitti treasury workflows",
+  "contracts": {
+    "tools": [
+      "privy_get_user",
+      "privy_list_users",
+      "privy_list_wallets",
+      "privy_create_wallet",
+      "privy_get_wallet",
+      "privy_get_wallet_by_address",
+      "privy_get_balance",
+      "privy_get_transaction",
+      "privy_sign_message",
+      "privy_sign_typed_data",
+      "privy_send_transaction",
+      "privy_transfer",
+      "privy_wallet_transfer",
+      "privy_wallet_swap",
+      "privy_create_policy",
+      "privy_get_policy",
+      "privy_create_key_quorum",
+      "privy_get_key_quorum",
+      "privy_create_transfer_intent",
+      "privy_create_rpc_intent",
+      "privy_get_intent",
+      "privy_list_intents",
+      "privy_whoami",
+      "privy_search_workflows",
+      "privy_get_listing",
+      "privy_call_workflow",
+      "privy_execute_workflow",
+      "privy_get_execution",
+      "privy_get_linked_wallet",
+      "privy_get_treasury",
+      "privy_list_payees",
+      "privy_add_payee",
+      "privy_create_treasury_intent",
+      "privy_get_treasury_intent",
+      "privy_approve_treasury_intent"
+    ]
+  },
+  "toolMetadata": {
+    "privy_create_wallet": { "optional": true },
+    "privy_sign_message": { "optional": true },
+    "privy_sign_typed_data": { "optional": true },
+    "privy_send_transaction": { "optional": true },
+    "privy_transfer": { "optional": true },
+    "privy_wallet_transfer": { "optional": true },
+    "privy_wallet_swap": { "optional": true },
+    "privy_create_policy": { "optional": true },
+    "privy_create_key_quorum": { "optional": true },
+    "privy_create_transfer_intent": { "optional": true },
+    "privy_create_rpc_intent": { "optional": true },
+    "privy_add_payee": { "optional": true },
+    "privy_call_workflow": { "optional": true },
+    "privy_execute_workflow": { "optional": true },
+    "privy_create_treasury_intent": { "optional": true },
+    "privy_approve_treasury_intent": { "optional": true }
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "privyAppId": { "type": "string" },
+      "privyAppSecret": { "type": "string" },
+      "privyAuthorizationKey": { "type": "string" },
+      "graphittiBaseUrl": { "type": "string" },
+      "graphittiApiKey": { "type": "string" }
+    }
+  },
+  "setup": {
+    "providers": [
+      {
+        "id": "privy",
+        "envVars": [
+          "PRIVY_APP_ID",
+          "PRIVY_APP_SECRET",
+          "PRIVY_AUTHORIZATION_KEY",
+          "GRAPHITTI_BASE_URL",
+          "GRAPHITTI_API_KEY"
+        ]
+      }
+    ]
+  }
+}

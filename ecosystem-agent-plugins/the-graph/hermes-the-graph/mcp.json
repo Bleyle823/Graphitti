@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "the-graph": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["../graph-core/dist/mcp-server.js"],
+      "env": {
+        "THEGRAPH_API_KEY": "${THEGRAPH_API_KEY}",
+        "SUBSTREAMS_API_KEY": "${SUBSTREAMS_API_KEY}",
+        "THEGRAPH_MARKET_BEARER": "${THEGRAPH_MARKET_BEARER}",
+        "GRAPHITTI_BASE_URL": "${GRAPHITTI_BASE_URL}",
+        "GRAPHITTI_API_KEY": "${GRAPHITTI_API_KEY}"
+      }
+    }
+  }
+}

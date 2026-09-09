@@ -1,0 +1,8 @@
+{
+  "id": "privy",
+  "name": "Privy",
+  "version": "0.1.0",
+  "description": "Server wallets, signing, transfers, policies, intents, and Graphitti treasury workflows",
+  "author": "Graphitti",
+  "license": "Apache-2.0"
+}
