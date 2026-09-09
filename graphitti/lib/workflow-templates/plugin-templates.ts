@@ -83,8 +83,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "Condition",
-            condition:
-              '{{@graph-balances:Get USDC Balances.result}} !== ""',
+            condition: '{{@graph-balances:Get USDC Balances.result}} !== ""',
           },
           status: "idle",
           description: "Tune condition after inspecting Token API shape",
@@ -229,7 +228,8 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           config: {
             actionType: "circle/receive-mint",
             network: "arc-testnet",
-            message: "{{@circle-attestation:Get Iris Attestation.data.message}}",
+            message:
+              "{{@circle-attestation:Get Iris Attestation.data.message}}",
             attestation:
               "{{@circle-attestation:Get Iris Attestation.data.attestation}}",
           },

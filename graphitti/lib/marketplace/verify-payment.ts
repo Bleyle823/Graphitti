@@ -37,7 +37,10 @@ async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
   });
-  const payload = (await response.json()) as { result?: T; error?: { message?: string } };
+  const payload = (await response.json()) as {
+    result?: T;
+    error?: { message?: string };
+  };
   if (payload.error) {
     throw new Error(payload.error.message || "Arc RPC error");
   }
@@ -93,7 +96,9 @@ async function settleCircleAuthorization(
     return { ok: false };
   }
 
-  const result = await circleFetch<{ data?: { hash?: string; txHash?: string } }>({
+  const result = await circleFetch<{
+    data?: { hash?: string; txHash?: string };
+  }>({
     baseUrl: "https://gateway-api-testnet.circle.com",
     path: "/v1/transfer",
     method: "POST",

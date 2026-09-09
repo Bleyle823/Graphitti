@@ -218,11 +218,13 @@
   cursor: grab !important;
 }
 
-.react-flow__node:has(.sticky-note-drag-handle).dragging .sticky-note-drag-handle {
+.react-flow__node:has(.sticky-note-drag-handle).dragging
+  .sticky-note-drag-handle {
   cursor: grabbing !important;
 }
 
-.react-flow__node:has(.sticky-note-drag-handle) .react-flow__resize-control.handle {
+.react-flow__node:has(.sticky-note-drag-handle)
+  .react-flow__resize-control.handle {
   width: 8px !important;
   height: 8px !important;
   border-radius: 2px !important;

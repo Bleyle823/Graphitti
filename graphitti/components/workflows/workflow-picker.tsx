@@ -1,9 +1,9 @@
 "use client";
 
+import { useSetAtom } from "jotai";
 import { Copy, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useSetAtom } from "jotai";
 import { toast } from "sonner";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
@@ -98,7 +98,7 @@ export function WorkflowPicker({
     );
   }
 
-  if (!hasResults && !needle) {
+  if (!(hasResults || needle)) {
     return (
       <p className="py-4 text-center text-muted-foreground text-sm">
         {catalogLoading
@@ -116,11 +116,7 @@ export function WorkflowPicker({
         placeholder="Search workflows"
         value={query}
       />
-      {!hasResults ? (
-        <p className="py-4 text-center text-muted-foreground text-sm">
-          No workflows match that search.
-        </p>
-      ) : (
+      {hasResults ? (
         <div className="flex flex-col gap-3">
           {filteredExamples.length > 0 ? (
             <WorkflowSection
@@ -148,6 +144,10 @@ export function WorkflowPicker({
             </p>
           )}
         </div>
+      ) : (
+        <p className="py-4 text-center text-muted-foreground text-sm">
+          No workflows match that search.
+        </p>
       )}
     </div>
   );
@@ -210,7 +210,7 @@ function WorkflowRow({
   const resetEditor = useSetAtom(resetEditorAtom);
   const [draft, setDraft] = useState(workflow.name);
   const categoryLabel = workflow.category
-    ? CATEGORY_LABELS[workflow.category] ?? workflow.category
+    ? (CATEGORY_LABELS[workflow.category] ?? workflow.category)
     : null;
 
   const openWorkflow = (): void => {
@@ -313,7 +313,9 @@ function WorkflowRow({
         <TruncatedTooltip side="right" text={workflow.name} />
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
           {categoryLabel ? (
-            <span className="text-muted-foreground text-xs">{categoryLabel}</span>
+            <span className="text-muted-foreground text-xs">
+              {categoryLabel}
+            </span>
           ) : null}
         </span>
       </button>
@@ -361,10 +363,7 @@ function WorkflowRow({
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onSelect={remove}
-              >
+              <DropdownMenuItem className="text-destructive" onSelect={remove}>
                 <Trash2 className="size-4" />
                 Delete
               </DropdownMenuItem>

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { start } from "workflow/api";
 import { db } from "@/lib/db";
-import { workflowExecutions } from "@/lib/db/schema";
+import { workflowExecutions, workflows } from "@/lib/db/schema";
 import { executeWorkflow } from "@/lib/workflow-executor.workflow";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 import { isInProcessExecutionMode } from "./execution-mode";
@@ -29,6 +29,11 @@ export async function executeWorkflowInBackground(
   try {
     console.log(`${logPrefix} Starting execution:`, executionId);
 
+    const workflowRow = await db.query.workflows.findFirst({
+      where: eq(workflows.id, workflowId),
+      columns: { organizationId: true },
+    });
+
     if (isInProcessExecutionMode()) {
       // Standalone tsx process: executor imported outside Next's workflow
       // compiler so `"use step"` stays a no-op string (KeeperHub pattern).
@@ -36,6 +41,7 @@ export async function executeWorkflowInBackground(
         workflowId,
         executionId,
         input,
+        organizationId: workflowRow?.organizationId ?? undefined,
         logPrefix,
       });
       console.log(`${logPrefix} Dispatched in-process runner:`, executionId);
@@ -56,6 +62,7 @@ export async function executeWorkflowInBackground(
         triggerInput: input,
         executionId,
         workflowId,
+        organizationId: workflowRow?.organizationId ?? undefined,
       },
     ]);
 

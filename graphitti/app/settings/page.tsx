@@ -62,7 +62,8 @@ export default function SettingsPage() {
       void loadAll();
     };
     window.addEventListener("graphitti:wallet-linked", onLinked);
-    return () => window.removeEventListener("graphitti:wallet-linked", onLinked);
+    return () =>
+      window.removeEventListener("graphitti:wallet-linked", onLinked);
   }, [hasWalletAccess, sessionPending, walletAccessPending, loadAll]);
 
   const saveAccount = async (): Promise<void> => {

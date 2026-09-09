@@ -32,6 +32,10 @@
         ]
       },
       {
+        "group": "Treasury",
+        "pages": ["treasury/overview"]
+      },
+      {
         "group": "Wallet",
         "pages": ["wallet/privy", "wallet/gas", "wallet/verification"]
       },

@@ -1,12 +1,17 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { anonymous, genericOAuth } from "better-auth/plugins";
+import { anonymous, genericOAuth, organization } from "better-auth/plugins";
+import { createAccessControl } from "better-auth/plugins/access";
 import { eq } from "drizzle-orm";
 import { isAiGatewayManagedKeysEnabled } from "./ai-gateway/config";
 import { db } from "./db";
 import {
   accounts,
   integrations,
+  invitation,
+  member,
+  organization as organizationTable,
+  organizationWallets,
   sessions,
   users,
   verifications,
@@ -15,6 +20,44 @@ import {
   workflowExecutionsRelations,
   workflows,
 } from "./db/schema";
+import { provisionOrgTreasury } from "./privy/provision-org-treasury";
+
+const statement = {
+  workflow: ["create", "read", "update", "delete"],
+  credential: ["create", "read", "update", "delete"],
+  wallet: ["create", "read", "update", "delete"],
+  organization: ["read", "update", "delete"],
+  member: ["create", "read", "update", "delete"],
+  invitation: ["create", "cancel"],
+} as const;
+
+const ac = createAccessControl(statement);
+
+const memberRole = ac.newRole({
+  workflow: ["create", "read", "update", "delete"],
+  credential: ["read"],
+  wallet: ["read"],
+  organization: ["read"],
+  member: ["read"],
+});
+
+const adminRole = ac.newRole({
+  workflow: ["create", "read", "update", "delete"],
+  credential: ["create", "read", "update", "delete"],
+  wallet: ["create", "read", "update", "delete"],
+  organization: ["update"],
+  member: ["create", "update", "delete"],
+  invitation: ["create", "cancel"],
+});
+
+const ownerRole = ac.newRole({
+  workflow: ["create", "read", "update", "delete"],
+  credential: ["create", "read", "update", "delete"],
+  wallet: ["create", "read", "update", "delete"],
+  organization: ["update", "delete"],
+  member: ["create", "update", "delete"],
+  invitation: ["create", "cancel"],
+});
 
 // Construct schema object for drizzle adapter
 const schema = {
@@ -22,6 +65,9 @@ const schema = {
   session: sessions,
   account: accounts,
   verification: verifications,
+  organization: organizationTable,
+  member,
+  invitation,
   workflows,
   workflowExecutions,
   workflowExecutionLogs,
@@ -50,6 +96,41 @@ function getBaseURL() {
 
   // Fallback: Local development
   return "http://localhost:3000";
+}
+
+async function provisionOrganizationTreasury(input: {
+  organizationId: string;
+  organizationName: string;
+  creatorUserId: string;
+}) {
+  const existing = await db.query.organizationWallets.findFirst({
+    where: eq(organizationWallets.organizationId, input.organizationId),
+  });
+  if (existing) {
+    return;
+  }
+
+  try {
+    const provisioned = await provisionOrgTreasury({
+      organizationId: input.organizationId,
+      organizationName: input.organizationName,
+      creatorUserId: input.creatorUserId,
+    });
+
+    await db.insert(organizationWallets).values({
+      organizationId: input.organizationId,
+      userId: input.creatorUserId,
+      privyWalletId: provisioned.privyWalletId,
+      address: provisioned.address,
+      privyOrganizationId: provisioned.privyOrganizationId,
+      ownerQuorumId: provisioned.ownerQuorumId,
+      operatorSignerId: provisioned.operatorSignerId,
+      autoPolicyId: provisioned.autoPolicyId,
+      humanPolicyId: provisioned.humanPolicyId,
+    });
+  } catch (error) {
+    console.error("[Org Treasury] Failed to provision Privy wallet:", error);
+  }
 }
 
 // Build plugins array conditionally
@@ -93,6 +174,27 @@ const plugins = [
         );
         throw error;
       }
+    },
+  }),
+  organization({
+    ac,
+    roles: {
+      owner: ownerRole,
+      admin: adminRole,
+      member: memberRole,
+    },
+    organizationHooks: {
+      async afterCreateOrganization(data) {
+        const creatorUserId = data.user?.id ?? data.member?.userId;
+        if (!creatorUserId) {
+          return;
+        }
+        await provisionOrganizationTreasury({
+          organizationId: data.organization.id,
+          organizationName: data.organization.name,
+          creatorUserId,
+        });
+      },
     },
   }),
   ...(process.env.VERCEL_CLIENT_ID

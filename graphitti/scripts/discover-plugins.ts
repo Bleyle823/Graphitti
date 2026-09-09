@@ -138,7 +138,10 @@ async function registerProtocolPlugins(): Promise<string[]> {
 }
 
 function slugToVarName(slug: string): string {
-  return slug.replace(/-([a-z0-9])/g, (_, char: string) => char.toUpperCase()) + "Def";
+  return (
+    slug.replace(/-([a-z0-9])/g, (_, char: string) => char.toUpperCase()) +
+    "Def"
+  );
 }
 
 function generateProtocolsIndexFile(): void {
@@ -146,7 +149,7 @@ function generateProtocolsIndexFile(): void {
   if (registeredProtocolEntries.length === 0) {
     writeFileSync(
       PROTOCOLS_INDEX_FILE,
-      `/** Auto-generated — no protocols */\n`,
+      "/** Auto-generated — no protocols */\n",
       "utf-8"
     );
     return;

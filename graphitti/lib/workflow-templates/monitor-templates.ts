@@ -66,8 +66,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "Condition",
-            condition:
-              "{{@safe-sentinel-pending:Get Pending TXs.count}} > 0",
+            condition: "{{@safe-sentinel-pending:Get Pending TXs.count}} > 0",
           },
           status: "idle",
         },
@@ -321,7 +320,8 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "Condition",
-            condition: "{{@substreams-pull-query:Query Entity.has_match}} === true",
+            condition:
+              "{{@substreams-pull-query:Query Entity.has_match}} === true",
           },
           status: "idle",
         },

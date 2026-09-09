@@ -41,6 +41,7 @@ import "./stripe";
 import "./superagent";
 import "./telegram";
 import "./the-graph";
+import "./treasury";
 import "./v0";
 import "./web3";
 import "./webflow";

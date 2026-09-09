@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { userWallets, users } from "@/lib/db/schema";
+import { users, userWallets } from "@/lib/db/schema";
 import { cloneCatalogTemplatesForUser } from "@/lib/marketplace/clone-catalog";
 import { getPrivyWallet } from "@/lib/web3/privy-client";
 import {
@@ -42,7 +42,10 @@ function walletDisplayName(address: string): string {
   return `${normalized.slice(0, 6)}…${normalized.slice(-4)}`;
 }
 
-async function promoteWalletUser(userId: string, address: string): Promise<void> {
+async function promoteWalletUser(
+  userId: string,
+  address: string
+): Promise<void> {
   await db
     .update(users)
     .set({
@@ -105,7 +108,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!walletId || !address) {
+    if (!(walletId && address)) {
       return NextResponse.json(
         { error: "Create an embedded wallet in Privy, then try again." },
         { status: 400 }
@@ -157,8 +160,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to link wallet",
+        error: error instanceof Error ? error.message : "Failed to link wallet",
       },
       { status: 400 }
     );

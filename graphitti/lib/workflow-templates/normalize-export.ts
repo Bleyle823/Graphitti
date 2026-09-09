@@ -38,11 +38,9 @@ function normalizeNodeConfig(
   const actionType = config.actionType as string | undefined;
 
   if (workflowKey === "sky-savings-dashboard") {
-    if (actionType?.startsWith("sky/get-")) {
-      if (config.address !== undefined) {
-        config.account = config.address;
-        delete config.address;
-      }
+    if (actionType?.startsWith("sky/get-") && config.address !== undefined) {
+      config.account = config.address;
+      delete config.address;
     }
     if (actionType === "sky/get-susds-balance") {
       config.actionType = "sky/vault-balance";
