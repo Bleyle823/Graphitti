@@ -7,6 +7,8 @@ Graphitti keeps Better Auth for the session. Privy holds the embedded EVM wallet
 
 After **Connect wallet**, Graphitti verifies the Privy access token and upserts `user_wallets` (`privyUserId`, `privyWalletId`, `address`). Settings shows the address and **gasless enabled** when a wallet is linked.
 
+Add `http://localhost:3000` and `https://graphitti-five.vercel.app` under **Configuration > App settings > Domains** in the Privy dashboard. Missing origins return `invalid_origin` when wallet connect runs.
+
 The Privy plugin can also manage users and wallets through REST if you add `PRIVY_APP_ID` and `PRIVY_APP_SECRET` as a connection.
 
 ## Organization wallets
