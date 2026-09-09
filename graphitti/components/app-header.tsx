@@ -2,9 +2,9 @@
 
 import { useSetAtom } from "jotai";
 import { BookOpen, Menu } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GraphittiLogo } from "@/components/graphitti-logo";
 import { UserMenu } from "@/components/workflows/user-menu";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -34,13 +34,7 @@ export function AppHeader(): React.ReactElement {
           </Button>
         ) : null}
         <Link className="flex items-center gap-2 font-medium text-sm" href="/">
-          <Image
-            alt="Graphitti"
-            className="size-6 rounded-md"
-            height={24}
-            src="/logo.png"
-            width={24}
-          />
+          <GraphittiLogo className="size-6" size={24} />
           <span className={isEditor ? "hidden sm:inline" : undefined}>
             Graphitti
           </span>

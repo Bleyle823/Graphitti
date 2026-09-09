@@ -24,7 +24,7 @@ export function PrivyAppProvider({ children }: { children: ReactNode }) {
         },
         appearance: {
           walletChainType: "ethereum-only",
-          logo: "/logo.png",
+          logo: "/logo-light.png",
           showWalletLoginFirst: true,
         },
       }}
