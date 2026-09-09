@@ -104,6 +104,8 @@ async function parseErrorResponse(response: Response): Promise<string> {
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(endpoint, {
     ...options,
+    cache: options?.cache ?? "no-store",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,

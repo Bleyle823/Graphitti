@@ -38,6 +38,7 @@ import { ApiError, api } from "@/lib/api-client";
 import { authClient, useSession } from "@/lib/auth-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { integrationsAtom } from "@/lib/integrations-store";
+import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { authPromptOpenAtom } from "@/lib/ui-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import {
@@ -525,6 +526,7 @@ async function executeTestWorkflow({
 // Hook for workflow handlers
 type WorkflowHandlerParams = {
   currentWorkflowId: string | null;
+  isOwner: boolean;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   updateNodeData: (update: {
@@ -545,6 +547,7 @@ type WorkflowHandlerParams = {
 
 function useWorkflowHandlers({
   currentWorkflowId,
+  isOwner,
   nodes,
   edges,
   updateNodeData,
@@ -576,6 +579,11 @@ function useWorkflowHandlers({
 
   const handleSave = async () => {
     if (!currentWorkflowId) {
+      toast.error("Create a workflow before saving.");
+      return;
+    }
+    if (!isOwner) {
+      toast.info("Duplicate this example to save your own copy.");
       return;
     }
 
@@ -583,9 +591,15 @@ function useWorkflowHandlers({
     try {
       await api.workflow.update(currentWorkflowId, { nodes, edges });
       setHasUnsavedChanges(false);
+      refetchSidebar();
+      toast.success("Workflow saved");
     } catch (error) {
       console.error("Failed to save workflow:", error);
-      toast.error("Failed to save workflow. Please try again.");
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Failed to save workflow. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -731,7 +745,10 @@ function useWorkflowState() {
     const loadAllWorkflows = async () => {
       try {
         const workflows = await api.workflow.getAll();
-        setAllWorkflows(workflows);
+        const list = Array.isArray(workflows) ? workflows : [];
+        setAllWorkflows(
+          list.filter((workflow) => workflow.name !== "__current__")
+        );
       } catch (error) {
         console.error("Failed to load workflows:", error);
       }
@@ -782,7 +799,10 @@ function useWorkflowState() {
 }
 
 // Hook for workflow actions
-function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
+function useWorkflowActions(
+  state: ReturnType<typeof useWorkflowState>,
+  routeWorkflowId?: string
+) {
   const { open: openOverlay } = useOverlay();
   const {
     currentWorkflowId,
@@ -813,7 +833,8 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
   } = state;
 
   const { handleSave, handleExecute } = useWorkflowHandlers({
-    currentWorkflowId,
+    currentWorkflowId: currentWorkflowId || routeWorkflowId || null,
+    isOwner,
     nodes,
     edges,
     updateNodeData,
@@ -935,9 +956,15 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
   const loadWorkflows = async () => {
     try {
       const workflows = await api.workflow.getAll();
-      setAllWorkflows(workflows);
+      const list = Array.isArray(workflows) ? workflows : [];
+      setAllWorkflows(list.filter((workflow) => workflow.name !== "__current__"));
     } catch (error) {
       console.error("Failed to load workflows:", error);
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Could not load your workflows"
+      );
     }
   };
 
@@ -1564,13 +1591,12 @@ function WorkflowMenuComponent({
 
 export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
   const state = useWorkflowState();
-  const actions = useWorkflowActions(state);
+  const effectiveWorkflowId =
+    workflowId ?? state.currentWorkflowId ?? undefined;
+  const actions = useWorkflowActions(state, effectiveWorkflowId);
   const rightPanelWidth = useAtomValue(rightPanelWidthAtom);
   const panelCollapsed = useAtomValue(isSidebarCollapsedAtom);
   const isPanelAnimating = useAtomValue(isPanelAnimatingAtom);
-
-  const effectiveWorkflowId =
-    workflowId ?? state.currentWorkflowId ?? undefined;
 
   const actionsRightOffset =
     !panelCollapsed && rightPanelWidth

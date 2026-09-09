@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { navMobileOpenAtom } from "@/lib/ui-store";
 
+const DOCS_URL = "https://na-834f3010.mintlify.app";
+
 export function AppHeader(): React.ReactElement {
   const isMobile = useIsMobile();
   const setMobileOpen = useSetAtom(navMobileOpenAtom);
@@ -44,7 +46,14 @@ export function AppHeader(): React.ReactElement {
           </span>
         </Link>
       </div>
-      <UserMenu />
+      <div className="flex items-center gap-2">
+        <Button asChild size="sm" variant="ghost">
+          <a href={DOCS_URL} rel="noopener noreferrer" target="_blank">
+            Docs
+          </a>
+        </Button>
+        <UserMenu />
+      </div>
     </header>
   );
 }

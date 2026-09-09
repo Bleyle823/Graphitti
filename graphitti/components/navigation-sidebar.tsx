@@ -4,6 +4,7 @@ import { useAtom, useSetAtom } from "jotai";
 import {
   Activity,
   BarChart3,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   DollarSign,
@@ -49,6 +50,8 @@ import { registerSidebarRefetch } from "@/lib/refetch-sidebar";
 import { authPromptOpenAtom, navMobileOpenAtom } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
 
+const DOCS_URL = "https://na-834f3010.mintlify.app";
+
 const SNAP_THRESHOLD = (COLLAPSED_WIDTH + EXPANDED_WIDTH) / 2;
 
 type NavItemDef = {
@@ -57,6 +60,7 @@ type NavItemDef = {
   label: string;
   href: string | null;
   requireAuth: boolean;
+  external?: boolean;
 };
 
 const NAV_ITEMS: NavItemDef[] = [
@@ -74,6 +78,14 @@ const NAV_ITEMS: NavItemDef[] = [
     label: "Marketplace",
     href: "/hub?tab=marketplace",
     requireAuth: false,
+  },
+  {
+    id: "docs",
+    icon: BookOpen,
+    label: "Docs",
+    href: DOCS_URL,
+    requireAuth: false,
+    external: true,
   },
   {
     id: "analytics",
@@ -270,7 +282,11 @@ export function NavigationSidebar(): React.ReactElement | null {
 
   const fetchData = useCallback(async (): Promise<void> => {
     try {
-      setWorkflows(await api.workflow.getAll().catch(() => []));
+      const result = await api.workflow.getAll();
+      setWorkflows(Array.isArray(result) ? visibleWorkflows(result) : []);
+    } catch (error) {
+      console.error("Failed to load workflows:", error);
+      setWorkflows([]);
     } finally {
       setDataLoading(false);
     }
@@ -455,6 +471,11 @@ export function NavigationSidebar(): React.ReactElement | null {
     }
     if (item.id === "wallet") {
       openOverlay(WalletOverlay);
+      return;
+    }
+    if (item.external && item.href) {
+      window.open(item.href, "_blank", "noopener,noreferrer");
+      setMobileOpen(false);
       return;
     }
     if (item.href) {
