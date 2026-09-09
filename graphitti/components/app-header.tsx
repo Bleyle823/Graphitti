@@ -34,7 +34,7 @@ export function AppHeader(): React.ReactElement {
           </Button>
         ) : null}
         <Link className="flex items-center gap-2 font-medium text-sm" href="/">
-          <GraphittiLogo className="size-6" size={24} />
+          <GraphittiLogo className="size-8" size={32} />
           <span className={isEditor ? "hidden sm:inline" : undefined}>
             Graphitti
           </span>
