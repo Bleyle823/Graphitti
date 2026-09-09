@@ -37,6 +37,53 @@ export const sessions = pgTable("sessions", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
+  activeOrganizationId: text("active_organization_id"),
+});
+
+export const organization = pgTable("organization", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  logo: text("logo"),
+  createdAt: timestamp("created_at").notNull(),
+  metadata: text("metadata"),
+});
+
+export const member = pgTable(
+  "member",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").default("member").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("member_org_single_owner")
+      .on(table.organizationId)
+      .where(sql`${table.role} = 'owner'`),
+    index("idx_member_user_id").on(table.userId),
+    index("idx_member_org_id").on(table.organizationId),
+  ]
+);
+
+export const invitation = pgTable("invitation", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role"),
+  status: text("status").default("pending").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  inviterId: text("inviter_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const accounts = pgTable("accounts", {
@@ -81,6 +128,9 @@ export const workflows = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
     // biome-ignore lint/suspicious/noExplicitAny: JSONB type - structure validated at application level
     nodes: jsonb("nodes").notNull().$type<any[]>(),
     // biome-ignore lint/suspicious/noExplicitAny: JSONB type - structure validated at application level
@@ -111,6 +161,64 @@ export const workflows = pgTable(
       .on(table.listedSlug)
       .where(sql`${table.listedSlug} is not null`),
     index("idx_workflows_user_id").on(table.userId),
+    index("idx_workflows_org_id").on(table.organizationId),
+  ]
+);
+
+export const organizationWallets = pgTable(
+  "organization_wallets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    privyWalletId: text("privy_wallet_id").notNull(),
+    address: text("address").notNull(),
+    privyOrganizationId: text("privy_organization_id"),
+    ownerQuorumId: text("owner_quorum_id"),
+    operatorSignerId: text("operator_signer_id"),
+    autoPolicyId: text("auto_policy_id"),
+    humanPolicyId: text("human_policy_id"),
+    autoSpendCapUsdc: numeric("auto_spend_cap_usdc").notNull().default("50"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("organization_wallets_org_active_unique")
+      .on(table.organizationId)
+      .where(sql`${table.isActive} = true`),
+    uniqueIndex("idx_org_wallets_privy_wallet").on(table.privyWalletId),
+  ]
+);
+
+export const organizationPayees = pgTable(
+  "organization_payees",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    address: text("address").notNull(),
+    defaultAmountUsdc: numeric("default_amount_usdc"),
+    chain: text("chain").notNull().default("base_sepolia"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_org_payees_org").on(table.organizationId),
+    uniqueIndex("idx_org_payees_org_address").on(
+      table.organizationId,
+      table.address
+    ),
   ]
 );
 
@@ -200,6 +308,45 @@ export const workflowExecutions = pgTable("workflow_executions", {
   duration: text("duration"), // Duration in milliseconds
 });
 
+export const organizationIntents = pgTable(
+  "organization_intents",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    privyIntentId: text("privy_intent_id").notNull(),
+    workflowExecutionId: text("workflow_execution_id").references(
+      () => workflowExecutions.id,
+      { onDelete: "set null" }
+    ),
+    amountUsdc: numeric("amount_usdc"),
+    toAddress: text("to_address"),
+    status: text("status")
+      .notNull()
+      .default("pending")
+      .$type<
+        | "pending"
+        | "processing"
+        | "executed"
+        | "failed"
+        | "expired"
+        | "rejected"
+        | "dismissed"
+      >(),
+    txHash: text("tx_hash"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_org_intents_privy_intent").on(table.privyIntentId),
+    index("idx_org_intents_org").on(table.organizationId),
+    index("idx_org_intents_execution").on(table.workflowExecutionId),
+  ]
+);
+
 // Workflow execution logs to track individual node executions
 export const workflowExecutionLogs = pgTable("workflow_execution_logs", {
   id: text("id")
@@ -241,6 +388,36 @@ export const apiKeys = pgTable("api_keys", {
 });
 
 // Relations
+export const organizationRelations = relations(organization, ({ many }) => ({
+  members: many(member),
+  invitations: many(invitation),
+  wallets: many(organizationWallets),
+  payees: many(organizationPayees),
+  intents: many(organizationIntents),
+}));
+
+export const memberRelations = relations(member, ({ one }) => ({
+  organization: one(organization, {
+    fields: [member.organizationId],
+    references: [organization.id],
+  }),
+  user: one(users, {
+    fields: [member.userId],
+    references: [users.id],
+  }),
+}));
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+  organization: one(organization, {
+    fields: [invitation.organizationId],
+    references: [organization.id],
+  }),
+  inviter: one(users, {
+    fields: [invitation.inviterId],
+    references: [users.id],
+  }),
+}));
+
 export const workflowExecutionsRelations = relations(
   workflowExecutions,
   ({ one }) => ({
@@ -267,3 +444,15 @@ export type UserWallet = typeof userWallets.$inferSelect;
 export type NewUserWallet = typeof userWallets.$inferInsert;
 export type WorkflowPayment = typeof workflowPayments.$inferSelect;
 export type NewWorkflowPayment = typeof workflowPayments.$inferInsert;
+export type Organization = typeof organization.$inferSelect;
+export type NewOrganization = typeof organization.$inferInsert;
+export type Member = typeof member.$inferSelect;
+export type NewMember = typeof member.$inferInsert;
+export type Invitation = typeof invitation.$inferSelect;
+export type NewInvitation = typeof invitation.$inferInsert;
+export type OrganizationWallet = typeof organizationWallets.$inferSelect;
+export type NewOrganizationWallet = typeof organizationWallets.$inferInsert;
+export type OrganizationPayee = typeof organizationPayees.$inferSelect;
+export type NewOrganizationPayee = typeof organizationPayees.$inferInsert;
+export type OrganizationIntent = typeof organizationIntents.$inferSelect;
+export type NewOrganizationIntent = typeof organizationIntents.$inferInsert;
