@@ -1,10 +1,21 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
-import { workflows } from "@/lib/db/schema";
+import {
+  workflowExecutionLogs,
+  workflowExecutions,
+  workflowPayments,
+  workflows,
+} from "@/lib/db/schema";
 import { isPubliclyReadable } from "@/lib/marketplace/listing";
+
+export const dynamic = "force-dynamic";
+
+const noStoreHeaders = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+};
 
 // Helper to strip sensitive data from nodes for public viewing
 function sanitizeNodesForPublicView(
@@ -49,10 +60,10 @@ export async function GET(
       where: eq(workflows.id, workflowId),
     });
 
-    if (!workflow) {
+    if (!workflow || workflow.deletedAt) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404, headers: noStoreHeaders }
       );
     }
 
@@ -78,7 +89,7 @@ export async function GET(
       isOwner,
     };
 
-    return NextResponse.json(responseData);
+    return NextResponse.json(responseData, { headers: noStoreHeaders });
   } catch (error) {
     console.error("Failed to get workflow:", error);
     return NextResponse.json(
@@ -219,7 +230,10 @@ export async function DELETE(
     });
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: noStoreHeaders }
+      );
     }
 
     // Verify ownership
@@ -230,16 +244,43 @@ export async function DELETE(
       ),
     });
 
-    if (!existingWorkflow) {
+    if (!existingWorkflow || existingWorkflow.deletedAt) {
       return NextResponse.json(
         { error: "Workflow not found" },
-        { status: 404 }
+        { status: 404, headers: noStoreHeaders }
       );
     }
 
-    await db.delete(workflows).where(eq(workflows.id, workflowId));
+    const executions = await db.query.workflowExecutions.findMany({
+      where: eq(workflowExecutions.workflowId, workflowId),
+      columns: { id: true },
+    });
+    const executionIds = executions.map((execution) => execution.id);
 
-    return NextResponse.json({ success: true });
+    if (executionIds.length > 0) {
+      await db
+        .delete(workflowExecutionLogs)
+        .where(inArray(workflowExecutionLogs.executionId, executionIds));
+      await db
+        .delete(workflowExecutions)
+        .where(eq(workflowExecutions.workflowId, workflowId));
+    }
+
+    await db
+      .delete(workflowPayments)
+      .where(eq(workflowPayments.workflowId, workflowId));
+
+    await db
+      .update(workflows)
+      .set({
+        deletedAt: new Date(),
+        isListed: false,
+        listedSlug: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(workflows.id, workflowId));
+
+    return NextResponse.json({ success: true }, { headers: noStoreHeaders });
   } catch (error) {
     console.error("Failed to delete workflow:", error);
     return NextResponse.json(

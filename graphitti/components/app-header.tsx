@@ -1,7 +1,7 @@
 "use client";
 
 import { useSetAtom } from "jotai";
-import { Menu } from "lucide-react";
+import { BookOpen, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -47,8 +47,9 @@ export function AppHeader(): React.ReactElement {
         </Link>
       </div>
       <div className="flex items-center gap-2">
-        <Button asChild size="sm" variant="ghost">
+        <Button asChild className="gap-1.5" size="sm" variant="ghost">
           <a href={DOCS_URL} rel="noopener noreferrer" target="_blank">
+            <BookOpen className="size-4" />
             Docs
           </a>
         </Button>

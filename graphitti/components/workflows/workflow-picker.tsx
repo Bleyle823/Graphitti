@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { TruncatedTooltip } from "@/components/ui/truncated-tooltip";
 import type { SavedWorkflow } from "@/lib/api-client";
-import { api } from "@/lib/api-client";
+import { ApiError, api } from "@/lib/api-client";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { cn } from "@/lib/utils";
 
@@ -253,8 +253,12 @@ function WorkflowRow({
           if (isActive) {
             router.push("/");
           }
-        } catch {
-          toast.error("Could not delete workflow");
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Could not delete workflow"
+          );
         }
       },
     });

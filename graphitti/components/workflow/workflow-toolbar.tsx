@@ -1095,22 +1095,17 @@ function ToolbarActions({
   };
 
   const handleAddStep = () => {
-    // Get the ReactFlow wrapper (the visible canvas container)
     const flowWrapper = document.querySelector(".react-flow");
-    if (!flowWrapper) {
-      return;
-    }
+    const position = flowWrapper
+      ? (() => {
+          const rect = flowWrapper.getBoundingClientRect();
+          return screenToFlowPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+          });
+        })()
+      : getFlowViewportCenterPosition(screenToFlowPosition);
 
-    const rect = flowWrapper.getBoundingClientRect();
-    // Calculate center in absolute screen coordinates
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    // Convert to flow coordinates
-    const position = screenToFlowPosition({ x: centerX, y: centerY });
-
-    // Adjust for node dimensions to center it properly
-    // Action node is 192px wide and 192px tall (w-48 h-48 in Tailwind)
     const nodeWidth = 192;
     const nodeHeight = 192;
     position.x -= nodeWidth / 2;

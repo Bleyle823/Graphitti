@@ -363,7 +363,14 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       setCurrentWorkflowVisibility(
         (workflow.visibility as WorkflowVisibility) ?? "private"
       );
-      setIsWorkflowOwner(workflow.isOwner !== false); // Default to true if not set
+      if (workflow.isOwner) {
+        setIsWorkflowOwner(true);
+      } else {
+        const owned = await api.workflow.getAll().catch(() => []);
+        setIsWorkflowOwner(
+          Array.isArray(owned) && owned.some((item) => item.id === workflow.id)
+        );
+      }
       setHasUnsavedChanges(false);
       setWorkflowNotFound(false);
     } catch (error) {

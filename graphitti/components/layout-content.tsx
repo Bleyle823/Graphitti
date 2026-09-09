@@ -23,12 +23,15 @@ export function LayoutContent({
   const [authOpen, setAuthOpen] = useAtom(authPromptOpenAtom);
   const pathname = usePathname();
   const showWorkflowToolbar = isWorkflowEditorPath(pathname);
+  const workflowId = pathname.startsWith("/workflows/")
+    ? pathname.split("/")[2]
+    : undefined;
 
   return (
     <ReactFlowProvider>
       <AppHeader />
       <PersistentCanvas />
-      {showWorkflowToolbar ? <WorkflowToolbar /> : null}
+      {showWorkflowToolbar ? <WorkflowToolbar workflowId={workflowId} /> : null}
       <Suspense fallback={null}>
         <NavigationSidebar />
       </Suspense>
