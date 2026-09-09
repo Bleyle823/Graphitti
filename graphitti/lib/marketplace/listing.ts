@@ -70,7 +70,10 @@ export async function upsertListing(
   | { success: false; error: string; status: number }
 > {
   const workflow = await db.query.workflows.findFirst({
-    where: and(eq(workflows.id, payload.workflowId), eq(workflows.userId, userId)),
+    where: and(
+      eq(workflows.id, payload.workflowId),
+      eq(workflows.userId, userId)
+    ),
   });
 
   if (!workflow || workflow.deletedAt) {
@@ -89,14 +92,22 @@ export async function upsertListing(
     return { success: true, listing: updated };
   }
 
-  const slug = (payload.slug || workflow.listedSlug || toKebabSlug(workflow.name)).toLowerCase();
+  const slug = (
+    payload.slug ||
+    workflow.listedSlug ||
+    toKebabSlug(workflow.name)
+  ).toLowerCase();
   if (!slug) {
     return { success: false, error: "Slug is required", status: 400 };
   }
   if (isReservedSlug(slug)) {
     return { success: false, error: `Slug "${slug}" is reserved`, status: 400 };
   }
-  if (workflow.listedSlug && payload.slug && payload.slug !== workflow.listedSlug) {
+  if (
+    workflow.listedSlug &&
+    payload.slug &&
+    payload.slug !== workflow.listedSlug
+  ) {
     return {
       success: false,
       error: "Slug cannot change after the first publish",
@@ -131,7 +142,8 @@ export async function upsertListing(
       visibility: "public",
       listedSlug: workflow.listedSlug || slug,
       listedAt: workflow.listedAt ?? new Date(),
-      listingVersion: (workflow.listingVersion ?? 1) + (workflow.isListed ? 1 : 0),
+      listingVersion:
+        (workflow.listingVersion ?? 1) + (workflow.isListed ? 1 : 0),
       priceUsdcPerCall: price,
       category: payload.category ?? workflow.category,
       chain: payload.chain ?? workflow.chain ?? "arc-testnet",

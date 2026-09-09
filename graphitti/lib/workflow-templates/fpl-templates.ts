@@ -1,4 +1,3 @@
-import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 import type { WorkflowTemplate } from "./normalize-export";
 
 const PRIZES = ["5", "3", "2"] as const;

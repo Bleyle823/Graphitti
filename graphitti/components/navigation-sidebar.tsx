@@ -5,6 +5,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  Building2,
   ChevronLeft,
   ChevronRight,
   DollarSign,
@@ -16,13 +17,22 @@ import {
   Workflow as WorkflowIcon,
   X,
 } from "lucide-react";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FLYOUT_WIDTH, FlyoutPanel, STRIP_WIDTH } from "@/components/flyout-panel";
+import {
+  FLYOUT_WIDTH,
+  FlyoutPanel,
+  STRIP_WIDTH,
+} from "@/components/flyout-panel";
 import { GettingStartedLauncher } from "@/components/onboarding/getting-started-launcher";
-import { WalletOverlay } from "@/components/overlays/wallet-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
+import { WalletOverlay } from "@/components/overlays/wallet-overlay";
 import {
   Sheet,
   SheetContent,
@@ -39,13 +49,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { SavedWorkflow } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { marketplaceListingToExampleWorkflow } from "@/lib/marketplace/catalog";
 import {
   COLLAPSED_WIDTH,
   EXPANDED_WIDTH,
   usePersistedNavState,
 } from "@/lib/hooks/use-persisted-nav-state";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
+import { marketplaceListingToExampleWorkflow } from "@/lib/marketplace/catalog";
 import { registerSidebarRefetch } from "@/lib/refetch-sidebar";
 import { authPromptOpenAtom, navMobileOpenAtom } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
@@ -93,6 +103,13 @@ const NAV_ITEMS: NavItemDef[] = [
     label: "Analytics",
     href: "/analytics",
     requireAuth: false,
+  },
+  {
+    id: "treasury",
+    icon: Building2,
+    label: "Treasury",
+    href: "/treasury",
+    requireAuth: true,
   },
   {
     id: "earnings",
@@ -155,7 +172,9 @@ function NavItem({
       type="button"
     >
       <item.icon className="size-4 shrink-0" />
-      {showLabels ? <span className="truncate text-sm">{item.label}</span> : null}
+      {showLabels ? (
+        <span className="truncate text-sm">{item.label}</span>
+      ) : null}
     </button>
   );
 
@@ -341,7 +360,7 @@ export function NavigationSidebar(): React.ReactElement | null {
       window.removeEventListener("graphitti:wallet-linked", onWalletLinked);
   }, [fetchData, router]);
 
-  const needsWalletConnect = !walletAccessPending && !hasWalletAccess;
+  const needsWalletConnect = !(walletAccessPending || hasWalletAccess);
   const workflowId =
     typeof params.workflowId === "string" ? params.workflowId : undefined;
   const expanded = navState.state.sidebar;
@@ -433,6 +452,9 @@ export function NavigationSidebar(): React.ReactElement | null {
     }
     if (id === "analytics") {
       return pathname === "/analytics";
+    }
+    if (id === "treasury") {
+      return pathname === "/treasury";
     }
     if (id === "earnings") {
       return pathname === "/earnings";
