@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireB2bAuth } from "@/lib/auth/b2b-auth";
 import { b2bError, b2bJson, b2bOptions } from "@/lib/auth/b2b-response";
 import { db } from "@/lib/db";
@@ -55,10 +55,10 @@ export async function POST(
   void executeWorkflowInBackground(
     execution.id,
     workflowId,
-    authResult.auth.userId,
     workflow.nodes as WorkflowNode[],
     workflow.edges as WorkflowEdge[],
-    input
+    input,
+    { logPrefix: "[B2B Workflow Execute]" }
   );
 
   return b2bJson({ execution_id: execution.id, status: execution.status });

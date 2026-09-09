@@ -46,7 +46,7 @@ export async function requireB2bAuth(
   authHeader: string | null,
   requiredScopes: string[] = []
 ): Promise<B2bAuthResult> {
-  const key = extractBearerToken(authHeader ?? undefined);
+  const key = extractBearerToken(authHeader);
   if (!key?.startsWith("wfb_")) {
     return {
       success: false,
