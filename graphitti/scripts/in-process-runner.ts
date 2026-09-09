@@ -86,7 +86,9 @@ async function main(): Promise<void> {
     closeDbConnections = dbModule.closeDbConnections;
     const { db } = dbModule;
     const { workflowExecutions, workflows } = await import("@/lib/db/schema");
-    const { executeWorkflow } = await import("@/lib/workflow-executor.workflow");
+    const { executeWorkflow } = await import(
+      "@/lib/workflow-executor.workflow"
+    );
     type WorkflowNode = import("@/lib/workflow-store").WorkflowNode;
     type WorkflowEdge = import("@/lib/workflow-store").WorkflowEdge;
 
@@ -107,6 +109,7 @@ async function main(): Promise<void> {
       triggerInput,
       executionId,
       workflowId,
+      organizationId: process.env.ORGANIZATION_ID || undefined,
     });
 
     const duration = Date.now() - startTime;

@@ -19,6 +19,7 @@ export function spawnInProcessRunner(options: {
   workflowId: string;
   executionId: string;
   input: Record<string, unknown>;
+  organizationId?: string;
   logPrefix?: string;
 }): Promise<void> {
   const projectRoot = process.cwd();
@@ -34,6 +35,9 @@ export function spawnInProcessRunner(options: {
         WORKFLOW_ID: options.workflowId,
         EXECUTION_ID: options.executionId,
         WORKFLOW_INPUT: JSON.stringify(options.input),
+        ...(options.organizationId
+          ? { ORGANIZATION_ID: options.organizationId }
+          : {}),
       },
       stdio: "inherit",
       windowsHide: true,

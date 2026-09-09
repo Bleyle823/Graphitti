@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   const personalWallet = await db.query.userWallets.findFirst({
-    where: eq(userWallets.userId, access.user.id),
+    where: eq(userWallets.userId, access.userId),
   });
   if (!personalWallet) {
     return NextResponse.json(
