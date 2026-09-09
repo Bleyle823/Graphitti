@@ -64,7 +64,7 @@ export function WorkflowPicker({
   if (workflows.length === 0) {
     return (
       <p className="py-4 text-center text-muted-foreground text-sm">
-        {isAnonymous ? "Sign in to save workflows" : "No workflows yet"}
+        {isAnonymous ? "Connect wallet to save workflows" : "No workflows yet"}
       </p>
     );
   }

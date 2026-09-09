@@ -55,6 +55,11 @@ export default function SettingsPage() {
     if (!isPending) {
       loadAll();
     }
+    const onLinked = () => {
+      void loadAll();
+    };
+    window.addEventListener("graphitti:wallet-linked", onLinked);
+    return () => window.removeEventListener("graphitti:wallet-linked", onLinked);
   }, [isPending, loadAll]);
 
   const saveAccount = async (): Promise<void> => {
@@ -77,9 +82,9 @@ export default function SettingsPage() {
         title="Settings"
       >
         <SignInGate
-          description="Sign in to manage your account, wallet, connections, and API keys."
+          description="Connect a wallet to manage your account, connections, and API keys."
           icon={Settings}
-          title="Sign in to manage settings"
+          title="Connect wallet to manage settings"
         />
       </PageShell>
     );

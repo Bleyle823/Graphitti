@@ -1,0 +1,91 @@
+import type { WorkflowTemplate } from "@/lib/workflow-templates/normalize-export";
+import { toKebabSlug } from "./constants";
+
+export type CatalogListingMeta = {
+  /** Stable marketplace slug (immutable after first publish). */
+  slug: string;
+  category: string;
+  chain: string;
+  workflowType: "read" | "write";
+  priceUsdcPerCall: string;
+};
+
+/** Example workflows published on the public marketplace. */
+export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
+  "USDC Whale and Balance Watch": {
+    slug: "usdc-whale-balance-watch",
+    category: "the-graph",
+    chain: "mainnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
+  "Circle CCTP USDC to Arc": {
+    slug: "circle-cctp-usdc-to-arc",
+    category: "circle",
+    chain: "arc-testnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
+  "Arc USDC Inbound then Swap": {
+    slug: "arc-usdc-inbound-swap",
+    category: "arc",
+    chain: "arc-testnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
+  "Privy Gasless Payroll": {
+    slug: "privy-gasless-payroll",
+    category: "privy",
+    chain: "arc-testnet",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "FPL League Top Three USDC Payouts": {
+    slug: "fpl-league-top-three-payouts",
+    category: "fantasy-premier-league",
+    chain: "arc-testnet",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "Substreams Pull Monitor (subgraph)": {
+    slug: "substreams-pull-monitor",
+    category: "the-graph",
+    chain: "mainnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
+  "Substreams Push Alert (webhook)": {
+    slug: "substreams-push-alert",
+    category: "the-graph",
+    chain: "mainnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
+  "Kelp rsETH Backing Monitor": {
+    slug: "kelp-rseth-backing-monitor",
+    category: "the-graph",
+    chain: "mainnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
+};
+
+export function catalogMetaForTemplate(
+  template: WorkflowTemplate
+): CatalogListingMeta | undefined {
+  const meta = MARKETPLACE_CATALOG[template.name];
+  if (meta) {
+    return meta;
+  }
+  return undefined;
+}
+
+export function defaultCatalogSlug(name: string): string {
+  return toKebabSlug(name);
+}
+
+export function isCatalogTemplate(name: string): boolean {
+  return name in MARKETPLACE_CATALOG;
+}
+
+export const CATALOG_TEMPLATE_NAMES = Object.keys(MARKETPLACE_CATALOG);

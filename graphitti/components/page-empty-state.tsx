@@ -4,6 +4,8 @@ import { useSetAtom } from "jotai";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { isPrivyConfigured } from "@/lib/privy/client-config";
 import { authPromptOpenAtom } from "@/lib/ui-store";
 
 type PageEmptyStateProps = {
@@ -46,7 +48,13 @@ export function SignInGate({
 
   return (
     <PageEmptyState
-      action={<Button onClick={() => setAuthOpen(true)}>Sign in</Button>}
+      action={
+        isPrivyConfigured() ? (
+          <ConnectWalletButton className="w-auto" />
+        ) : (
+          <Button onClick={() => setAuthOpen(true)}>Connect wallet</Button>
+        )
+      }
       description={description}
       icon={icon}
       title={title}

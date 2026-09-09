@@ -1,15 +1,15 @@
 ---
 title: Marketplace
-description: List a workflow, set an Arc USDC price, and keep the node graph private.
+description: List workflows for agents, set Arc USDC pricing, and accept x402 or Circle nanopayments.
 ---
 
 Click **Marketplace** in the editor toolbar to list the current workflow.
 
 ## Before you list
 
-- Run the workflow successfully at least once.
+- Connect a wallet (required for paid listings and payouts).
 - Reference listing inputs from the Manual trigger.
-- Link a Privy wallet if the price is greater than 0.
+- Link the embedded Privy wallet if the price is greater than 0.
 
 ## What you configure
 
@@ -24,16 +24,19 @@ Click **Marketplace** in the editor toolbar to list the current workflow.
 
 Soft-delete and unlist drop the workflow from the catalog but keep the slug bound. Reserved slugs: `marketplace`, `api`, `mcp`, `openapi`, `admin`, `hub`.
 
+## Example catalog
+
+Production ships read-mostly examples for Circle, Arc, Privy, The Graph, and Fantasy Premier League. They appear on the Hub marketplace and are cloned into Saved workflows when you connect a wallet.
+
 ## How agents call
 
 `GET /api/mcp/workflows` returns public listing fields only. `POST /api/mcp/workflows/{slug}/call` executes the graph.
 
-Paid listings return `402` with `PAYMENT-REQUIRED` for x402 on Arc:
+Paid listings return `402` with `PAYMENT-REQUIRED` offering:
 
-- Network: `eip155:5042002`
-- Asset: `0x3600000000000000000000000000000000000000`
-- Amount: 6-decimal atomic units (`1.00` → `1000000`)
-- `payTo`: your linked Privy address
-- Scheme: `exact`
+- **Arc x402 exact** on `eip155:5042002` with asset `0x3600000000000000000000000000000000000000`
+- **Circle nanopay** via Gateway `/v1/transfer` (EIP-3009 authorization)
 
-Do not expect Base (`8453`) fields. Open **Earnings** to see Arc USDC invocations and the optional platform cut.
+Amounts use 6-decimal atomic USDC (`1.00` → `1000000`). `payTo` is the creator's linked Privy address. Owner API keys (`wfb_...`) skip payment.
+
+Open **Earnings** to see Arc USDC invocations and the optional platform cut.

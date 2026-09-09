@@ -47,14 +47,14 @@ export async function generateMetadata({
     : `${baseUrl}/og-default.png`;
 
   return {
-    title: `${title} | AI Workflow Builder`,
-    description: `View and explore the "${title}" workflow built with AI Workflow Builder.`,
+    title: `${title} | Graphitti`,
+    description: `View and explore the "${title}" workflow in Graphitti.`,
     openGraph: {
-      title: `${title} | AI Workflow Builder`,
-      description: `View and explore the "${title}" workflow built with AI Workflow Builder.`,
+      title: `${title} | Graphitti`,
+      description: `View and explore the "${title}" workflow in Graphitti.`,
       type: "website",
       url: workflowUrl,
-      siteName: "AI Workflow Builder",
+      siteName: "Graphitti",
       images: [
         {
           url: ogImageUrl,
@@ -66,8 +66,8 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | AI Workflow Builder`,
-      description: `View and explore the "${title}" workflow built with AI Workflow Builder.`,
+      title: `${title} | Graphitti`,
+      description: `View and explore the "${title}" workflow in Graphitti.`,
       images: [ogImageUrl],
     },
   };

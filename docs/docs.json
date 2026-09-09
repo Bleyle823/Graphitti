@@ -7,7 +7,7 @@
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/light.png",
   "navigation": {
     "pages": [
       {
@@ -30,7 +30,7 @@
       },
       {
         "group": "Wallet",
-        "pages": ["wallet/privy", "wallet/gas"]
+        "pages": ["wallet/privy", "wallet/gas", "wallet/verification"]
       },
       {
         "group": "API",
@@ -58,8 +58,8 @@
     ]
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "navbar": {
     "links": [
@@ -71,7 +71,7 @@
     "primary": {
       "type": "button",
       "label": "App",
-      "href": "https://graphitti.app"
+      "href": "https://graphitti-five.vercel.app"
     }
   },
   "footer": {

@@ -99,14 +99,6 @@ export async function upsertListing(
     return { success: false, error: "That slug is already taken", status: 409 };
   }
 
-  if (!(await hasSuccessfulRun(workflow.id))) {
-    return {
-      success: false,
-      error: "Run the workflow successfully at least once before listing it.",
-      status: 400,
-    };
-  }
-
   const price = payload.priceUsdcPerCall ?? workflow.priceUsdcPerCall ?? "0";
   if (Number(price) > 0) {
     const wallet = await requireCreatorWallet(userId);

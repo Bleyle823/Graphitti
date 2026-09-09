@@ -23,9 +23,16 @@ const instrumentSansHeading = Instrument_Sans({subsets:['latin'],variable:'--fon
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "AI Workflow Builder - Visual Workflow Automation",
+  title: {
+    default: "Graphitti",
+    template: "%s | Graphitti",
+  },
   description:
-    "Build powerful AI-driven workflow automations with a visual, node-based editor. Built with Next.js and React Flow.",
+    "Build and run AI workflows with wallets, plugins, and a public marketplace.",
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    apple: [{ url: "/logo.png", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {

@@ -52,9 +52,9 @@ export default function AnalyticsPage() {
         title="Analytics"
       >
         <SignInGate
-          description="Sign in to see workflow counts, run volume, and success rate."
+          description="Connect a wallet to see workflow counts, run volume, and success rate."
           icon={BarChart3}
-          title="Sign in to view analytics"
+          title="Connect wallet to view analytics"
         />
       </PageShell>
     );

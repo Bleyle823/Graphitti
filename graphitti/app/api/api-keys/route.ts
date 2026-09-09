@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
+import { isAnonymousUserId } from "@/lib/is-anonymous";
 
 // Generate a secure API key
 function generateApiKey(): { key: string; hash: string; prefix: string } {
@@ -58,14 +59,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is anonymous
-    const isAnonymous =
-      session.user.name === "Anonymous" ||
-      session.user.email?.startsWith("temp-");
+    // Block anonymous users without a linked wallet
+    const anonymous = await isAnonymousUserId(session.user.id);
 
-    if (isAnonymous) {
+    if (anonymous) {
       return NextResponse.json(
-        { error: "Anonymous users cannot create API keys" },
+        { error: "Connect a wallet before creating API keys" },
         { status: 403 }
       );
     }

@@ -1,19 +1,26 @@
 ---
 title: Browser
-description: Sign in, connect a Privy wallet, and run your first workflow.
+description: Connect a wallet, open example workflows, and run your first automation.
 ---
 
 <Steps>
-  <Step title="Sign in">
-    Open the app and click **Sign In**. Better Auth keeps the session. Privy is the wallet layer, not a replacement for sign-in.
-  </Step>
   <Step title="Connect wallet">
-    Click **Connect wallet** in the auth dialog or user menu. Graphitti creates an embedded EVM wallet and stores it on your user as `user_wallets`.
+    Open [Graphitti](https://graphitti-five.vercel.app) and click **Connect wallet**. Privy authenticates your external wallet and provisions an embedded execution wallet for gasless workflow steps.
   </Step>
-  <Step title="Create a workflow">
-    Add a **Manual** trigger, then an action such as Web3 **Get native balance**.
+  <Step title="Saved examples">
+    On first connect, Circle, Arc, Privy, The Graph, and FPL example workflows are copied into **Saved workflows**. The same examples are also listed on the public **Marketplace** tab.
+  </Step>
+  <Step title="Create or edit">
+    Add a **Manual** trigger, then an action such as Web3 **Get native balance** or a plugin step from the sidebar.
   </Step>
   <Step title="Run">
-    Click **Run**. Open the run panel to read the result. Write actions need a linked wallet and use Privy gas sponsorship.
+    Click **Run**. Write actions use the linked embedded wallet and Privy gas sponsorship.
+  </Step>
+  <Step title="List for agents">
+    Open **Marketplace** in the editor toolbar, set a slug and optional Arc USDC price, then publish. Paid calls settle with x402 or Circle nanopayments.
   </Step>
 </Steps>
+
+## Wallet warnings on Vercel
+
+MetaMask and Coinbase may show caution banners on `*.vercel.app` hosts. That is domain verification, not a missing Privy signer. For production, attach a custom domain and register the dapp in Reown Cloud / Coinbase app verification.

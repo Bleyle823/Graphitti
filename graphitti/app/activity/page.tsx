@@ -49,9 +49,9 @@ export default function ActivityPage() {
         title="Activity"
       >
         <SignInGate
-          description="Sign in to see recent runs, status, and duration."
+          description="Connect a wallet to see recent runs, status, and duration."
           icon={Activity}
-          title="Sign in to view activity"
+          title="Connect wallet to view activity"
         />
       </PageShell>
     );

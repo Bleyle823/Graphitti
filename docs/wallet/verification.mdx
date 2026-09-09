@@ -1,0 +1,24 @@
+---
+title: Wallet verification
+description: Reduce MetaMask and Coinbase warnings when connecting to Graphitti.
+---
+
+Graphitti uses Privy for wallet login and an embedded wallet for gasless execution. Connecting does **not** require extra MetaMask `personal_sign` prompts beyond Privy's login flow.
+
+## Why warnings appear
+
+On default Vercel hosts such as `graphitti-five.vercel.app`, MetaMask and Coinbase often show caution banners for new domains. That is separate from Privy's embedded signer approval.
+
+## What Graphitti configures
+
+- Wallet-only Privy login (no email)
+- App logo and name in the Privy connect sheet
+- Embedded wallet + session signer for workflow execution without per-step MetaMask popups
+
+## What clears warnings
+
+1. Attach a custom domain to the Vercel project (for example `graphitti.app`).
+2. Add the production origin to Privy allowed origins in the Privy dashboard.
+3. Register and verify the dapp in [Reown Cloud](https://cloud.reown.com) and Coinbase's app registry so WalletConnect shows **Verified**.
+
+Without a verified custom domain, warnings may persist even when the app is functioning correctly.

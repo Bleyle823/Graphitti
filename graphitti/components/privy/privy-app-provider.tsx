@@ -14,7 +14,7 @@ export function PrivyAppProvider({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={appId}
       config={{
-        loginMethods: ["wallet", "email"],
+        loginMethods: ["wallet"],
         embeddedWallets: {
           ethereum: {
             // Always create an embedded wallet so workflow txs can use
@@ -24,6 +24,8 @@ export function PrivyAppProvider({ children }: { children: ReactNode }) {
         },
         appearance: {
           walletChainType: "ethereum-only",
+          logo: "/logo.png",
+          showWalletLoginFirst: true,
         },
       }}
     >

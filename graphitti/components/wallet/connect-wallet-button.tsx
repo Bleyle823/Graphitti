@@ -269,6 +269,10 @@ function ConnectWalletButtonInner({
       linkedWalletIdRef.current = embedded.walletId;
       setLinkedAddress(payload.address ?? embedded.address);
       await refreshWalletMeta();
+      await authClient.getSession();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("graphitti:wallet-linked"));
+      }
     } catch (error) {
       // Keep any embedded address we already found so the UI does not snap back.
       if (!linkedAddressRef.current && !resolveEmbedded()) {

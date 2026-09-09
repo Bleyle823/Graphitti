@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
+import {
+  executeListingCall,
+  listingCorsHeaders,
+} from "@/lib/marketplace/call-listing";
 import { mcpToolsList, searchListedWorkflows, type JsonRpcRequest } from "@/lib/mcp/json-rpc";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version",
+    "Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version, PAYMENT-SIGNATURE, PAYMENT-RESPONSE",
 };
 
 export function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-async function handleRpc(body: JsonRpcRequest, slug?: string) {
+async function handleRpc(body: JsonRpcRequest, slug?: string, request?: Request) {
   const id = body.id ?? null;
   if (body.method === "initialize") {
     return {
@@ -41,6 +45,46 @@ async function handleRpc(body: JsonRpcRequest, slug?: string) {
     }
     if (name === "call_workflow") {
       const targetSlug = slug || String(args.slug ?? "");
+      if (!targetSlug) {
+        return {
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32602, message: "slug is required" },
+        };
+      }
+
+      const input =
+        args.input && typeof args.input === "object"
+          ? (args.input as Record<string, unknown>)
+          : {};
+
+      const callRequest = new Request(
+        `http://local/api/mcp/workflows/${targetSlug}/call`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(request?.headers.get("Authorization")
+              ? { Authorization: request.headers.get("Authorization")! }
+              : {}),
+            ...(request?.headers.get("PAYMENT-SIGNATURE")
+              ? {
+                  "PAYMENT-SIGNATURE": request.headers.get("PAYMENT-SIGNATURE")!,
+                }
+              : {}),
+            ...(request?.headers.get("PAYMENT-RESPONSE")
+              ? {
+                  "PAYMENT-RESPONSE": request.headers.get("PAYMENT-RESPONSE")!,
+                }
+              : {}),
+          },
+          body: JSON.stringify(input),
+        }
+      );
+
+      const response = await executeListingCall(targetSlug, callRequest);
+      const payload = await response.json().catch(() => ({}));
+
       return {
         jsonrpc: "2.0",
         id,
@@ -49,9 +93,8 @@ async function handleRpc(body: JsonRpcRequest, slug?: string) {
             {
               type: "text",
               text: JSON.stringify({
-                hint: `POST /api/mcp/workflows/${targetSlug}/call`,
-                slug: targetSlug,
-                input: args.input ?? {},
+                status: response.status,
+                ...((payload as Record<string, unknown>) ?? {}),
               }),
             },
           ],
@@ -76,7 +119,7 @@ async function handleRpc(body: JsonRpcRequest, slug?: string) {
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as JsonRpcRequest;
-  const result = await handleRpc(body);
+  const result = await handleRpc(body, undefined, request);
   return NextResponse.json(result, { headers: corsHeaders });
 }
 

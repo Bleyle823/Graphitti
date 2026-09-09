@@ -1,18 +1,20 @@
 ---
 title: Marketplace API
-description: Catalog query params, call body, and the Arc 402 challenge.
+description: Catalog query params, call body, and Arc / Circle 402 challenges.
 ---
+
+Production host: `https://graphitti-five.vercel.app`
 
 Search listed workflows:
 
 ```bash
-curl "https://<host>/api/mcp/workflows?q=balance&chain=arc-testnet&workflowType=read&sort=recent"
+curl "https://graphitti-five.vercel.app/api/mcp/workflows?q=balance&chain=arc-testnet&workflowType=read&sort=recent"
 ```
 
 Call a listing:
 
 ```bash
-curl -X POST https://<host>/api/mcp/workflows/{slug}/call \
+curl -X POST https://graphitti-five.vercel.app/api/mcp/workflows/{slug}/call \
   -H "Content-Type: application/json" \
   -d '{"address":"0x..."}'
 ```
@@ -27,10 +29,27 @@ Paid listings respond `402` with `PAYMENT-REQUIRED`:
       "network": "eip155:5042002",
       "asset": "0x3600000000000000000000000000000000000000",
       "maxAmountRequired": "1000000",
-      "payTo": "0xCreatorPrivyAddress"
+      "payTo": "0xCreatorPrivyAddress",
+      "extra": { "paymentProtocol": "arc-x402" }
+    },
+    {
+      "scheme": "exact",
+      "network": "eip155:5042002",
+      "asset": "0x3600000000000000000000000000000000000000",
+      "maxAmountRequired": "1000000",
+      "payTo": "0xCreatorPrivyAddress",
+      "extra": {
+        "paymentProtocol": "circle-nanopay",
+        "settleUrl": "https://gateway-api-testnet.circle.com/v1/transfer"
+      }
     }
   ]
 }
 ```
 
-Retry with `PAYMENT-SIGNATURE`. Graphitti records `workflow_payments` by SHA-256 hash so retries are idempotent.
+Retry with `PAYMENT-SIGNATURE` containing either:
+
+- An Arc USDC transfer receipt (`txHash`), verified on-chain before execution, or
+- A Circle EIP-3009 authorization settled through Gateway.
+
+Graphitti records `workflow_payments` by SHA-256 hash so retries are idempotent.

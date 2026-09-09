@@ -2,11 +2,11 @@
 
 import { useSetAtom } from "jotai";
 import { Menu } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/workflows/user-menu";
 import { Button } from "@/components/ui/button";
-import { WorkflowIcon } from "@/components/ui/workflow-icon";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { navMobileOpenAtom } from "@/lib/ui-store";
 
@@ -32,7 +32,13 @@ export function AppHeader(): React.ReactElement {
           </Button>
         ) : null}
         <Link className="flex items-center gap-2 font-medium text-sm" href="/">
-          <WorkflowIcon className="size-6" />
+          <Image
+            alt="Graphitti"
+            className="size-6 rounded-md"
+            height={24}
+            src="/logo.png"
+            width={24}
+          />
           <span className={isEditor ? "hidden sm:inline" : undefined}>
             Graphitti
           </span>

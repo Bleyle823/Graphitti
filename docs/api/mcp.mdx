@@ -3,16 +3,25 @@ title: MCP
 description: Install the Graphitti catalog server in Cursor or Claude.
 ---
 
+Production host: `https://graphitti-five.vercel.app`
+
 App-wide server:
 
 ```
-https://<host>/mcp
+https://graphitti-five.vercel.app/mcp
 ```
 
 Single listing:
 
 ```
-https://<host>/mcp/w/{slug}
+https://graphitti-five.vercel.app/mcp/w/{slug}
 ```
 
-Tools: `search_workflows` and `call_workflow`. Optional `Authorization: Bearer wfb_...` for owner bypass.
+Tools: `search_workflows` and `call_workflow`.
+
+`call_workflow` executes the listing (returns JSON including `executionId`, `status`, and `output`). Unpaid priced listings return `402` details inside the tool result. Optional `Authorization: Bearer wfb_...` for owner bypass.
+
+Payment headers on the MCP POST are forwarded to the call API:
+
+- `PAYMENT-SIGNATURE`
+- `PAYMENT-RESPONSE`

@@ -45,9 +45,9 @@ export default function EarningsPage() {
         title="Earnings"
       >
         <SignInGate
-          description="Sign in to see invocations and USDC settled from listed workflows."
+          description="Connect a wallet to see invocations and USDC settled from listed workflows."
           icon={DollarSign}
-          title="Sign in to view earnings"
+          title="Connect wallet to view earnings"
         />
       </PageShell>
     );

@@ -4,6 +4,7 @@ import { useSetAtom } from "jotai";
 import { Key, LogOut, Moon, Plug, Rocket, Settings, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useEffect } from "react";
 import {
   AuthDialog,
   isSingleProviderSignInInitiated,
@@ -28,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
+import { isAnonymousUser } from "@/lib/is-anonymous";
 import { isPrivyConfigured } from "@/lib/privy/client-config";
 import { gettingStartedOpenAtom } from "@/lib/ui-store";
 import { useHasMounted } from "@/hooks/use-has-mounted";
@@ -61,6 +63,14 @@ export const UserMenu = () => {
 
   const signInInProgress = isSingleProviderSignInInitiated();
 
+  useEffect(() => {
+    const refresh = () => {
+      router.refresh();
+    };
+    window.addEventListener("graphitti:wallet-linked", refresh);
+    return () => window.removeEventListener("graphitti:wallet-linked", refresh);
+  }, [router]);
+
   // Defer session-dependent Radix UI until after hydration so server/client
   // trees match and Radix useId counters stay in sync.
   if (!hasMounted || (isPending && !signInInProgress)) {
@@ -69,12 +79,8 @@ export const UserMenu = () => {
     );
   }
 
-  // Check if user is anonymous
-  // Better Auth anonymous plugin creates users with name "Anonymous" and temp- email
-  const isAnonymous =
-    !session?.user ||
-    session.user.name === "Anonymous" ||
-    session.user.email?.startsWith("temp-");
+  // Wallet-linked users are promoted off anonymous in link-wallet.
+  const isAnonymous = isAnonymousUser(session?.user);
 
   // Show Connect Wallet if user is anonymous or not logged in
   if (isAnonymous) {

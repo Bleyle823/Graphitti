@@ -422,7 +422,7 @@ export function NavigationSidebar(): React.ReactElement | null {
         .catch(() => [] as SavedWorkflow[]);
       const visible = visibleWorkflows(existing);
       if (visible.length > 0) {
-        toast.info("Sign in to create more workflows.");
+        toast.info("Connect a wallet to create more workflows.");
         const latest = [...visible].sort(
           (a, b) =>
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()

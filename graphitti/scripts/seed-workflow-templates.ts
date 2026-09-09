@@ -2,7 +2,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 function loadEnvFile(): void {
-  const envPath = join(process.cwd(), ".env.local");
+  const envFile = process.env.SEED_ENV_FILE?.trim() || ".env.local";
+  const envPath = join(process.cwd(), envFile);
   if (!existsSync(envPath)) {
     return;
   }
@@ -17,6 +18,9 @@ function loadEnvFile(): void {
       continue;
     }
     const key = trimmed.slice(0, eqIndex).trim();
+    if (process.env[key]) {
+      continue;
+    }
     let value = trimmed.slice(eqIndex + 1).trim();
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
@@ -37,12 +41,40 @@ async function main(): Promise<void> {
   const { loadAllWorkflowTemplates } = await import(
     "@/lib/workflow-templates/load-templates"
   );
+  const {
+    catalogMetaForTemplate,
+    isCatalogTemplate,
+  } = await import("@/lib/marketplace/catalog");
   const { generateId } = await import("@/lib/utils/id");
 
+  const listOnly = process.env.SEED_LIST === "1";
   const email = process.env.SEED_USER_EMAIL?.trim();
-  const user = email
+  let user = email
     ? await db.query.users.findFirst({ where: eq(users.email, email) })
     : await db.query.users.findFirst();
+
+  if (!user) {
+    if (listOnly) {
+      user = await db.query.users.findFirst({
+        where: eq(users.id, "usr_catalog_seed"),
+      });
+      if (!user) {
+        const [created] = await db
+          .insert(users)
+          .values({
+            id: "usr_catalog_seed",
+            name: "Graphitti Catalog",
+            email: "catalog@graphitti.local",
+            emailVerified: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isAnonymous: false,
+          })
+          .returning();
+        user = created;
+      }
+    }
+  }
 
   if (!user) {
     console.error(
@@ -53,12 +85,31 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const templates = loadAllWorkflowTemplates();
+  const allTemplates = loadAllWorkflowTemplates();
+  const templates = listOnly
+    ? allTemplates.filter((t) => isCatalogTemplate(t.name))
+    : allTemplates;
+
   console.log(
-    `Seeding ${templates.length} workflow templates for ${user.email ?? user.id}`
+    `Seeding ${templates.length} workflow templates for ${user.email ?? user.id}${listOnly ? " (marketplace catalog)" : ""}`
   );
 
   for (const template of templates) {
+    const catalog = catalogMetaForTemplate(template);
+    const listingFields =
+      listOnly && catalog
+        ? {
+            isListed: true,
+            listedSlug: catalog.slug,
+            listedAt: new Date(),
+            listingVersion: 1,
+            priceUsdcPerCall: catalog.priceUsdcPerCall,
+            category: catalog.category,
+            chain: catalog.chain,
+            workflowType: catalog.workflowType,
+          }
+        : {};
+
     const existing = await db.query.workflows.findFirst({
       where: and(
         eq(workflows.userId, user.id),
@@ -74,6 +125,7 @@ async function main(): Promise<void> {
           nodes: template.nodes,
           edges: template.edges,
           updatedAt: new Date(),
+          ...listingFields,
         })
         .where(eq(workflows.id, existing.id));
       console.log(`Updated  ${template.name}`);
@@ -87,8 +139,15 @@ async function main(): Promise<void> {
       nodes: template.nodes,
       edges: template.edges,
       userId: user.id,
+      ...listingFields,
     });
     console.log(`Created  ${template.name}`);
+  }
+
+  if (listOnly) {
+    console.log(
+      `Catalog slugs: ${templates.map((t) => catalogMetaForTemplate(t)?.slug).filter(Boolean).join(", ")}`
+    );
   }
 }
 

@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { signIn, signUp } from "@/lib/auth-client";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { isPrivyConfigured } from "@/lib/privy/client-config";
 import {
   getEnabledAuthProviders,
   getSingleProvider,
@@ -639,6 +640,8 @@ export const AuthDialog = ({
     "github" | "google" | "vercel" | null
   >(null);
 
+  const walletOnly = isPrivyConfigured();
+
   const enabledProviders = getEnabledAuthProviders();
   const singleProvider = getSingleProvider();
 
@@ -653,6 +656,24 @@ export const AuthDialog = ({
     setLoadingProvider,
     setOpen,
   });
+
+  if (walletOnly) {
+    return (
+      <Dialog onOpenChange={setOpen} open={open}>
+        {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Connect wallet</DialogTitle>
+            <DialogDescription>
+              Connect a wallet to save workflows, list on the marketplace, and
+              manage settings.
+            </DialogDescription>
+          </DialogHeader>
+          <ConnectWalletButton />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (singleProvider && singleProvider !== "email" && children) {
     return (

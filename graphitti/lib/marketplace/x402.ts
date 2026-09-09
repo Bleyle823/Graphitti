@@ -33,6 +33,31 @@ export function buildArcPaymentRequired(options: {
         asset: ARC_MARKETPLACE_ASSET,
         payTo: options.payTo,
         resource: options.resource,
+        extra: { paymentProtocol: "arc-x402" },
+      },
+    ],
+  };
+}
+
+/** Circle Gateway EIP-3009 nanopayment challenge for the same listing. */
+export function buildCircleNanopayRequired(options: {
+  priceUsdc: string;
+  payTo: string;
+  resource: string;
+}): { accepts: X402Accepts[] } {
+  return {
+    accepts: [
+      {
+        scheme: "exact",
+        network: toCaip2(ARC_MARKETPLACE_CHAIN),
+        maxAmountRequired: priceToAtomicUsdc(options.priceUsdc),
+        asset: ARC_MARKETPLACE_ASSET,
+        payTo: options.payTo,
+        resource: options.resource,
+        extra: {
+          paymentProtocol: "circle-nanopay",
+          settleUrl: "https://gateway-api-testnet.circle.com/v1/transfer",
+        },
       },
     ],
   };
