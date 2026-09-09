@@ -9,6 +9,7 @@ import {
   useWallets,
 } from "@privy-io/react-auth";
 import { ChevronDown, Copy, ExternalLink, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ComponentProps } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ import {
 import { WalletBlockie } from "@/components/wallet/wallet-blockie";
 import { toChecksumAddress, truncateAddress } from "@/lib/address-utils";
 import { api } from "@/lib/api-client";
+import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { authClient } from "@/lib/auth-client";
 import {
   getPrivySignerId,
@@ -93,6 +95,7 @@ function ConnectWalletButtonInner({
   className,
   chipOnly = false,
 }: ConnectWalletButtonProps) {
+  const router = useRouter();
   const { authenticated, user, getAccessToken, ready, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const { createWallet } = useCreateWallet();
@@ -270,6 +273,8 @@ function ConnectWalletButtonInner({
       setLinkedAddress(payload.address ?? embedded.address);
       await refreshWalletMeta();
       await authClient.getSession();
+      router.refresh();
+      refetchSidebar();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("graphitti:wallet-linked"));
       }
@@ -295,6 +300,7 @@ function ConnectWalletButtonInner({
     getAccessToken,
     refreshWalletMeta,
     resolveEmbedded,
+    router,
   ]);
 
   // `login` (not `connectOrCreateWallet`) is required here: connect-only flows

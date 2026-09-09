@@ -72,7 +72,7 @@ const NAV_ITEMS: NavItemDef[] = [
     icon: Store,
     label: "Marketplace",
     href: "/hub?tab=marketplace",
-    requireAuth: false,
+    requireAuth: true,
   },
   {
     id: "analytics",
@@ -297,6 +297,18 @@ export function NavigationSidebar(): React.ReactElement | null {
       }),
     [fetchData, navState.closeFlyout]
   );
+
+  useEffect(() => {
+    const onWalletLinked = (): void => {
+      router.refresh();
+      fetchData().catch(() => {
+        /* ignore */
+      });
+    };
+    window.addEventListener("graphitti:wallet-linked", onWalletLinked);
+    return () =>
+      window.removeEventListener("graphitti:wallet-linked", onWalletLinked);
+  }, [fetchData, router]);
 
   const isAnonymous = isAnonymousUser(session?.user);
   const workflowId =

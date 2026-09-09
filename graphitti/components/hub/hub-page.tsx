@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ListingDetailOverlay } from "@/components/overlays/listing-detail-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
-import { PageEmptyState } from "@/components/page-empty-state";
+import { PageEmptyState, SignInGate } from "@/components/page-empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +20,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type MarketplaceListing } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
+import { isAnonymousUser } from "@/lib/is-anonymous";
 import { getAllIntegrations } from "@/plugins";
 
 const TABS = ["integrations", "marketplace"] as const;
@@ -32,9 +34,11 @@ function isHubTab(value: string | null): value is HubTab {
 export function HubPage(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, isPending } = useSession();
   const { open } = useOverlay();
   const tabParam = searchParams.get("tab");
   const tab: HubTab = isHubTab(tabParam) ? tabParam : "integrations";
+  const isAnonymous = isAnonymousUser(session?.user);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "recent");
@@ -79,7 +83,7 @@ export function HubPage(): React.ReactElement {
   }, [integrations, debouncedQuery, tab]);
 
   useEffect(() => {
-    if (tab !== "marketplace") {
+    if (tab !== "marketplace" || isPending || isAnonymous) {
       setLoading(false);
       return;
     }
@@ -89,7 +93,7 @@ export function HubPage(): React.ReactElement {
       .then((result) => setItems(result.items))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [debouncedQuery, sort, tab]);
+  }, [debouncedQuery, isAnonymous, isPending, sort, tab]);
 
   const setTab = (next: string): void => {
     const params = new URLSearchParams(searchParams.toString());
@@ -183,7 +187,13 @@ export function HubPage(): React.ReactElement {
           </TabsContent>
 
           <TabsContent value="marketplace">
-            {loading ? (
+            {!isPending && isAnonymous ? (
+              <SignInGate
+                description="Connect a wallet to browse listed workflows and open examples in your editor."
+                icon={Store}
+                title="Connect wallet to view marketplace"
+              />
+            ) : loading ? (
               <div className="flex justify-center py-12">
                 <Spinner />
               </div>

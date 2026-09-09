@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { isAnonymousUserId } from "@/lib/is-anonymous";
+import { cloneCatalogTemplatesForUser } from "@/lib/marketplace/clone-catalog";
 
 export async function GET(request: Request) {
   try {
@@ -12,6 +14,10 @@ export async function GET(request: Request) {
 
     if (!session?.user) {
       return NextResponse.json([], { status: 200 });
+    }
+
+    if (!(await isAnonymousUserId(session.user.id))) {
+      await cloneCatalogTemplatesForUser(session.user.id);
     }
 
     const userWorkflows = await db

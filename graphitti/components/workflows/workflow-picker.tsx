@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { TruncatedTooltip } from "@/components/ui/truncated-tooltip";
 import type { SavedWorkflow } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
+import { isCatalogWorkflowName } from "@/lib/marketplace/catalog";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,21 @@ type WorkflowPickerProps = {
   isAnonymous: boolean;
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  circle: "Circle",
+  arc: "Arc",
+  privy: "Privy",
+  "the-graph": "The Graph",
+  "fantasy-premier-league": "FPL",
+};
+
+function matchesQuery(workflow: SavedWorkflow, needle: string): boolean {
+  if (!needle) {
+    return true;
+  }
+  return workflow.name.toLowerCase().includes(needle);
+}
+
 export function WorkflowPicker({
   workflows,
   activeWorkflowId,
@@ -43,15 +59,34 @@ export function WorkflowPicker({
   const [query, setQuery] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) {
-      return workflows;
+  const needle = query.trim().toLowerCase();
+
+  const { examples, userWorkflows } = useMemo(() => {
+    const examplesList: SavedWorkflow[] = [];
+    const userList: SavedWorkflow[] = [];
+
+    for (const workflow of workflows) {
+      if (isCatalogWorkflowName(workflow.name)) {
+        examplesList.push(workflow);
+      } else {
+        userList.push(workflow);
+      }
     }
-    return workflows.filter((workflow) =>
-      workflow.name.toLowerCase().includes(needle)
-    );
-  }, [query, workflows]);
+
+    return { examples: examplesList, userWorkflows: userList };
+  }, [workflows]);
+
+  const filteredExamples = useMemo(
+    () => examples.filter((workflow) => matchesQuery(workflow, needle)),
+    [examples, needle]
+  );
+
+  const filteredUserWorkflows = useMemo(
+    () => userWorkflows.filter((workflow) => matchesQuery(workflow, needle)),
+    [userWorkflows, needle]
+  );
+
+  const hasResults = filteredExamples.length > 0 || filteredUserWorkflows.length > 0;
 
   if (loading) {
     return (
@@ -61,10 +96,18 @@ export function WorkflowPicker({
     );
   }
 
+  if (isAnonymous) {
+    return (
+      <p className="py-4 text-center text-muted-foreground text-sm">
+        Connect wallet to save workflows
+      </p>
+    );
+  }
+
   if (workflows.length === 0) {
     return (
       <p className="py-4 text-center text-muted-foreground text-sm">
-        {isAnonymous ? "Connect wallet to save workflows" : "No workflows yet"}
+        No workflows yet
       </p>
     );
   }
@@ -77,24 +120,66 @@ export function WorkflowPicker({
         placeholder="Search workflows"
         value={query}
       />
-      {filtered.length === 0 ? (
+      {!hasResults ? (
         <p className="py-4 text-center text-muted-foreground text-sm">
           No workflows match that search.
         </p>
       ) : (
-        <div className="flex flex-col gap-0.5">
-          {filtered.map((workflow) => (
-            <WorkflowRow
-              isActive={workflow.id === activeWorkflowId}
-              key={workflow.id}
-              onRename={() => setRenamingId(workflow.id)}
-              onRenameDone={() => setRenamingId(null)}
-              renaming={renamingId === workflow.id}
-              workflow={workflow}
+        <div className="flex flex-col gap-3">
+          {filteredExamples.length > 0 ? (
+            <WorkflowSection
+              activeWorkflowId={activeWorkflowId}
+              renamingId={renamingId}
+              setRenamingId={setRenamingId}
+              title="Examples"
+              workflows={filteredExamples}
             />
-          ))}
+          ) : null}
+          {filteredUserWorkflows.length > 0 ? (
+            <WorkflowSection
+              activeWorkflowId={activeWorkflowId}
+              renamingId={renamingId}
+              setRenamingId={setRenamingId}
+              title="Your workflows"
+              workflows={filteredUserWorkflows}
+            />
+          ) : null}
         </div>
       )}
+    </div>
+  );
+}
+
+function WorkflowSection({
+  title,
+  workflows,
+  activeWorkflowId,
+  renamingId,
+  setRenamingId,
+}: {
+  title: string;
+  workflows: SavedWorkflow[];
+  activeWorkflowId: string | undefined;
+  renamingId: string | null;
+  setRenamingId: (id: string | null) => void;
+}): React.ReactElement {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="px-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+        {title}
+      </p>
+      <div className="flex flex-col gap-0.5">
+        {workflows.map((workflow) => (
+          <WorkflowRow
+            isActive={workflow.id === activeWorkflowId}
+            key={workflow.id}
+            onRename={() => setRenamingId(workflow.id)}
+            onRenameDone={() => setRenamingId(null)}
+            renaming={renamingId === workflow.id}
+            workflow={workflow}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -115,6 +200,9 @@ function WorkflowRow({
   const router = useRouter();
   const { open } = useOverlay();
   const [draft, setDraft] = useState(workflow.name);
+  const categoryLabel = workflow.category
+    ? CATEGORY_LABELS[workflow.category] ?? workflow.category
+    : null;
 
   const openWorkflow = (): void => {
     router.push(`/workflows/${workflow.id}`);
@@ -206,16 +294,21 @@ function WorkflowRow({
       <ContextMenuTrigger asChild>
         <div className={rowClass}>
           <button
-            className="flex min-w-0 flex-1 items-center justify-between px-1 py-1"
+            className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1 py-1"
             onClick={openWorkflow}
             type="button"
           >
             <TruncatedTooltip side="right" text={workflow.name} />
-            {workflow.isListed ? (
-              <span className="ml-2 shrink-0 text-muted-foreground text-xs">
-                Listed
-              </span>
-            ) : null}
+            <span className="ml-auto flex shrink-0 items-center gap-1.5">
+              {categoryLabel ? (
+                <span className="text-muted-foreground text-xs">
+                  {categoryLabel}
+                </span>
+              ) : null}
+              {workflow.isListed ? (
+                <span className="text-muted-foreground text-xs">Listed</span>
+              ) : null}
+            </span>
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -88,4 +88,9 @@ export function isCatalogTemplate(name: string): boolean {
   return name in MARKETPLACE_CATALOG;
 }
 
+/** Client-safe check for catalog example workflows in the picker. */
+export function isCatalogWorkflowName(name: string): boolean {
+  return isCatalogTemplate(name);
+}
+
 export const CATALOG_TEMPLATE_NAMES = Object.keys(MARKETPLACE_CATALOG);

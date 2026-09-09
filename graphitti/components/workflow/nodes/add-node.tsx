@@ -11,47 +11,15 @@ type AddNodeData = {
 export function AddNode({ data }: NodeProps & { data?: AddNodeData }) {
   return (
     <div className="flex flex-col items-center justify-center gap-8 rounded-lg border border-border border-dashed bg-background/50 p-8 backdrop-blur-sm">
-      <div className="text-center">
-        <h1 className="mb-2 font-bold text-3xl">
-          AI Workflow Builder Template
-        </h1>
+      <div className="max-w-md text-center">
+        <h1 className="mb-2 font-bold text-3xl">Graphitti</h1>
         <p className="text-muted-foreground text-sm">
-          Powered by{" "}
-          <a
-            className="underline underline-offset-2 transition duration-200 ease-out hover:text-foreground"
-            href="https://useworkflow.dev/"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Workflow
-          </a>
-          ,{" "}
-          <a
-            className="underline underline-offset-2 transition duration-200 ease-out hover:text-foreground"
-            href="https://ai-sdk.dev/"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            AI SDK
-          </a>
-          ,{" "}
-          <a
-            className="underline underline-offset-2 transition duration-200 ease-out hover:text-foreground"
-            href="https://vercel.com/ai-gateway"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            AI Gateway
-          </a>{" "}
-          and{" "}
-          <a
-            className="underline underline-offset-2 transition duration-200 ease-out hover:text-foreground"
-            href="https://ai-sdk.dev/elements"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            AI Elements
-          </a>
+          Connect a wallet, compose triggers and plugin actions, then run in the
+          browser or publish to the marketplace.
+        </p>
+        <p className="mt-2 text-muted-foreground text-xs">
+          Circle, Arc, Privy, The Graph, and Fantasy Premier League examples
+          appear in Workflows after you connect.
         </p>
       </div>
       <Button className="gap-2 shadow-lg" onClick={data.onClick} size="default">

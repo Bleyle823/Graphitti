@@ -114,7 +114,7 @@ const brandingRegistry: {
   appName: string;
 } = {
   logo: null,
-  appName: "Workflow Builder",
+  appName: "Graphitti",
 };
 
 /**
