@@ -290,19 +290,14 @@ export function NavigationSidebar(): React.ReactElement | null {
   }, []);
 
   useEffect(() => {
-    if (sessionPending || walletAccessPending) {
-      return;
-    }
-    if (!hasWalletAccess) {
-      setWorkflows([]);
-      setDataLoading(false);
+    if (sessionPending) {
       return;
     }
     setDataLoading(true);
     fetchData().catch(() => {
       /* ignore */
     });
-  }, [sessionPending, walletAccessPending, hasWalletAccess, fetchData]);
+  }, [sessionPending, fetchData]);
 
   useEffect(
     () =>

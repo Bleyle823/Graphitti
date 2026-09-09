@@ -703,7 +703,7 @@ function useWorkflowState() {
   const addNode = useSetAtom(addNodeAtom);
   const [canUndo] = useAtom(canUndoAtom);
   const [canRedo] = useAtom(canRedoAtom);
-  const { data: session } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
   const setActiveTab = useSetAtom(propertiesPanelActiveTabAtom);
   const setSelectedNodeId = useSetAtom(selectedNodeAtom);
   const setSelectedExecutionId = useSetAtom(selectedExecutionIdAtom);
@@ -720,8 +720,14 @@ function useWorkflowState() {
     }>
   >([]);
 
-  // Load all workflows on mount
   useEffect(() => {
+    if (sessionPending) {
+      return;
+    }
+    if (!session?.user) {
+      setAllWorkflows([]);
+      return;
+    }
     const loadAllWorkflows = async () => {
       try {
         const workflows = await api.workflow.getAll();
@@ -730,8 +736,8 @@ function useWorkflowState() {
         console.error("Failed to load workflows:", error);
       }
     };
-    loadAllWorkflows();
-  }, []);
+    void loadAllWorkflows();
+  }, [sessionPending, session?.user?.id]);
 
   return {
     nodes,
@@ -801,6 +807,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
     userIntegrations,
     triggerExecute,
     setTriggerExecute,
+    isOwner,
     router,
     session,
   } = state;
@@ -845,6 +852,10 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
   };
 
   const handleDeleteWorkflow = () => {
+    if (!isOwner) {
+      toast.info("Duplicate this example to your workflows before deleting it.");
+      return;
+    }
     openOverlay(ConfirmOverlay, {
       title: "Delete Workflow",
       message: `Are you sure you want to delete "${workflowName}"? This will permanently delete the workflow. This cannot be undone.`,
@@ -859,7 +870,11 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
           window.location.href = "/";
         } catch (error) {
           console.error("Failed to delete workflow:", error);
-          toast.error("Failed to delete workflow. Please try again.");
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Failed to delete workflow. Please try again."
+          );
         }
       },
     });

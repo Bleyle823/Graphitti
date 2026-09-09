@@ -17,7 +17,11 @@ export async function GET(request: Request) {
     }
 
     if (!(await isAnonymousUserId(session.user.id))) {
-      await cloneCatalogTemplatesForUser(session.user.id);
+      try {
+        await cloneCatalogTemplatesForUser(session.user.id);
+      } catch (error) {
+        console.error("Failed to clone catalog templates:", error);
+      }
     }
 
     const userWorkflows = await db

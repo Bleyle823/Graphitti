@@ -24,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { TruncatedTooltip } from "@/components/ui/truncated-tooltip";
 import type { SavedWorkflow } from "@/lib/api-client";
 import { api } from "@/lib/api-client";
-import { isCatalogWorkflowName } from "@/lib/marketplace/catalog";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { cn } from "@/lib/utils";
 
@@ -66,21 +65,13 @@ export function WorkflowPicker({
   const needle = query.trim().toLowerCase();
 
   const { examples, userWorkflows } = useMemo(() => {
-    const exampleIds = new Set(catalogExamples.map((workflow) => workflow.id));
-    const examplesList = [...catalogExamples];
-    const userList: SavedWorkflow[] = [];
-
-    for (const workflow of workflows) {
-      if (exampleIds.has(workflow.id) || isCatalogWorkflowName(workflow.name)) {
-        if (!exampleIds.has(workflow.id)) {
-          examplesList.push(workflow);
-        }
-        continue;
-      }
-      userList.push(workflow);
-    }
-
-    return { examples: examplesList, userWorkflows: userList };
+    const ownedIds = new Set(workflows.map((workflow) => workflow.id));
+    return {
+      examples: catalogExamples.filter(
+        (workflow) => !ownedIds.has(workflow.id)
+      ),
+      userWorkflows: workflows,
+    };
   }, [catalogExamples, workflows]);
 
   const filteredExamples = useMemo(
@@ -147,9 +138,11 @@ export function WorkflowPicker({
               title="Your workflows"
               workflows={filteredUserWorkflows}
             />
-          ) : hasWalletAccess ? null : (
+          ) : (
             <p className="px-1 text-muted-foreground text-xs">
-              Connect a wallet to save and run your own workflows.
+              {hasWalletAccess
+                ? "No saved workflows yet."
+                : "Connect a wallet to save and run your own workflows."}
             </p>
           )}
         </div>
