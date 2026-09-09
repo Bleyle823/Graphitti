@@ -11,7 +11,11 @@ export function isAnonymousUser(user?: SessionUser | null): boolean {
   if (user.isAnonymous === false) {
     return false;
   }
-  if (user.name && user.name !== "Anonymous" && !user.email?.startsWith("temp-")) {
+  if (
+    user.name &&
+    user.name !== "Anonymous" &&
+    !user.email?.startsWith("temp-")
+  ) {
     return false;
   }
   return user.name === "Anonymous" || Boolean(user.email?.startsWith("temp-"));

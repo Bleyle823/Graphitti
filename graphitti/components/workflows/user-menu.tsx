@@ -12,7 +12,6 @@ import {
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,11 +27,12 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { signOut, useSession } from "@/lib/auth-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { isPrivyConfigured } from "@/lib/privy/client-config";
 import { gettingStartedOpenAtom } from "@/lib/ui-store";
-import { useHasMounted } from "@/hooks/use-has-mounted";
 
 export const UserMenu = () => {
   const hasMounted = useHasMounted();
@@ -81,8 +81,11 @@ export const UserMenu = () => {
   }
 
   // Wallet-linked users are promoted off anonymous in link-wallet.
-  const needsWalletConnect =
-    !isPending && !walletAccessPending && !hasWalletAccess;
+  const needsWalletConnect = !(
+    isPending ||
+    walletAccessPending ||
+    hasWalletAccess
+  );
 
   // Show Connect Wallet if user is anonymous or not logged in
   if (needsWalletConnect) {
@@ -167,13 +170,15 @@ export const UserMenu = () => {
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Sun className="dark:-rotate-90 size-4 rotate-0 scale-100 transition-all dark:scale-0" />
               <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span>Theme</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup onValueChange={setTheme} value={theme}>
-                <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="light">
+                  Light
+                </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="system">
                   System

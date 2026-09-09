@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { validateApiKey } from "@/lib/auth/api-key";
 import { auth } from "@/lib/auth";
+import { validateApiKey } from "@/lib/auth/api-key";
 import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
 import { workflows } from "@/lib/db/schema";
@@ -21,7 +21,10 @@ export async function POST(
       where: eq(workflows.id, workflowId),
     });
     if (!workflow) {
-      return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 }
+      );
     }
 
     let userId = session?.user?.id;

@@ -69,7 +69,7 @@ export async function GET(
 
     const isOwner = session?.user?.id === workflow.userId;
 
-    if (!isOwner && !isPubliclyReadable(workflow)) {
+    if (!(isOwner || isPubliclyReadable(workflow))) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }

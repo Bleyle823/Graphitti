@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 function loadEnvFile(): void {
@@ -41,10 +41,9 @@ async function main(): Promise<void> {
   const { loadAllWorkflowTemplates } = await import(
     "@/lib/workflow-templates/load-templates"
   );
-  const {
-    catalogMetaForTemplate,
-    isCatalogTemplate,
-  } = await import("@/lib/marketplace/catalog");
+  const { catalogMetaForTemplate, isCatalogTemplate } = await import(
+    "@/lib/marketplace/catalog"
+  );
   const { generateId } = await import("@/lib/utils/id");
 
   const listOnly = process.env.SEED_LIST === "1";
@@ -53,26 +52,24 @@ async function main(): Promise<void> {
     ? await db.query.users.findFirst({ where: eq(users.email, email) })
     : await db.query.users.findFirst();
 
-  if (!user) {
-    if (listOnly) {
-      user = await db.query.users.findFirst({
-        where: eq(users.id, "usr_catalog_seed"),
-      });
-      if (!user) {
-        const [created] = await db
-          .insert(users)
-          .values({
-            id: "usr_catalog_seed",
-            name: "Graphitti Catalog",
-            email: "catalog@graphitti.local",
-            emailVerified: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            isAnonymous: false,
-          })
-          .returning();
-        user = created;
-      }
+  if (!user && listOnly) {
+    user = await db.query.users.findFirst({
+      where: eq(users.id, "usr_catalog_seed"),
+    });
+    if (!user) {
+      const [created] = await db
+        .insert(users)
+        .values({
+          id: "usr_catalog_seed",
+          name: "Graphitti Catalog",
+          email: "catalog@graphitti.local",
+          emailVerified: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isAnonymous: false,
+        })
+        .returning();
+      user = created;
     }
   }
 
@@ -147,7 +144,10 @@ async function main(): Promise<void> {
 
   if (listOnly) {
     console.log(
-      `Catalog slugs: ${templates.map((t) => catalogMetaForTemplate(t)?.slug).filter(Boolean).join(", ")}`
+      `Catalog slugs: ${templates
+        .map((t) => catalogMetaForTemplate(t)?.slug)
+        .filter(Boolean)
+        .join(", ")}`
     );
   }
 }

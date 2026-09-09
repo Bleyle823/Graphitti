@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api-client";
 import { Spinner } from "@/components/ui/spinner";
+import { api } from "@/lib/api-client";
 import { Overlay } from "./overlay";
 
 type EarningsOverlayProps = {
@@ -43,7 +43,9 @@ export function EarningsOverlay({ overlayId }: EarningsOverlayProps) {
           </p>
           <p>
             Platform fee:{" "}
-            <strong>{((data?.platformFeeBps ?? 3000) / 100).toFixed(0)}%</strong>
+            <strong>
+              {((data?.platformFeeBps ?? 3000) / 100).toFixed(0)}%
+            </strong>
           </p>
           <p>
             Net Arc USDC: <strong>{data?.netUsdc ?? "0"}</strong>

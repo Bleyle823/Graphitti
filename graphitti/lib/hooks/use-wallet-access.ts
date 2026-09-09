@@ -66,7 +66,8 @@ export function useWalletAccess(): WalletAccessState {
   }, [refreshWalletAccess]);
 
   const hasWalletAccess =
-    Boolean(linkedAddress) || (!sessionPending && !isAnonymousUser(session?.user));
+    Boolean(linkedAddress) ||
+    !(sessionPending || isAnonymousUser(session?.user));
 
   return {
     hasWalletAccess,

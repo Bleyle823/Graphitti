@@ -41,6 +41,48 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
+  "Privy USDC remittance": {
+    slug: "privy-usdc-remittance",
+    category: "privy",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "Privy cross-chain USDC remittance": {
+    slug: "privy-cross-chain-usdc-remittance",
+    category: "privy",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "Privy fund treasury and pay vendor": {
+    slug: "privy-fund-treasury-pay-vendor",
+    category: "privy",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "Privy stablecoin rebalance swap": {
+    slug: "privy-stablecoin-rebalance-swap",
+    category: "privy",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "Privy webhook vendor payout": {
+    slug: "privy-webhook-vendor-payout",
+    category: "privy",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
+  "Privy batch contractor payouts": {
+    slug: "privy-batch-contractor-payouts",
+    category: "privy",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
   "FPL League Top Three USDC Payouts": {
     slug: "fpl-league-top-three-payouts",
     category: "fantasy-premier-league",
@@ -78,7 +120,7 @@ export function catalogMetaForTemplate(
   if (meta) {
     return meta;
   }
-  return undefined;
+  return;
 }
 
 export function defaultCatalogSlug(name: string): string {

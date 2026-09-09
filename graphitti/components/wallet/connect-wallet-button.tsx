@@ -25,17 +25,14 @@ import {
 import { WalletBlockie } from "@/components/wallet/wallet-blockie";
 import { toChecksumAddress, truncateAddress } from "@/lib/address-utils";
 import { api } from "@/lib/api-client";
-import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { authClient } from "@/lib/auth-client";
-import {
-  getPrivySignerId,
-  isPrivyConfigured,
-} from "@/lib/privy/client-config";
+import { getPrivySignerId, isPrivyConfigured } from "@/lib/privy/client-config";
 import {
   type EmbeddedWalletRef,
   pickEmbeddedWalletFromLinkedAccounts,
   pickEmbeddedWalletFromWallets,
 } from "@/lib/privy/embedded-wallet";
+import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { cn } from "@/lib/utils";
 import { PrivyIcon } from "@/plugins/privy/icon";
 
@@ -293,17 +290,20 @@ function ConnectWalletButtonInner({
       await syncWalletLink();
     } catch (error) {
       // Keep any embedded address we already found so the UI does not snap back.
-      if (!linkedAddressRef.current && !resolveEmbedded()) {
-        setSetupFailed(true);
-        toast.error(
-          error instanceof Error ? error.message : "Could not link wallet"
+      if (linkedAddressRef.current || resolveEmbedded()) {
+        console.warn(
+          "[Privy] Wallet shown locally; server link failed:",
+          error
         );
-      } else {
-        console.warn("[Privy] Wallet shown locally; server link failed:", error);
         toast.error(
           error instanceof Error
             ? error.message
             : "Wallet connected in Privy but server link failed. Retry wallet setup."
+        );
+      } else {
+        setSetupFailed(true);
+        toast.error(
+          error instanceof Error ? error.message : "Could not link wallet"
         );
       }
     } finally {
@@ -410,7 +410,10 @@ function ConnectWalletButtonInner({
               {truncateAddress(displayAddress)}
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
-              <WalletBlockie address={displayAddress} size={compact ? 16 : 18} />
+              <WalletBlockie
+                address={displayAddress}
+                size={compact ? 16 : 18}
+              />
               <ChevronDown className="size-3.5 opacity-60" />
             </span>
           </Button>
@@ -442,7 +445,7 @@ function ConnectWalletButtonInner({
               View on explorer
             </a>
           </DropdownMenuItem>
-          {!chipOnly ? (
+          {chipOnly ? null : (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -454,7 +457,7 @@ function ConnectWalletButtonInner({
                 Disconnect
               </DropdownMenuItem>
             </>
-          ) : null}
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     );

@@ -6,17 +6,17 @@ import { validateApiKey } from "@/lib/auth/api-key";
 import { db } from "@/lib/db";
 import { userWallets, workflows } from "@/lib/db/schema";
 import {
+  mapOutputs,
+  startListedWorkflow,
+  waitForExecution,
+} from "@/lib/marketplace/run-workflow";
+import {
   buildArcPaymentRequired,
   buildCircleNanopayRequired,
   extractTxHash,
   paymentHashFromReceipt,
   recordWorkflowPayment,
 } from "@/lib/marketplace/x402";
-import {
-  mapOutputs,
-  startListedWorkflow,
-  waitForExecution,
-} from "@/lib/marketplace/run-workflow";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 import { verifyMarketplacePayment } from "./verify-payment";
 

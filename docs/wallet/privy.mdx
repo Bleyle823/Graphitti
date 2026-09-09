@@ -8,3 +8,13 @@ Graphitti keeps Better Auth for the session. Privy holds the embedded EVM wallet
 After **Connect wallet**, Graphitti verifies the Privy access token and upserts `user_wallets` (`privyUserId`, `privyWalletId`, `address`). Settings shows the address and **gasless enabled** when a wallet is linked.
 
 The Privy plugin can also manage users and wallets through REST if you add `PRIVY_APP_ID` and `PRIVY_APP_SECRET` as a connection.
+
+## Organization wallets
+
+Teams provision a separate **org treasury wallet** when they create a Better Auth organization. Graphitti maps:
+
+- **Owner key quorum** — approves high-value intents
+- **Operator policy** — auto payroll under a USDC cap to allowlisted payees
+- **Wallet transfer API** — fund treasury and pay contractors without constructing calldata
+
+See [Organization treasury](/treasury/overview).

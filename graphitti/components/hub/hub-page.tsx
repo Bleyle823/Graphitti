@@ -3,12 +3,13 @@
 import { Globe, Store } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ListingDetailOverlay } from "@/components/overlays/listing-detail-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
+import { ListingDetailOverlay } from "@/components/overlays/listing-detail-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
 import { PageEmptyState } from "@/components/page-empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IntegrationIcon } from "@/components/ui/integration-icon";
 import {
   Select,
   SelectContent,
@@ -17,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type MarketplaceListing } from "@/lib/api-client";
 import { getAllIntegrations } from "@/plugins";
@@ -142,7 +142,11 @@ export function HubPage(): React.ReactElement {
               <PageEmptyState
                 action={
                   query ? (
-                    <Button onClick={() => setQuery("")} size="sm" variant="outline">
+                    <Button
+                      onClick={() => setQuery("")}
+                      size="sm"
+                      variant="outline"
+                    >
                       Clear search
                     </Button>
                   ) : null
@@ -153,30 +157,28 @@ export function HubPage(): React.ReactElement {
               />
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredIntegrations.map((plugin) => {
-                  return (
-                    <button
-                      className="rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50"
-                      key={plugin.type}
-                      onClick={() => open(IntegrationsOverlay)}
-                      type="button"
-                    >
-                      <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-muted">
-                        <IntegrationIcon
-                          className="size-5"
-                          integration={plugin.type}
-                        />
-                      </div>
-                      <p className="font-medium text-sm">{plugin.label}</p>
-                      <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
-                        {plugin.description}
-                      </p>
-                      <p className="mt-2 text-muted-foreground text-xs">
-                        {plugin.actions.length} actions
-                      </p>
-                    </button>
-                  );
-                })}
+                {filteredIntegrations.map((plugin) => (
+                  <button
+                    className="rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50"
+                    key={plugin.type}
+                    onClick={() => open(IntegrationsOverlay)}
+                    type="button"
+                  >
+                    <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-muted">
+                      <IntegrationIcon
+                        className="size-5"
+                        integration={plugin.type}
+                      />
+                    </div>
+                    <p className="font-medium text-sm">{plugin.label}</p>
+                    <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
+                      {plugin.description}
+                    </p>
+                    <p className="mt-2 text-muted-foreground text-xs">
+                      {plugin.actions.length} actions
+                    </p>
+                  </button>
+                ))}
               </div>
             )}
           </TabsContent>
