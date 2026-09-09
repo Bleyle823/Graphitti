@@ -43,7 +43,7 @@ import {
   EXPANDED_WIDTH,
   usePersistedNavState,
 } from "@/lib/hooks/use-persisted-nav-state";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { registerSidebarRefetch } from "@/lib/refetch-sidebar";
 import { authPromptOpenAtom, navMobileOpenAtom } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
@@ -250,7 +250,8 @@ function SidebarBody({
 
 export function NavigationSidebar(): React.ReactElement | null {
   const isMobile = useIsMobile();
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const setAuthPromptOpen = useSetAtom(authPromptOpenAtom);
   const [mobileOpen, setMobileOpen] = useAtom(navMobileOpenAtom);
   const { open: openOverlay } = useOverlay();
@@ -273,17 +274,19 @@ export function NavigationSidebar(): React.ReactElement | null {
   }, []);
 
   useEffect(() => {
-    if (isPending) {
+    if (sessionPending || walletAccessPending) {
       return;
     }
-    if (!session?.user || isAnonymousUser(session.user)) {
+    if (!hasWalletAccess) {
+      setWorkflows([]);
       setDataLoading(false);
       return;
     }
+    setDataLoading(true);
     fetchData().catch(() => {
       /* ignore */
     });
-  }, [isPending, session, fetchData]);
+  }, [sessionPending, walletAccessPending, hasWalletAccess, fetchData]);
 
   useEffect(
     () =>
@@ -301,6 +304,7 @@ export function NavigationSidebar(): React.ReactElement | null {
   useEffect(() => {
     const onWalletLinked = (): void => {
       router.refresh();
+      setDataLoading(true);
       fetchData().catch(() => {
         /* ignore */
       });
@@ -310,7 +314,7 @@ export function NavigationSidebar(): React.ReactElement | null {
       window.removeEventListener("graphitti:wallet-linked", onWalletLinked);
   }, [fetchData, router]);
 
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect = !walletAccessPending && !hasWalletAccess;
   const workflowId =
     typeof params.workflowId === "string" ? params.workflowId : undefined;
   const expanded = navState.state.sidebar;
@@ -416,7 +420,10 @@ export function NavigationSidebar(): React.ReactElement | null {
   }
 
   function requireSignIn(): boolean {
-    if (!session?.user || isAnonymousUser(session.user)) {
+    if (walletAccessPending) {
+      return false;
+    }
+    if (!hasWalletAccess) {
       setAuthPromptOpen(true);
       return true;
     }
@@ -424,7 +431,7 @@ export function NavigationSidebar(): React.ReactElement | null {
   }
 
   async function handleNewWorkflow(): Promise<void> {
-    if (isAnonymous) {
+    if (needsWalletConnect) {
       if (!session) {
         await authClient.signIn.anonymous();
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -475,7 +482,7 @@ export function NavigationSidebar(): React.ReactElement | null {
 
   const picker = visibleWorkflows(workflows);
 
-  if (isPending || !navState.hasMounted) {
+  if (sessionPending || walletAccessPending || !navState.hasMounted) {
     return (
       <div
         aria-hidden="true"
@@ -512,7 +519,7 @@ export function NavigationSidebar(): React.ReactElement | null {
           <div className="border-t p-2">
             <WorkflowPicker
               activeWorkflowId={workflowId}
-              isAnonymous={isAnonymous}
+              isAnonymous={needsWalletConnect}
               loading={dataLoading}
               workflows={picker}
             />
@@ -554,7 +561,7 @@ export function NavigationSidebar(): React.ReactElement | null {
       >
         <WorkflowPicker
           activeWorkflowId={workflowId}
-          isAnonymous={isAnonymous}
+          isAnonymous={needsWalletConnect}
           loading={dataLoading}
           workflows={picker}
         />

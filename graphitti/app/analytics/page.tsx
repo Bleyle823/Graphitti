@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { api, type ActivityItem } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { cn } from "@/lib/utils";
 
 type AnalyticsData = {
@@ -21,15 +21,17 @@ type AnalyticsData = {
 };
 
 export default function AnalyticsPage() {
-  const { data: session, isPending } = useSession();
+  const { isPending: sessionPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const router = useRouter();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [recent, setRecent] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect =
+    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   useEffect(() => {
-    if (isPending || isAnonymous) {
+    if (sessionPending || walletAccessPending || !hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -43,9 +45,9 @@ export default function AnalyticsPage() {
       })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [isAnonymous, isPending]);
+  }, [hasWalletAccess, sessionPending, walletAccessPending]);
 
-  if (!isPending && isAnonymous) {
+  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
     return (
       <PageShell
         description="A snapshot of your workflows and recent runs."
@@ -80,7 +82,7 @@ export default function AnalyticsPage() {
       description="A snapshot of your workflows and recent runs."
       title="Analytics"
     >
-      {loading || isPending ? (
+      {loading || sessionPending || walletAccessPending ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>

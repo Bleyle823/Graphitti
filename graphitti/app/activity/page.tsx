@@ -9,22 +9,24 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { api, type ActivityItem } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { cn } from "@/lib/utils";
 
 const FILTERS = ["all", "success", "error"] as const;
 type StatusFilter = (typeof FILTERS)[number];
 
 export default function ActivityPage() {
-  const { data: session, isPending } = useSession();
+  const { isPending: sessionPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const router = useRouter();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect =
+    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   useEffect(() => {
-    if (isPending || isAnonymous) {
+    if (sessionPending || walletAccessPending || !hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -33,7 +35,7 @@ export default function ActivityPage() {
       .then((result) => setItems(result.items))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [isAnonymous, isPending]);
+  }, [hasWalletAccess, sessionPending, walletAccessPending]);
 
   const visible = useMemo(() => {
     if (filter === "all") {
@@ -42,7 +44,7 @@ export default function ActivityPage() {
     return items.filter((item) => item.status === filter);
   }, [filter, items]);
 
-  if (!isPending && isAnonymous) {
+  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
     return (
       <PageShell
         description="Recent workflow runs across your account."
@@ -62,7 +64,7 @@ export default function ActivityPage() {
       description="Recent workflow runs across your account."
       title="Activity"
     >
-      {loading || isPending ? (
+      {loading || sessionPending || walletAccessPending ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>

@@ -14,10 +14,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 
 export default function SettingsPage() {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const { open } = useOverlay();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,10 +28,11 @@ export default function SettingsPage() {
   const [gaslessEnabled, setGaslessEnabled] = useState(false);
   const [gasMode, setGasMode] = useState<string | null>(null);
   const [gasAsset, setGasAsset] = useState<string | null>(null);
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect =
+    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   const loadAll = useCallback(async () => {
-    if (isAnonymous) {
+    if (!hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -49,18 +51,19 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAnonymous]);
+  }, [hasWalletAccess]);
 
   useEffect(() => {
-    if (!isPending) {
-      loadAll();
+    if (sessionPending || walletAccessPending) {
+      return;
     }
+    loadAll();
     const onLinked = () => {
       void loadAll();
     };
     window.addEventListener("graphitti:wallet-linked", onLinked);
     return () => window.removeEventListener("graphitti:wallet-linked", onLinked);
-  }, [isPending, loadAll]);
+  }, [sessionPending, walletAccessPending, loadAll]);
 
   const saveAccount = async (): Promise<void> => {
     try {
@@ -75,7 +78,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!isPending && isAnonymous) {
+  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
     return (
       <PageShell
         description="Account, wallet, connections, and API keys."
@@ -95,7 +98,7 @@ export default function SettingsPage() {
       description="Account, wallet, connections, and API keys."
       title="Settings"
     >
-      {loading || isPending ? (
+      {loading || sessionPending || walletAccessPending ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>

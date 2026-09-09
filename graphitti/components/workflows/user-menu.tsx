@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { isPrivyConfigured } from "@/lib/privy/client-config";
 import { gettingStartedOpenAtom } from "@/lib/ui-store";
 import { useHasMounted } from "@/hooks/use-has-mounted";
@@ -37,6 +37,7 @@ import { useHasMounted } from "@/hooks/use-has-mounted";
 export const UserMenu = () => {
   const hasMounted = useHasMounted();
   const { data: session, isPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const { theme, setTheme } = useTheme();
   const { open: openOverlay } = useOverlay();
   const router = useRouter();
@@ -80,10 +81,11 @@ export const UserMenu = () => {
   }
 
   // Wallet-linked users are promoted off anonymous in link-wallet.
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect =
+    !isPending && !walletAccessPending && !hasWalletAccess;
 
   // Show Connect Wallet if user is anonymous or not logged in
-  if (isAnonymous) {
+  if (needsWalletConnect) {
     if (isPrivyConfigured()) {
       return (
         <div className="flex items-center gap-2">

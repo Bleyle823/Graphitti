@@ -217,6 +217,18 @@ function ConnectWalletButtonInner({
     }
   }, []);
 
+  const syncWalletLink = useCallback(async (): Promise<void> => {
+    await refreshWalletMeta();
+    await authClient.getSession({
+      fetchOptions: { cache: "no-store" },
+    });
+    router.refresh();
+    refetchSidebar();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("graphitti:wallet-linked"));
+    }
+  }, [refreshWalletMeta, router]);
+
   const linkEmbeddedWallet = useCallback(async () => {
     if (!authenticated || linkingRef.current) {
       return;
@@ -240,7 +252,14 @@ function ConnectWalletButtonInner({
       setLinkedAddress(embedded.address);
       await ensureSessionSigner(embedded.address);
 
-      if (linkedWalletIdRef.current === embedded.walletId) {
+      const existingWallet = await api.marketplace.wallet().catch(() => null);
+      if (
+        existingWallet?.address &&
+        linkedWalletIdRef.current === embedded.walletId
+      ) {
+        linkedWalletIdRef.current = embedded.walletId;
+        setLinkedAddress(existingWallet.address);
+        await syncWalletLink();
         return;
       }
 
@@ -271,13 +290,7 @@ function ConnectWalletButtonInner({
       const payload = (await response.json()) as { address?: string };
       linkedWalletIdRef.current = embedded.walletId;
       setLinkedAddress(payload.address ?? embedded.address);
-      await refreshWalletMeta();
-      await authClient.getSession();
-      router.refresh();
-      refetchSidebar();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("graphitti:wallet-linked"));
-      }
+      await syncWalletLink();
     } catch (error) {
       // Keep any embedded address we already found so the UI does not snap back.
       if (!linkedAddressRef.current && !resolveEmbedded()) {
@@ -287,6 +300,11 @@ function ConnectWalletButtonInner({
         );
       } else {
         console.warn("[Privy] Wallet shown locally; server link failed:", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Wallet connected in Privy but server link failed. Retry wallet setup."
+        );
       }
     } finally {
       linkingRef.current = false;
@@ -298,9 +316,8 @@ function ConnectWalletButtonInner({
     waitForEmbedded,
     ensureSessionSigner,
     getAccessToken,
-    refreshWalletMeta,
     resolveEmbedded,
-    router,
+    syncWalletLink,
   ]);
 
   // `login` (not `connectOrCreateWallet`) is required here: connect-only flows

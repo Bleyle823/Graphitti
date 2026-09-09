@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 
 type EarningsData = {
   invocations: number;
@@ -20,14 +20,16 @@ type EarningsData = {
 };
 
 export default function EarningsPage() {
-  const { data: session, isPending } = useSession();
+  const { isPending: sessionPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const router = useRouter();
   const [data, setData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect =
+    !sessionPending && !walletAccessPending && !hasWalletAccess;
 
   useEffect(() => {
-    if (isPending || isAnonymous) {
+    if (sessionPending || walletAccessPending || !hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -36,9 +38,9 @@ export default function EarningsPage() {
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [isAnonymous, isPending]);
+  }, [hasWalletAccess, sessionPending, walletAccessPending]);
 
-  if (!isPending && isAnonymous) {
+  if (!sessionPending && !walletAccessPending && needsWalletConnect) {
     return (
       <PageShell
         description="Revenue from listed workflows, settled in Arc USDC."
@@ -58,7 +60,7 @@ export default function EarningsPage() {
       description="Revenue from listed workflows, settled in Arc USDC."
       title="Earnings"
     >
-      {loading || isPending ? (
+      {loading || sessionPending || walletAccessPending ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>

@@ -21,7 +21,7 @@ import { IntegrationIcon } from "@/components/ui/integration-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type MarketplaceListing } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { isAnonymousUser } from "@/lib/is-anonymous";
+import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { getAllIntegrations } from "@/plugins";
 
 const TABS = ["integrations", "marketplace"] as const;
@@ -34,11 +34,13 @@ function isHubTab(value: string | null): value is HubTab {
 export function HubPage(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
+  const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const { open } = useOverlay();
   const tabParam = searchParams.get("tab");
   const tab: HubTab = isHubTab(tabParam) ? tabParam : "integrations";
-  const isAnonymous = isAnonymousUser(session?.user);
+  const needsWalletConnect =
+    !sessionPending && !walletAccessPending && !hasWalletAccess;
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "recent");
@@ -83,7 +85,7 @@ export function HubPage(): React.ReactElement {
   }, [integrations, debouncedQuery, tab]);
 
   useEffect(() => {
-    if (tab !== "marketplace" || isPending || isAnonymous) {
+    if (tab !== "marketplace" || sessionPending || walletAccessPending || !hasWalletAccess) {
       setLoading(false);
       return;
     }
@@ -93,7 +95,7 @@ export function HubPage(): React.ReactElement {
       .then((result) => setItems(result.items))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [debouncedQuery, isAnonymous, isPending, sort, tab]);
+  }, [debouncedQuery, hasWalletAccess, sessionPending, sort, tab, walletAccessPending]);
 
   const setTab = (next: string): void => {
     const params = new URLSearchParams(searchParams.toString());
@@ -187,7 +189,7 @@ export function HubPage(): React.ReactElement {
           </TabsContent>
 
           <TabsContent value="marketplace">
-            {!isPending && isAnonymous ? (
+            {!sessionPending && !walletAccessPending && needsWalletConnect ? (
               <SignInGate
                 description="Connect a wallet to browse listed workflows and open examples in your editor."
                 icon={Store}
