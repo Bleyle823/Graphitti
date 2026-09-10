@@ -28,6 +28,15 @@ You can deploy your own version of the workflow builder to Vercel with one click
 - **Database** - PostgreSQL with Drizzle ORM for type-safe database access
 - **Modern UI** - Beautiful shadcn/ui components with dark mode support
 
+## Ecosystem agent plugins
+
+Shared agent tool catalogs for The Graph and Privy are published on npm and developed in the monorepo:
+
+- [`@graphitti/graph-core`](https://www.npmjs.com/package/@graphitti/graph-core) — The Graph tools and `graph-mcp` MCP server
+- [`@graphitti/privy-core`](https://www.npmjs.com/package/@graphitti/privy-core) — Privy tools and `privy-mcp` MCP server
+
+See [ecosystem-agent-plugins/README.md](../ecosystem-agent-plugins/README.md) for adapter packages (Eliza, OpenClaw, Eve, Hermes) and local development commands.
+
 ## Getting Started
 
 ### Prerequisites
