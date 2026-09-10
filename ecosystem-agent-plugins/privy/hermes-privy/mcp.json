@@ -2,8 +2,8 @@
   "mcpServers": {
     "privy": {
       "type": "stdio",
-      "command": "node",
-      "args": ["../privy-core/dist/mcp-server.js"],
+      "command": "privy-mcp",
+      "args": [],
       "env": {
         "PRIVY_APP_ID": "${PRIVY_APP_ID}",
         "PRIVY_APP_SECRET": "${PRIVY_APP_SECRET}",

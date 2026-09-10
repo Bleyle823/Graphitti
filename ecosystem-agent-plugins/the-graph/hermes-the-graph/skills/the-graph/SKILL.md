@@ -1,3 +1,8 @@
+---
+name: the-graph
+description: Use The Graph protocol tools for subgraph discovery, GraphQL queries, Substreams, and Graphitti workflows. Use when the user asks about onchain indexed data, subgraphs, Substreams, or Graphitti Graph workflows.
+---
+
 # The Graph protocol tools
 
 Use these tools when the user asks about onchain indexed data, subgraphs, Substreams, or Graphitti Graph workflows.
@@ -19,17 +24,7 @@ For contract addresses, use `graph_find_by_contract` with chain `mainnet` for Et
 - Push alerts: `graph_substreams_webhook_setup` returns `substreams sink webhook` CLI + Graphitti webhook URL
 - gRPC runs outside the agent; do not expect in-process streaming in v1
 
-## Graphitti workflows
+## Additional resources
 
-When `GRAPHITTI_API_KEY` is set:
-
-- `graph_search_workflows` with category `the-graph`
-- `graph_call_workflow` for listed marketplace flows
-- `graph_execute_workflow` for owned workflow ids
-
-## Credentials
-
-- `THEGRAPH_API_KEY` — 32-char Studio/gateway key (required)
-- `SUBSTREAMS_API_KEY` — Substreams registry/data plane (optional)
-- `THEGRAPH_MARKET_BEARER` — Market Portal reads (optional)
-- `GRAPHITTI_API_KEY` — Graphitti B2B/marketplace (optional)
+- For credential setup, see [references/credentials.md](references/credentials.md)
+- For Graphitti workflow tools, see [references/workflows.md](references/workflows.md)

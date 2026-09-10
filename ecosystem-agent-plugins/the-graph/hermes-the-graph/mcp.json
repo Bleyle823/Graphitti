@@ -2,8 +2,8 @@
   "mcpServers": {
     "the-graph": {
       "type": "stdio",
-      "command": "node",
-      "args": ["../graph-core/dist/mcp-server.js"],
+      "command": "graph-mcp",
+      "args": [],
       "env": {
         "THEGRAPH_API_KEY": "${THEGRAPH_API_KEY}",
         "SUBSTREAMS_API_KEY": "${SUBSTREAMS_API_KEY}",

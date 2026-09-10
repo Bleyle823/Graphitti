@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Hermes portable Agent Plugin for The Graph protocol tools",
+  "dependencies": {
+    "@bleyle823/graph-core": "workspace:^0.1.0"
+  },
   "scripts": {
     "build": "node -e \"console.log('hermes-the-graph: no build step')\""
   }
