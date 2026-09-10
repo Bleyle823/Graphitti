@@ -7,6 +7,22 @@ Privy agent plugins expose one tool group (`privy_*`) for native Privy REST (use
 
 Packages live under `ecosystem-agent-plugins/privy/` in the Graphitti repo.
 
+## npm
+
+The shared tool catalog is published as `@bleyle823/privy-core`:
+
+```bash
+npm install @bleyle823/privy-core
+```
+
+Run the MCP stdio server:
+
+```bash
+export PRIVY_APP_ID=your_app_id
+export PRIVY_APP_SECRET=your_app_secret
+npx privy-mcp
+```
+
 ## Credentials
 
 | Variable | Required | Purpose |
@@ -34,7 +50,7 @@ Tool descriptions in the catalog repeat this guidance so models pick the right p
 ```bash
 cd ecosystem-agent-plugins/privy
 pnpm install
-pnpm --filter @graphitti/privy-core build
+pnpm --filter @bleyle823/privy-core build
 pnpm --filter plugin-privy build
 ```
 
@@ -65,7 +81,7 @@ hermes plugins install /path/to/ecosystem-agent-plugins/privy/hermes-privy
 hermes plugins enable privy
 ```
 
-MCP stdio runs `privy-mcp` from `@graphitti/privy-core` with the same env vars.
+MCP stdio runs `privy-mcp` from `@bleyle823/privy-core` with the same env vars.
 
 ## Eve
 
