@@ -2,7 +2,9 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { workflows } from "@/lib/db/schema";
+import { userWallets, workflows } from "@/lib/db/schema";
+import { CATALOG_TEMPLATE_NAMES } from "@/lib/marketplace/catalog";
+import { cloneCatalogTemplatesForUser } from "@/lib/marketplace/clone-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,34 @@ export async function GET(request: Request) {
       )
       .orderBy(desc(workflows.updatedAt));
 
-    const mappedWorkflows = userWorkflows.map((workflow) => ({
+    const wallet = await db.query.userWallets.findFirst({
+      where: eq(userWallets.userId, session.user.id),
+    });
+    const ownedNames = new Set(userWorkflows.map((workflow) => workflow.name));
+    const missingCatalog = CATALOG_TEMPLATE_NAMES.some(
+      (name) => !ownedNames.has(name)
+    );
+
+    let rows = userWorkflows;
+    if (wallet && missingCatalog) {
+      try {
+        await cloneCatalogTemplatesForUser(session.user.id);
+        rows = await db
+          .select()
+          .from(workflows)
+          .where(
+            and(
+              eq(workflows.userId, session.user.id),
+              isNull(workflows.deletedAt)
+            )
+          )
+          .orderBy(desc(workflows.updatedAt));
+      } catch (error) {
+        console.error("Failed to clone catalog workflows:", error);
+      }
+    }
+
+    const mappedWorkflows = rows.map((workflow) => ({
       ...workflow,
       createdAt: toIso(workflow.createdAt) ?? new Date().toISOString(),
       updatedAt: toIso(workflow.updatedAt) ?? new Date().toISOString(),

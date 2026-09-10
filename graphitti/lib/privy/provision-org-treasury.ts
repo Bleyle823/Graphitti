@@ -122,15 +122,18 @@ export async function provisionOrgTreasury(
   const creatorWallet = await db.query.userWallets.findFirst({
     where: eq(userWallets.userId, input.creatorUserId),
   });
+  const ownerUserId = creatorWallet?.privyUserId?.trim();
 
-  const ownerUserIds = creatorWallet?.privyUserId
-    ? [creatorWallet.privyUserId]
-    : undefined;
+  if (!(creatorWallet && ownerUserId)) {
+    throw new Error(
+      "Connect your Privy wallet before provisioning the org treasury"
+    );
+  }
 
   const ownerQuorum = await createPrivyKeyQuorum({
     displayName: `${input.organizationName} owners`,
     authorizationThreshold: 1,
-    userIds: ownerUserIds,
+    userIds: [ownerUserId],
   });
 
   const privyOrg = await createPrivyOrganization({

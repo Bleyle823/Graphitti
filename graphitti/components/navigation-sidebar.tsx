@@ -313,7 +313,7 @@ export function NavigationSidebar(): React.ReactElement | null {
   useEffect(() => {
     setCatalogLoading(true);
     api.marketplace
-      .search({ sort: "recent" })
+      .search({ sort: "recent", limit: "100" })
       .then((result) =>
         setCatalogExamples(
           result.items.map(marketplaceListingToExampleWorkflow)
@@ -549,7 +549,7 @@ export function NavigationSidebar(): React.ReactElement | null {
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
           {body}
-          <div className="border-t p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto border-t p-2">
             <WorkflowPicker
               activeWorkflowId={workflowId}
               catalogExamples={catalogExamples}

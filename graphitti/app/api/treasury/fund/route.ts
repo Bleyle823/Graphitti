@@ -42,8 +42,8 @@ export async function POST(request: Request) {
   const treasury = await getOrgTreasury(organizationId);
   if (!treasury) {
     return NextResponse.json(
-      { error: "Treasury wallet not provisioned" },
-      { status: 404 }
+      { error: "Treasury wallet is not provisioned yet" },
+      { status: 409 }
     );
   }
 
