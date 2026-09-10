@@ -3,7 +3,6 @@ import "server-only";
 import { fail, ok } from "@/lib/http-json";
 import { listOrgPayees } from "@/lib/org/auth-helpers";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
-import { getOrganizationWallet } from "@/lib/web3/wallet-helpers";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
 
 type TreasuryStepInput = StepInput & {

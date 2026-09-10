@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Plus, Wallet } from "lucide-react";
+import { Building2, Plus, Trash2, Wallet } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -213,6 +213,9 @@ export function TreasuryPage(): React.ReactElement {
           throw new Error(result.error ?? "Failed to provision treasury");
         }
         await loadTreasury(true);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("graphitti:treasury-ready"));
+        }
         return true;
       } catch (error) {
         const message =
@@ -337,7 +340,10 @@ export function TreasuryPage(): React.ReactElement {
         defaultAmountUsdc: payeeAmount,
       }),
     });
-    const result = await response.json();
+    const result = (await response.json()) as {
+      error?: string;
+      policyWarning?: string;
+    };
     if (!response.ok) {
       toast.error(result.error ?? "Failed to add payee");
       return;
@@ -345,7 +351,28 @@ export function TreasuryPage(): React.ReactElement {
     setPayeeOpen(false);
     setPayeeLabel("");
     setPayeeAddress("");
-    toast.success("Payee added");
+    if (result.policyWarning) {
+      toast.success("Payee saved. Policy sync will retry on the next edit.");
+    } else {
+      toast.success("Payee added");
+    }
+    await loadTreasury();
+  }
+
+  async function handleDeletePayee(payeeId: string) {
+    if (!data?.activeOrganizationId) {
+      return;
+    }
+    const response = await fetch(
+      `/api/treasury/payees?id=${encodeURIComponent(payeeId)}&organizationId=${encodeURIComponent(data.activeOrganizationId)}`,
+      { method: "DELETE" }
+    );
+    const result = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      toast.error(result.error ?? "Failed to remove payee");
+      return;
+    }
+    toast.success("Payee removed");
     await loadTreasury();
   }
 
@@ -476,6 +503,16 @@ export function TreasuryPage(): React.ReactElement {
                         <div className="font-mono text-xs">{payee.address}</div>
                       </div>
                       <div>{payee.defaultAmountUsdc ?? "-"} USDC</div>
+                      {data.role === "owner" || data.role === "admin" ? (
+                        <Button
+                          onClick={() => start(handleDeletePayee(payee.id))}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <Trash2 className="size-4" />
+                          <span className="sr-only">Remove payee</span>
+                        </Button>
+                      ) : null}
                     </div>
                   ))
                 )}

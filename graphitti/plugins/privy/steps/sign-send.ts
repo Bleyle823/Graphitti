@@ -2,6 +2,7 @@ import "server-only";
 
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
+import { assertOrgPayeeAllowed } from "@/lib/privy/payee-guard";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { parseUnits, requireChain } from "@/lib/web3/chains";
 import {
@@ -9,6 +10,7 @@ import {
   sendSponsoredTransaction,
   signTypedDataV4,
 } from "@/lib/web3/privy-signer";
+import { resolveStepWalletId } from "@/lib/web3/resolve-workflow-wallet";
 import { applyPrivyCredentials } from "../credentials";
 
 type PrivyStepInput = StepInput & {
@@ -64,13 +66,21 @@ async function sendSponsored(input: SendSponsoredTransactionInput) {
   if (authError) {
     return authError;
   }
-  if (!(input.walletId && input.to)) {
+  const wallet = await resolveStepWalletId(input);
+  if (!wallet.success) {
+    return fail(wallet.error);
+  }
+  if (!(wallet.walletId && input.to)) {
     return fail("walletId and to are required");
+  }
+  const payeeGate = await assertOrgPayeeAllowed(wallet.walletId, input.to);
+  if (!payeeGate.success) {
+    return fail(payeeGate.error);
   }
   try {
     const chain = requireChain(input.network);
     const { hash, gasMode, gasAsset } = await sendSponsoredTransaction({
-      walletId: input.walletId,
+      walletId: wallet.walletId,
       chain,
       to: input.to,
       data: input.data || "0x",
@@ -93,12 +103,16 @@ async function signMessage(input: SignMessageInput) {
   if (authError) {
     return authError;
   }
-  if (!(input.walletId && input.message)) {
-    return fail("walletId and message are required");
+  if (!input.message) {
+    return fail("message is required");
+  }
+  const wallet = await resolveStepWalletId(input);
+  if (!wallet.success) {
+    return fail(wallet.error);
   }
   try {
     const { signature } = await personalSign({
-      walletId: input.walletId,
+      walletId: wallet.walletId,
       message: input.message,
       chain: requireChain(input.network),
     });
@@ -113,13 +127,17 @@ async function signTypedData(input: SignTypedDataInput) {
   if (authError) {
     return authError;
   }
-  if (!(input.walletId && input.typedData)) {
-    return fail("walletId and typedData are required");
+  if (!input.typedData) {
+    return fail("typedData is required");
+  }
+  const wallet = await resolveStepWalletId(input);
+  if (!wallet.success) {
+    return fail(wallet.error);
   }
   try {
     const parsed = JSON.parse(input.typedData);
     const { signature } = await signTypedDataV4({
-      walletId: input.walletId,
+      walletId: wallet.walletId,
       typedData: parsed,
       chain: requireChain(input.network),
     });
@@ -134,14 +152,22 @@ async function transfer(input: TransferInput) {
   if (authError) {
     return authError;
   }
-  if (!(input.walletId && input.to && input.amount)) {
+  const wallet = await resolveStepWalletId(input);
+  if (!wallet.success) {
+    return fail(wallet.error);
+  }
+  if (!(wallet.walletId && input.to && input.amount)) {
     return fail("walletId, to, and amount are required");
+  }
+  const payeeGate = await assertOrgPayeeAllowed(wallet.walletId, input.to);
+  if (!payeeGate.success) {
+    return fail(payeeGate.error);
   }
   try {
     const chain = requireChain(input.network);
     const value = `0x${parseUnits(input.amount, chain.nativeDecimals).toString(16)}`;
     const { hash, gasMode, gasAsset } = await sendSponsoredTransaction({
-      walletId: input.walletId,
+      walletId: wallet.walletId,
       chain,
       to: input.to,
       value,

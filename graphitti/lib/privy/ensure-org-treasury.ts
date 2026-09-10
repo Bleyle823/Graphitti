@@ -3,6 +3,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { organizationWallets } from "@/lib/db/schema";
+import { bindOrgWalletToMemberWorkflows } from "@/lib/privy/bind-org-wallet-workflows";
 import { provisionOrgTreasury } from "@/lib/privy/provision-org-treasury";
 
 export type EnsureOrgTreasuryInput = {
@@ -19,6 +20,14 @@ export async function ensureOrgTreasury(input: EnsureOrgTreasuryInput) {
     ),
   });
   if (existing) {
+    try {
+      await bindOrgWalletToMemberWorkflows(input.organizationId);
+    } catch (error) {
+      console.error(
+        "[Org Treasury] Failed to bind org wallet to workflows:",
+        error
+      );
+    }
     return { success: true as const, treasury: existing };
   }
 
@@ -26,6 +35,14 @@ export async function ensureOrgTreasury(input: EnsureOrgTreasuryInput) {
     where: eq(organizationWallets.organizationId, input.organizationId),
   });
   if (leftover) {
+    try {
+      await bindOrgWalletToMemberWorkflows(input.organizationId);
+    } catch (error) {
+      console.error(
+        "[Org Treasury] Failed to bind org wallet to workflows:",
+        error
+      );
+    }
     return { success: true as const, treasury: leftover };
   }
 
@@ -56,6 +73,15 @@ export async function ensureOrgTreasury(input: EnsureOrgTreasuryInput) {
         success: false as const,
         error: "Treasury wallet was created in Privy but not saved",
       };
+    }
+
+    try {
+      await bindOrgWalletToMemberWorkflows(input.organizationId);
+    } catch (error) {
+      console.error(
+        "[Org Treasury] Failed to bind org wallet to workflows:",
+        error
+      );
     }
 
     return { success: true as const, treasury };

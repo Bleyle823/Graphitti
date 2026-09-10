@@ -187,6 +187,12 @@ export async function PATCH(
     }
 
     const updateData = buildUpdateData(body);
+    if (
+      !existingWorkflow.organizationId &&
+      session.session.activeOrganizationId
+    ) {
+      updateData.organizationId = session.session.activeOrganizationId;
+    }
 
     const [updatedWorkflow] = await db
       .update(workflows)

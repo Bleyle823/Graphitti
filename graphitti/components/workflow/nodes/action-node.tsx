@@ -21,11 +21,13 @@ import {
 } from "@/components/ai-elements/node";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
+import { truncateAddress } from "@/lib/address-utils";
 import {
   integrationIdsAtom,
   integrationsLoadedAtom,
 } from "@/lib/integrations-store";
 import { cn } from "@/lib/utils";
+import { GET_ORG_WALLET_ACTION } from "@/lib/workflow/bind-org-wallet-nodes";
 import {
   executionLogsAtom,
   pendingIntegrationNodesAtom,
@@ -141,10 +143,7 @@ const getProviderLogo = (actionType: string) => {
   const action = findActionById(actionType);
   if (action?.integration) {
     return (
-      <IntegrationIcon
-        className="size-12"
-        integration={action.integration}
-      />
+      <IntegrationIcon className="size-12" integration={action.integration} />
     );
   }
 
@@ -303,8 +302,14 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   // Get human-readable label from registry if no custom label is set
   const actionInfo = findActionById(actionType);
   const displayTitle = data.label || actionInfo?.label || actionType;
+  const connectedAddress =
+    typeof data.config?.connectedAddress === "string"
+      ? data.config.connectedAddress
+      : "";
   const displayDescription =
-    data.description || getIntegrationFromActionType(actionType);
+    actionType === GET_ORG_WALLET_ACTION && connectedAddress
+      ? truncateAddress(connectedAddress)
+      : data.description || getIntegrationFromActionType(actionType);
 
   const needsIntegration = requiresIntegration(actionType);
   // Don't show missing indicator if we're still checking for auto-select
