@@ -1,5 +1,5 @@
 import { defineTool } from "../define-tool.js";
-import { executeGraphTool, resolveCredentials } from "@bleyle823/graph-core";
+import { executeGraphTool, resolveCredentials } from "@sugarhi11/graph-core";
 
 export default defineTool({
   name: "graph_get_nft_activity",

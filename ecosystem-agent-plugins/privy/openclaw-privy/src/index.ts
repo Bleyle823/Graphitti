@@ -5,7 +5,7 @@ import {
   PRIVY_TOOLS,
   resolveCredentials,
   type PrivyCredentials,
-} from "@bleyle823/privy-core";
+} from "@sugarhi11/privy-core";
 
 type PluginApi = {
   registerTool: (

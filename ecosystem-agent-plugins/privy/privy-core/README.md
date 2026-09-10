@@ -1,11 +1,11 @@
-# @bleyle823/privy-core
+# @sugarhi11/privy-core
 
 Shared tool catalog and MCP stdio server for Privy wallet and treasury agent plugins. Exposes `privy_*` tools for native Privy REST (wallets, signing, transfers, policies, intents) and Graphitti-backed workflows and org treasury.
 
 ## Install
 
 ```bash
-npm install @bleyle823/privy-core
+npm install @sugarhi11/privy-core
 ```
 
 ## MCP server
@@ -31,7 +31,7 @@ npx privy-mcp
 ## Programmatic use
 
 ```typescript
-import { executePrivyTool, listAvailableTools } from "@bleyle823/privy-core";
+import { executePrivyTool, listAvailableTools } from "@sugarhi11/privy-core";
 ```
 
 ## Documentation

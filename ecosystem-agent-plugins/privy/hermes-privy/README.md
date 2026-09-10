@@ -1,6 +1,6 @@
 # Hermes Privy plugin
 
-Portable Hermes agent plugin for Privy wallet and treasury tools (`privy_*`). Includes an MCP stdio server via `@bleyle823/privy-core`.
+Portable Hermes agent plugin for Privy wallet and treasury tools (`privy_*`). Includes an MCP stdio server via `@sugarhi11/privy-core`.
 
 ## Install
 
@@ -11,7 +11,7 @@ hermes plugins enable privy
 
 ## MCP configuration
 
-The MCP server runs `privy-mcp` from `@bleyle823/privy-core`. Configure env vars in `~/.hermes/config.yaml` under `mcp_servers.privy`:
+The MCP server runs `privy-mcp` from `@sugarhi11/privy-core`. Configure env vars in `~/.hermes/config.yaml` under `mcp_servers.privy`:
 
 | Variable | Required |
 |---|---|

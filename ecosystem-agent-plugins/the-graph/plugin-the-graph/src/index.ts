@@ -4,7 +4,7 @@ import {
   GRAPH_TOOLS,
   resolveCredentials,
   type GraphCredentials,
-} from "@bleyle823/graph-core";
+} from "@sugarhi11/graph-core";
 
 function envCredentials(runtime: IAgentRuntime): GraphCredentials {
   const base = resolveCredentials();

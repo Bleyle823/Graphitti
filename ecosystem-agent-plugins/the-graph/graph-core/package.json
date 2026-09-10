@@ -1,5 +1,5 @@
 {
-  "name": "@bleyle823/graph-core",
+  "name": "@sugarhi11/graph-core",
   "version": "0.1.0",
   "description": "Shared The Graph protocol tool catalog and MCP stdio server for agent plugins",
   "type": "module",

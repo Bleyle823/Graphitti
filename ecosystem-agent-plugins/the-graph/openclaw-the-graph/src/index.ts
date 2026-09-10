@@ -5,7 +5,7 @@ import {
   GRAPH_TOOLS,
   resolveCredentials,
   type GraphCredentials,
-} from "@bleyle823/graph-core";
+} from "@sugarhi11/graph-core";
 
 type PluginApi = {
   registerTool: (

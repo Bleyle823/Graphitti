@@ -20,7 +20,7 @@ for (const tool of GRAPH_TOOLS) {
     : "";
 
   const source = `import { defineTool } from "../define-tool.js";
-import { executeGraphTool, resolveCredentials } from "@bleyle823/graph-core";
+import { executeGraphTool, resolveCredentials } from "@sugarhi11/graph-core";
 
 export default defineTool({
   name: ${JSON.stringify(tool.name)},

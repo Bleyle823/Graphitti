@@ -38,11 +38,11 @@ jobs:
         run: pnpm test
 
       - name: Publish graph-core
-        run: pnpm --filter @bleyle823/graph-core publish --no-git-checks
+        run: pnpm --filter @sugarhi11/graph-core publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish privy-core
-        run: pnpm --filter @bleyle823/privy-core publish --no-git-checks
+        run: pnpm --filter @sugarhi11/privy-core publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
