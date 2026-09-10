@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
+import { hashApiKey, isSupportedApiKeyPrefix } from "@/lib/auth/api-key-mint";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 
@@ -29,11 +29,11 @@ export async function validateApiKey(
   }
 
   const key = extractBearerToken(authHeader);
-  if (!key?.startsWith("wfb_")) {
+  if (!(key && isSupportedApiKeyPrefix(key))) {
     return { valid: false, error: "Invalid API key format", statusCode: 401 };
   }
 
-  const keyHash = createHash("sha256").update(key).digest("hex");
+  const keyHash = hashApiKey(key);
   const apiKey = await db.query.apiKeys.findFirst({
     where: eq(apiKeys.keyHash, keyHash),
   });

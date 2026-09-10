@@ -39,6 +39,8 @@
     "lib/next-boilerplate/**/*.ts",
     "lib/next-boilerplate/**/*.tsx",
     "tmp/**/*",
+    "lib/org/__tests__/**/*",
+    "lib/workflow-templates/__tests__/**/*",
     "lib/errors/__tests__/**/*",
     "lib/metrics/__tests__/**/*",
     "lib/execute/reconcile-executions.ts",

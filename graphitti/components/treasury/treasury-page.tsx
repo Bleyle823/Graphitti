@@ -42,9 +42,11 @@ type TreasuryResponse = {
     address: string;
     privyWalletId: string;
     autoSpendCapUsdc: string;
+    dailySpendCapUsdc: string | null;
     autoPolicyId: string | null;
     humanPolicyId: string | null;
   } | null;
+  dailySpendUsedUsdc?: string;
   payees: Array<{
     id: string;
     label: string;
@@ -64,10 +66,18 @@ type TreasuryResponse = {
 
 type OrgWalletCardProps = {
   treasury: TreasuryResponse["treasury"];
+  dailySpendUsedUsdc: string;
+  canManage: boolean;
+  autoCap: string;
+  dailyCap: string;
+  capSaving: boolean;
   fundAmount: string;
   fundLoading: boolean;
   provisioning: boolean;
   provisionError: string | null;
+  onAutoCapChange: (value: string) => void;
+  onDailyCapChange: (value: string) => void;
+  onSaveCaps: () => void;
   onFundAmountChange: (value: string) => void;
   onFund: () => void;
   onProvision: () => void;
@@ -94,10 +104,18 @@ function start(task: Promise<unknown>): void {
 
 function OrgWalletCard({
   treasury,
+  dailySpendUsedUsdc,
+  canManage,
+  autoCap,
+  dailyCap,
+  capSaving,
   fundAmount,
   fundLoading,
   provisioning,
   provisionError,
+  onAutoCapChange,
+  onDailyCapChange,
+  onSaveCaps,
   onFundAmountChange,
   onFund,
   onProvision,
@@ -124,8 +142,46 @@ function OrgWalletCard({
           ) : null}
         </div>
         <div>
-          <div className="text-muted-foreground">Auto spend cap</div>
-          <div>{treasury?.autoSpendCapUsdc ?? "50"} USDC</div>
+          <div className="text-muted-foreground">Spend caps</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <div className="text-muted-foreground text-xs">
+                Auto (per transfer)
+              </div>
+              <Input
+                data-testid="spend-cap-auto"
+                disabled={!canManage}
+                onChange={(event) => onAutoCapChange(event.target.value)}
+                value={autoCap}
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="text-muted-foreground text-xs">Daily (UTC)</div>
+              <Input
+                data-testid="spend-cap-daily"
+                disabled={!canManage}
+                onChange={(event) => onDailyCapChange(event.target.value)}
+                placeholder="Unlimited"
+                value={dailyCap}
+              />
+            </div>
+          </div>
+          <div className="pt-2 text-muted-foreground text-xs">
+            Used today: {dailySpendUsedUsdc} USDC
+            {dailyCap ? ` / ${dailyCap} USDC` : ""}
+          </div>
+          {canManage ? (
+            <Button
+              className="mt-2"
+              data-testid="spend-cap-save"
+              disabled={capSaving}
+              onClick={onSaveCaps}
+              size="sm"
+              variant="outline"
+            >
+              {capSaving ? "Saving..." : "Save caps"}
+            </Button>
+          ) : null}
         </div>
         <div>
           <div className="text-muted-foreground">Operator policy</div>
@@ -166,6 +222,9 @@ export function TreasuryPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<TreasuryResponse | null>(null);
   const [fundAmount, setFundAmount] = useState("10");
+  const [autoCap, setAutoCap] = useState("50");
+  const [dailyCap, setDailyCap] = useState("");
+  const [capSaving, setCapSaving] = useState(false);
   const [fundLoading, setFundLoading] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
@@ -197,6 +256,14 @@ export function TreasuryPage(): React.ReactElement {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!data?.treasury) {
+      return;
+    }
+    setAutoCap(data.treasury.autoSpendCapUsdc ?? "50");
+    setDailyCap(data.treasury.dailySpendCapUsdc ?? "");
+  }, [data?.treasury]);
 
   const provisionTreasury = useCallback(
     async (organizationId: string): Promise<boolean> => {
@@ -376,6 +443,43 @@ export function TreasuryPage(): React.ReactElement {
     await loadTreasury();
   }
 
+  async function handleSaveCaps() {
+    if (!data?.activeOrganizationId) {
+      return;
+    }
+    setCapSaving(true);
+    try {
+      const response = await fetch("/api/treasury/spend-cap", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: data.activeOrganizationId,
+          autoSpendCapUsdc: autoCap,
+          dailySpendCapUsdc: dailyCap === "" ? null : dailyCap,
+        }),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        policyWarning?: string;
+      };
+      if (!response.ok) {
+        throw new Error(result.error ?? "Failed to save spend caps");
+      }
+      if (result.policyWarning) {
+        toast.success("Caps saved. Policy sync will retry on the next edit.");
+      } else {
+        toast.success("Spend caps updated");
+      }
+      await loadTreasury();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save spend caps"
+      );
+    } finally {
+      setCapSaving(false);
+    }
+  }
+
   async function handleApproveIntent(intentId: string) {
     if (!data?.activeOrganizationId) {
       return;
@@ -391,6 +495,27 @@ export function TreasuryPage(): React.ReactElement {
       return;
     }
     toast.success("Intent approved");
+    await loadTreasury();
+  }
+
+  async function handleRejectIntent(intentId: string) {
+    if (!data?.activeOrganizationId) {
+      return;
+    }
+    const response = await fetch(`/api/treasury/intents/${intentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        organizationId: data.activeOrganizationId,
+        action: "reject",
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      toast.error(result.error ?? "Failed to reject intent");
+      return;
+    }
+    toast.success("Intent rejected");
     await loadTreasury();
   }
 
@@ -443,8 +568,15 @@ export function TreasuryPage(): React.ReactElement {
           <>
             <div className="grid gap-4 md:grid-cols-2">
               <OrgWalletCard
+                autoCap={autoCap}
+                canManage={data.role === "owner" || data.role === "admin"}
+                capSaving={capSaving}
+                dailyCap={dailyCap}
+                dailySpendUsedUsdc={data.dailySpendUsedUsdc ?? "0"}
                 fundAmount={fundAmount}
                 fundLoading={fundLoading}
+                onAutoCapChange={setAutoCap}
+                onDailyCapChange={setDailyCap}
                 onFund={() => start(handleFundTreasury())}
                 onFundAmountChange={setFundAmount}
                 onProvision={() => {
@@ -454,6 +586,7 @@ export function TreasuryPage(): React.ReactElement {
                   autoProvisionedOrgRef.current = null;
                   start(provisionTreasury(data.activeOrganizationId));
                 }}
+                onSaveCaps={() => start(handleSaveCaps())}
                 provisionError={provisionError}
                 provisioning={provisioning}
                 treasury={data.treasury}
@@ -519,12 +652,12 @@ export function TreasuryPage(): React.ReactElement {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-testid="pending-intents">
               <CardHeader>
                 <CardTitle>Pending intents</CardTitle>
                 <CardDescription>
-                  High-value transfers waiting for owner quorum approval via
-                  Privy intents.
+                  High-value transfers waiting for owner or admin approval via
+                  Privy intents. Recipient and amount are frozen at create time.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -543,23 +676,36 @@ export function TreasuryPage(): React.ReactElement {
                           {intent.privyIntentId}
                         </div>
                         <div className="text-muted-foreground text-xs">
-                          {intent.toAddress ?? "-"} · {intent.amountUsdc ?? "-"}{" "}
-                          USDC
+                          Bound {intent.toAddress ?? "-"} ·{" "}
+                          {intent.amountUsdc ?? "-"} USDC
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span>{intent.status}</span>
                         {intent.status === "pending" &&
                         (data.role === "owner" || data.role === "admin") ? (
-                          <Button
-                            onClick={() =>
-                              start(handleApproveIntent(intent.privyIntentId))
-                            }
-                            size="sm"
-                            variant="outline"
-                          >
-                            Approve
-                          </Button>
+                          <>
+                            <Button
+                              data-testid="intent-approve"
+                              onClick={() =>
+                                start(handleApproveIntent(intent.privyIntentId))
+                              }
+                              size="sm"
+                              variant="outline"
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              data-testid="intent-reject"
+                              onClick={() =>
+                                start(handleRejectIntent(intent.privyIntentId))
+                              }
+                              size="sm"
+                              variant="ghost"
+                            >
+                              Reject
+                            </Button>
+                          </>
                         ) : null}
                       </div>
                     </div>

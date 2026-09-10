@@ -1,8 +1,8 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { extractBearerToken } from "@/lib/auth/api-key";
+import { hashApiKey, isSupportedApiKeyPrefix } from "@/lib/auth/api-key-mint";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 
@@ -47,15 +47,15 @@ export async function requireB2bAuth(
   requiredScopes: string[] = []
 ): Promise<B2bAuthResult> {
   const key = extractBearerToken(authHeader);
-  if (!key?.startsWith("wfb_")) {
+  if (!(key && isSupportedApiKeyPrefix(key))) {
     return {
       success: false,
-      error: "Missing or invalid Authorization Bearer wfb_ API key",
+      error: "Missing or invalid Authorization Bearer gr_ or wfb_ API key",
       status: 401,
     };
   }
 
-  const keyHash = createHash("sha256").update(key).digest("hex");
+  const keyHash = hashApiKey(key);
   const apiKey = await db.query.apiKeys.findFirst({
     where: eq(apiKeys.keyHash, keyHash),
   });

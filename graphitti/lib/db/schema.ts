@@ -185,6 +185,7 @@ export const organizationWallets = pgTable(
     autoPolicyId: text("auto_policy_id"),
     humanPolicyId: text("human_policy_id"),
     autoSpendCapUsdc: numeric("auto_spend_cap_usdc").notNull().default("50"),
+    dailySpendCapUsdc: numeric("daily_spend_cap_usdc"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -218,6 +219,36 @@ export const organizationPayees = pgTable(
     uniqueIndex("idx_org_payees_org_address").on(
       table.organizationId,
       table.address
+    ),
+  ]
+);
+
+export const orgSpendReservations = pgTable(
+  "org_spend_reservations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => generateId()),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    amountUsdc: numeric("amount_usdc").notNull(),
+    status: text("status")
+      .notNull()
+      .default("reserved")
+      .$type<"reserved" | "settled" | "released">(),
+    source: text("source").notNull(),
+    ref: text("ref").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_org_spend_reservations_org").on(table.organizationId),
+    uniqueIndex("idx_org_spend_reservations_ref").on(table.ref),
+    index("idx_org_spend_reservations_status").on(
+      table.organizationId,
+      table.status,
+      table.createdAt
     ),
   ]
 );
@@ -398,6 +429,7 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   wallets: many(organizationWallets),
   payees: many(organizationPayees),
   intents: many(organizationIntents),
+  spendReservations: many(orgSpendReservations),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -432,6 +464,16 @@ export const workflowExecutionsRelations = relations(
   })
 );
 
+export const orgSpendReservationRelations = relations(
+  orgSpendReservations,
+  ({ one }) => ({
+    organization: one(organization, {
+      fields: [orgSpendReservations.organizationId],
+      references: [organization.id],
+    }),
+  })
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Workflow = typeof workflows.$inferSelect;
@@ -460,3 +502,5 @@ export type OrganizationPayee = typeof organizationPayees.$inferSelect;
 export type NewOrganizationPayee = typeof organizationPayees.$inferInsert;
 export type OrganizationIntent = typeof organizationIntents.$inferSelect;
 export type NewOrganizationIntent = typeof organizationIntents.$inferInsert;
+export type OrgSpendReservation = typeof orgSpendReservations.$inferSelect;
+export type NewOrgSpendReservation = typeof orgSpendReservations.$inferInsert;

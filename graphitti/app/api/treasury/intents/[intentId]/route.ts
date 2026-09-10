@@ -3,10 +3,18 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { organizationIntents } from "@/lib/db/schema";
 import { requireOrgMember } from "@/lib/org/auth-helpers";
+import { resolveApproveIntentFields } from "@/lib/org/intent-guard";
+import {
+  releaseOrgSpendByRef,
+  settleOrgSpendByRef,
+} from "@/lib/org/spend-ledger";
 import { signPrivyIntent } from "@/lib/web3/privy-client";
 
-type ApproveBody = {
+type IntentBody = {
   organizationId?: string;
+  action?: "approve" | "reject";
+  toAddress?: string | null;
+  amountUsdc?: string | null;
 };
 
 export async function PATCH(
@@ -14,7 +22,7 @@ export async function PATCH(
   context: { params: Promise<{ intentId: string }> }
 ) {
   const { intentId } = await context.params;
-  const body = (await request.json()) as ApproveBody;
+  const body = (await request.json()) as IntentBody;
   const organizationId = body.organizationId;
 
   if (!organizationId) {
@@ -24,7 +32,7 @@ export async function PATCH(
     );
   }
 
-  const access = await requireOrgMember(organizationId, "owner");
+  const access = await requireOrgMember(organizationId, "admin");
   if (!access.success) {
     return NextResponse.json(
       { error: access.error },
@@ -39,17 +47,49 @@ export async function PATCH(
     return NextResponse.json({ error: "Intent not found" }, { status: 404 });
   }
 
+  if (intentRow.status !== "pending") {
+    return NextResponse.json(
+      { error: `Intent is already ${intentRow.status}` },
+      { status: 409 }
+    );
+  }
+
+  if (body.action === "reject") {
+    await db
+      .update(organizationIntents)
+      .set({
+        status: "rejected",
+        updatedAt: new Date(),
+      })
+      .where(eq(organizationIntents.id, intentRow.id));
+    await releaseOrgSpendByRef(`intent:${intentId}`);
+    return NextResponse.json({
+      intent: {
+        ...intentRow,
+        status: "rejected",
+      },
+    });
+  }
+
+  const frozen = resolveApproveIntentFields(intentRow);
+
   try {
     const signed = await signPrivyIntent(intentId);
     await db
       .update(organizationIntents)
       .set({
         status: (signed.status as typeof intentRow.status) ?? "processing",
+        toAddress: frozen.toAddress,
+        amountUsdc: frozen.amountUsdc,
         updatedAt: new Date(),
       })
       .where(eq(organizationIntents.id, intentRow.id));
+    await settleOrgSpendByRef(`intent:${intentId}`);
 
-    return NextResponse.json({ intent: signed });
+    return NextResponse.json({
+      intent: signed,
+      frozen,
+    });
   } catch (error) {
     return NextResponse.json(
       {

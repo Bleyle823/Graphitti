@@ -9,6 +9,7 @@ import {
   requireOrgMember,
   requireSessionUser,
 } from "@/lib/org/auth-helpers";
+import { getDailySpendUsedUsdc } from "@/lib/org/spend-ledger";
 
 export async function GET() {
   const authResult = await requireSessionUser();
@@ -66,6 +67,7 @@ export async function GET() {
     activeOrganizationId,
     role: access.membership.role,
     treasury,
+    dailySpendUsedUsdc: await getDailySpendUsedUsdc(activeOrganizationId),
     payees,
     intents,
   });
