@@ -4,6 +4,12 @@ import { randomUUID } from "node:crypto";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { recordOrganizationIntent } from "@/lib/org/record-intent";
+import {
+  releaseOrgSpend,
+  reserveOrgSpend,
+  settleOrgSpend,
+  updateOrgSpendRef,
+} from "@/lib/org/spend-ledger";
 import { assertOrgPayeeAllowed } from "@/lib/privy/payee-guard";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import {
@@ -129,6 +135,52 @@ function buildTransferBody(
   };
 }
 
+async function maybeReserveOrgSpend(input: {
+  context: PrivyStepInput["_context"];
+  amountUsdc: string;
+  source: string;
+  ref: string;
+  enforcePerTxCap: boolean;
+}): Promise<
+  | { success: true; reservationId: string | null }
+  | { success: false; error: string }
+> {
+  const orgContext = await resolveOrganizationContext(
+    input.context ?? {},
+    "[Privy]",
+    input.source
+  );
+  if (!orgContext.success) {
+    return { success: true, reservationId: null };
+  }
+
+  const reserved = await reserveOrgSpend({
+    organizationId: orgContext.organizationId,
+    amountUsdc: input.amountUsdc,
+    source: input.source,
+    ref: input.ref,
+    enforcePerTxCap: input.enforcePerTxCap,
+  });
+  if (!reserved.success) {
+    return reserved;
+  }
+  return { success: true, reservationId: reserved.reservationId };
+}
+
+async function finishReservation(
+  reservationId: string | null,
+  outcome: "settled" | "released"
+): Promise<void> {
+  if (!reservationId) {
+    return;
+  }
+  if (outcome === "settled") {
+    await settleOrgSpend(reservationId);
+    return;
+  }
+  await releaseOrgSpend(reservationId);
+}
+
 async function walletTransfer(input: WalletTransferInput) {
   const authError = await requirePrivyAuth(input);
   if (authError) {
@@ -150,15 +202,33 @@ async function walletTransfer(input: WalletTransferInput) {
     return fail(payeeGate.error);
   }
 
+  const useIntent =
+    input.useIntent === "true" ||
+    input.useIntent === "yes" ||
+    input.useIntent === "1";
+  const spendRef = randomUUID();
+  const reserved = await maybeReserveOrgSpend({
+    context: input._context,
+    amountUsdc: input.amount,
+    source: useIntent ? "wallet-transfer-intent" : "wallet-transfer",
+    ref: spendRef,
+    enforcePerTxCap: !useIntent,
+  });
+  if (!reserved.success) {
+    return fail(reserved.error);
+  }
+
   try {
     const body = buildTransferBody(input);
-    const useIntent =
-      input.useIntent === "true" ||
-      input.useIntent === "yes" ||
-      input.useIntent === "1";
 
     if (useIntent) {
       const intent = await createPrivyTransferIntent(wallet.walletId, body);
+      if (reserved.reservationId) {
+        await updateOrgSpendRef(
+          reserved.reservationId,
+          `intent:${intent.intent_id}`
+        );
+      }
       await maybeRecordIntent(input, intent, input);
       return ok({
         intent_id: intent.intent_id,
@@ -168,6 +238,7 @@ async function walletTransfer(input: WalletTransferInput) {
     }
 
     const action = await privyWalletTransfer(wallet.walletId, body);
+    await finishReservation(reserved.reservationId, "settled");
     return ok({
       id: action.id,
       status: action.status,
@@ -175,6 +246,7 @@ async function walletTransfer(input: WalletTransferInput) {
       mode: "direct",
     });
   } catch (error) {
+    await finishReservation(reserved.reservationId, "released");
     return fail(error instanceof Error ? error.message : String(error));
   }
 }
@@ -192,6 +264,18 @@ async function walletSwap(input: WalletSwapInput) {
     return fail("walletId, fromAsset, toAsset, and amount are required");
   }
 
+  const spendRef = randomUUID();
+  const reserved = await maybeReserveOrgSpend({
+    context: input._context,
+    amountUsdc: input.amount,
+    source: "wallet-swap",
+    ref: spendRef,
+    enforcePerTxCap: true,
+  });
+  if (!reserved.success) {
+    return fail(reserved.error);
+  }
+
   try {
     const action = await privyWalletSwap(wallet.walletId, {
       chain: input.chain || "base_sepolia",
@@ -201,12 +285,14 @@ async function walletSwap(input: WalletSwapInput) {
       nonce: randomUUID(),
       reference_id: randomUUID(),
     });
+    await finishReservation(reserved.reservationId, "settled");
     return ok({
       id: action.id,
       status: action.status,
       transaction_hash: action.transaction_hash,
     });
   } catch (error) {
+    await finishReservation(reserved.reservationId, "released");
     return fail(error instanceof Error ? error.message : String(error));
   }
 }
@@ -267,17 +353,36 @@ async function createTransferIntent(input: CreateTransferIntentInput) {
     return fail("walletId, destinationAddress, and amount are required");
   }
 
+  const spendRef = randomUUID();
+  const reserved = await maybeReserveOrgSpend({
+    context: input._context,
+    amountUsdc: input.amount,
+    source: "create-transfer-intent",
+    ref: spendRef,
+    enforcePerTxCap: false,
+  });
+  if (!reserved.success) {
+    return fail(reserved.error);
+  }
+
   try {
     const intent = await createPrivyTransferIntent(
       input.walletId,
       buildTransferBody(input)
     );
+    if (reserved.reservationId) {
+      await updateOrgSpendRef(
+        reserved.reservationId,
+        `intent:${intent.intent_id}`
+      );
+    }
     await maybeRecordIntent(input, intent, input);
     return ok({
       intent_id: intent.intent_id,
       status: intent.status,
     });
   } catch (error) {
+    await finishReservation(reserved.reservationId, "released");
     return fail(error instanceof Error ? error.message : String(error));
   }
 }

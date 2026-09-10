@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { B2B_WORKFLOW_TEMPLATES } from "./b2b-templates";
 import { FINANCIAL_FLOW_WORKFLOW_TEMPLATES } from "./financial-flow-templates";
 import { FPL_WORKFLOW_TEMPLATES } from "./fpl-templates";
 import { MONITOR_WORKFLOW_TEMPLATES } from "./monitor-templates";
@@ -63,6 +64,7 @@ function loadExport(relativePath: string): ExportedWorkflowFile {
 
 export function loadInMemoryWorkflowTemplates(): WorkflowTemplate[] {
   return [
+    ...B2B_WORKFLOW_TEMPLATES,
     ...PLUGIN_WORKFLOW_TEMPLATES,
     ...TREASURY_WORKFLOW_TEMPLATES,
     ...FINANCIAL_FLOW_WORKFLOW_TEMPLATES,

@@ -2,9 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { apiKeys } from "@/lib/db/schema";
+import { apiKeys, member } from "@/lib/db/schema";
+import { hasMinimumOrgRole } from "@/lib/org/member-role";
 
-// DELETE - Delete an API key
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ keyId: string }> }
@@ -19,15 +19,30 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Delete the key (only if it belongs to the user)
-    const result = await db
-      .delete(apiKeys)
-      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, session.user.id)))
-      .returning({ id: apiKeys.id });
-
-    if (result.length === 0) {
+    const existing = await db.query.apiKeys.findFirst({
+      where: eq(apiKeys.id, keyId),
+    });
+    if (!existing) {
       return NextResponse.json({ error: "API key not found" }, { status: 404 });
     }
+
+    const ownsKey = existing.userId === session.user.id;
+    let canDeleteOrgKey = false;
+    if (existing.organizationId) {
+      const membership = await db.query.member.findFirst({
+        where: and(
+          eq(member.organizationId, existing.organizationId),
+          eq(member.userId, session.user.id)
+        ),
+      });
+      canDeleteOrgKey = hasMinimumOrgRole(membership?.role, "admin");
+    }
+
+    if (!(ownsKey || canDeleteOrgKey)) {
+      return NextResponse.json({ error: "API key not found" }, { status: 404 });
+    }
+
+    await db.delete(apiKeys).where(eq(apiKeys.id, keyId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

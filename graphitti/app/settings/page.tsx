@@ -7,6 +7,7 @@ import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay"
 import { useOverlay } from "@/components/overlays/overlay-provider";
 import { PageShell } from "@/components/page-shell";
 import { AccountSettings } from "@/components/settings/account-settings";
+import { OrganizationSettings } from "@/components/settings/organization-settings";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
@@ -14,11 +15,132 @@ import { api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 
+function start(task: Promise<unknown>): void {
+  task.catch(() => {
+    /* errors are toasted by the async handler */
+  });
+}
+
+function gaslessLabel(gasMode: string | null, gasAsset: string | null): string {
+  if (gasMode === "user-pays") {
+    return `Gasless ETH — wallet pays gas in ${(gasAsset || "usdc").toUpperCase()}`;
+  }
+  if (gasMode === "app-pays") {
+    return "Gasless — app credits cover gas";
+  }
+  return "Gasless enabled";
+}
+
+type SettingsBodyProps = {
+  hasWalletAccess: boolean;
+  saving: boolean;
+  accountName: string;
+  accountEmail: string;
+  walletAddress: string | null;
+  gaslessEnabled: boolean;
+  gasMode: string | null;
+  gasAsset: string | null;
+  onNameChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  onSaveAccount: () => void;
+  onOpenIntegrations: () => void;
+  onOpenApiKeys: () => void;
+};
+
+function SettingsBody({
+  hasWalletAccess,
+  saving,
+  accountName,
+  accountEmail,
+  walletAddress,
+  gaslessEnabled,
+  gasMode,
+  gasAsset,
+  onNameChange,
+  onEmailChange,
+  onSaveAccount,
+  onOpenIntegrations,
+  onOpenApiKeys,
+}: SettingsBodyProps): React.ReactElement {
+  return (
+    <div className="max-w-xl space-y-8">
+      <section className="space-y-4">
+        <h2 className="font-medium text-sm">Account</h2>
+        {hasWalletAccess ? (
+          <>
+            <AccountSettings
+              accountEmail={accountEmail}
+              accountName={accountName}
+              onEmailChange={onEmailChange}
+              onNameChange={onNameChange}
+            />
+            <Button disabled={saving} onClick={onSaveAccount}>
+              {saving ? "Saving..." : "Save account"}
+            </Button>
+          </>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Connect a wallet to save account details.
+          </p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-medium text-sm">Organization</h2>
+        <p className="text-muted-foreground text-sm">
+          Invite teammates, assign roles, and switch the active org.
+        </p>
+        <OrganizationSettings />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-medium text-sm">Wallet</h2>
+        <p className="break-all text-muted-foreground text-sm">
+          {walletAddress || "No wallet linked. Use Connect wallet."}
+        </p>
+        {gaslessEnabled ? (
+          <p className="text-muted-foreground text-xs">
+            {gaslessLabel(gasMode, gasAsset)}
+          </p>
+        ) : null}
+        <ConnectWalletButton compact />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-medium text-sm">Connections</h2>
+        <p className="text-muted-foreground text-sm">
+          Credentials used by workflow steps.
+        </p>
+        <Button
+          disabled={!hasWalletAccess}
+          onClick={onOpenIntegrations}
+          variant="outline"
+        >
+          Manage connections
+        </Button>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-medium text-sm">API keys</h2>
+        <p className="text-muted-foreground text-sm">
+          Keys for calling your listed workflows and the HTTP API.
+        </p>
+        <Button
+          disabled={!hasWalletAccess}
+          onClick={onOpenApiKeys}
+          variant="outline"
+        >
+          Manage API keys
+        </Button>
+      </section>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const { data: session, isPending: sessionPending } = useSession();
+  const { isPending: sessionPending } = useSession();
   const { hasWalletAccess, isPending: walletAccessPending } = useWalletAccess();
   const { open } = useOverlay();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -29,10 +151,8 @@ export default function SettingsPage() {
 
   const loadAll = useCallback(async () => {
     if (!hasWalletAccess) {
-      setLoading(false);
       return;
     }
-    setLoading(true);
     try {
       const user = await api.user.get();
       setAccountName(user.name || "");
@@ -44,8 +164,6 @@ export default function SettingsPage() {
       setGasAsset(wallet?.gasAsset ?? null);
     } catch (error) {
       console.error("Failed to load settings:", error);
-    } finally {
-      setLoading(false);
     }
   }, [hasWalletAccess]);
 
@@ -54,12 +172,11 @@ export default function SettingsPage() {
       return;
     }
     if (!hasWalletAccess) {
-      setLoading(false);
       return;
     }
     loadAll();
     const onLinked = () => {
-      void loadAll();
+      start(loadAll());
     };
     window.addEventListener("graphitti:wallet-linked", onLinked);
     return () =>
@@ -79,83 +196,33 @@ export default function SettingsPage() {
     }
   };
 
+  const showSpinner = sessionPending;
+
   return (
     <PageShell
-      description="Account, wallet, connections, and API keys."
+      description="Account, organization, wallet, connections, and API keys."
       title="Settings"
     >
-      {loading || sessionPending || walletAccessPending ? (
+      {showSpinner ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>
       ) : (
-        <div className="max-w-xl space-y-8">
-          <section className="space-y-4">
-            <h2 className="font-medium text-sm">Account</h2>
-            {hasWalletAccess ? (
-              <>
-                <AccountSettings
-                  accountEmail={accountEmail}
-                  accountName={accountName}
-                  onEmailChange={setAccountEmail}
-                  onNameChange={setAccountName}
-                />
-                <Button disabled={saving} onClick={saveAccount}>
-                  {saving ? "Saving..." : "Save account"}
-                </Button>
-              </>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Connect a wallet to save account details.
-              </p>
-            )}
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="font-medium text-sm">Wallet</h2>
-            <p className="break-all text-muted-foreground text-sm">
-              {walletAddress || "No wallet linked. Use Connect wallet."}
-            </p>
-            {gaslessEnabled ? (
-              <p className="text-muted-foreground text-xs">
-                {gasMode === "user-pays"
-                  ? `Gasless ETH — wallet pays gas in ${(gasAsset || "usdc").toUpperCase()}`
-                  : gasMode === "app-pays"
-                    ? "Gasless — app credits cover gas"
-                    : "Gasless enabled"}
-              </p>
-            ) : null}
-            <ConnectWalletButton compact />
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="font-medium text-sm">Connections</h2>
-            <p className="text-muted-foreground text-sm">
-              Credentials used by workflow steps.
-            </p>
-            <Button
-              disabled={!hasWalletAccess}
-              onClick={() => open(IntegrationsOverlay)}
-              variant="outline"
-            >
-              Manage connections
-            </Button>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="font-medium text-sm">API keys</h2>
-            <p className="text-muted-foreground text-sm">
-              Keys for calling your listed workflows and the HTTP API.
-            </p>
-            <Button
-              disabled={!hasWalletAccess}
-              onClick={() => open(ApiKeysOverlay)}
-              variant="outline"
-            >
-              Manage API keys
-            </Button>
-          </section>
-        </div>
+        <SettingsBody
+          accountEmail={accountEmail}
+          accountName={accountName}
+          gasAsset={gasAsset}
+          gaslessEnabled={gaslessEnabled}
+          gasMode={gasMode}
+          hasWalletAccess={hasWalletAccess}
+          onEmailChange={setAccountEmail}
+          onNameChange={setAccountName}
+          onOpenApiKeys={() => open(ApiKeysOverlay)}
+          onOpenIntegrations={() => open(IntegrationsOverlay)}
+          onSaveAccount={saveAccount}
+          saving={saving}
+          walletAddress={walletAddress}
+        />
       )}
     </PageShell>
   );

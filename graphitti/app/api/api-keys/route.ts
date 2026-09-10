@@ -1,21 +1,36 @@
-import { createHash, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { mintApiKey } from "@/lib/auth/api-key-mint";
 import { db } from "@/lib/db";
-import { apiKeys } from "@/lib/db/schema";
+import { apiKeys, member } from "@/lib/db/schema";
 import { isAnonymousUserId } from "@/lib/is-anonymous";
+import { hasMinimumOrgRole } from "@/lib/org/member-role";
 
-// Generate a secure API key
-function generateApiKey(): { key: string; hash: string; prefix: string } {
-  const randomPart = randomBytes(24).toString("base64url");
-  const key = `wfb_${randomPart}`;
-  const hash = createHash("sha256").update(key).digest("hex");
-  const prefix = key.slice(0, 11); // "wfb_" + first 7 chars
-  return { key, hash, prefix };
+const ALLOWED_SCOPES = [
+  "workflows:*",
+  "marketplace:*",
+  "wallet:read",
+  "treasury:read",
+  "treasury:write",
+  "treasury:approve",
+] as const;
+
+type CreateKeyBody = {
+  name?: string | null;
+  organizationId?: string | null;
+  scopes?: string[] | null;
+};
+
+function normalizeRequestedScopes(raw: string[] | null | undefined): string[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [];
+  }
+  return raw.filter((scope) =>
+    ALLOWED_SCOPES.includes(scope as (typeof ALLOWED_SCOPES)[number])
+  );
 }
 
-// GET - List all API keys for the current user
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -26,12 +41,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const memberships = await db.query.member.findMany({
+      where: eq(member.userId, session.user.id),
+    });
+    const adminOrgIds = memberships
+      .filter((row) => hasMinimumOrgRole(row.role, "admin"))
+      .map((row) => row.organizationId);
+
     const keys = await db.query.apiKeys.findMany({
-      where: eq(apiKeys.userId, session.user.id),
+      where:
+        adminOrgIds.length > 0
+          ? or(
+              eq(apiKeys.userId, session.user.id),
+              inArray(apiKeys.organizationId, adminOrgIds)
+            )
+          : eq(apiKeys.userId, session.user.id),
       columns: {
         id: true,
         name: true,
         keyPrefix: true,
+        organizationId: true,
+        scopes: true,
         createdAt: true,
         lastUsedAt: true,
       },
@@ -48,7 +78,6 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - Create a new API key
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({
@@ -59,7 +88,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Block anonymous users without a linked wallet
     const anonymous = await isAnonymousUserId(session.user.id);
 
     if (anonymous) {
@@ -69,32 +97,50 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
+    const body = (await request.json().catch(() => ({}))) as CreateKeyBody;
     const name = body.name || null;
+    const organizationId = body.organizationId?.trim() || null;
+    const scopes = normalizeRequestedScopes(body.scopes);
 
-    // Generate new API key
-    const { key, hash, prefix } = generateApiKey();
+    if (organizationId) {
+      const membership = await db.query.member.findFirst({
+        where: and(
+          eq(member.organizationId, organizationId),
+          eq(member.userId, session.user.id)
+        ),
+      });
+      if (!hasMinimumOrgRole(membership?.role, "admin")) {
+        return NextResponse.json(
+          { error: "Only owners and admins can create org API keys" },
+          { status: 403 }
+        );
+      }
+    }
 
-    // Save to database
+    const minted = mintApiKey(organizationId ? "organization" : "personal");
+
     const [newKey] = await db
       .insert(apiKeys)
       .values({
         userId: session.user.id,
+        organizationId,
         name,
-        keyHash: hash,
-        keyPrefix: prefix,
+        keyHash: minted.hash,
+        keyPrefix: minted.prefix,
+        scopes: scopes.length > 0 ? scopes : null,
       })
       .returning({
         id: apiKeys.id,
         name: apiKeys.name,
         keyPrefix: apiKeys.keyPrefix,
+        organizationId: apiKeys.organizationId,
+        scopes: apiKeys.scopes,
         createdAt: apiKeys.createdAt,
       });
 
-    // Return the full key only on creation (won't be shown again)
     return NextResponse.json({
       ...newKey,
-      key, // Full key - only returned once!
+      key: minted.key,
     });
   } catch (error) {
     console.error("Failed to create API key:", error);

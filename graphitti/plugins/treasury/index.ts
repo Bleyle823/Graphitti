@@ -18,6 +18,7 @@ const treasuryPlugin: IntegrationPlugin = {
         { field: "walletId", description: "Privy wallet ID" },
         { field: "address", description: "Treasury address" },
         { field: "autoSpendCapUsdc", description: "Auto spend cap in USDC" },
+        { field: "dailySpendCapUsdc", description: "Daily spend cap in USDC" },
       ],
       configFields: [],
     },

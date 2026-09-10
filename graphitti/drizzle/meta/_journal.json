@@ -57,6 +57,13 @@
       "when": 1788983474155,
       "tag": "0007_motionless_ser_duncan",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789045708041,
+      "tag": "0008_motionless_infant_terrible",
+      "breakpoints": true
     }
   ]
 }
