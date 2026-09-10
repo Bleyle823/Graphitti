@@ -1,5 +1,5 @@
 import { defineTool } from "../define-tool.js";
-import { executeGraphTool, resolveCredentials } from "@sugarhi11/graph-core";
+import { executeGraphTool, resolveCredentials } from "@graphitti/graph-core";
 
 export default defineTool({
   name: "graph_get_query_counts",

@@ -1,5 +1,5 @@
 declare module "eve/tools" {
-  import type { PrivyToolDefinition } from "@sugarhi11/privy-core";
+  import type { PrivyToolDefinition } from "@graphitti/privy-core";
 
   type ToolConfig = {
     name: string;

@@ -1,11 +1,11 @@
-# @sugarhi11/graph-core
+# @graphitti/graph-core
 
 Shared tool catalog and MCP stdio server for The Graph protocol agent plugins. Exposes `graph_*` tools for subgraph discovery, GraphQL queries, Token API reads, Substreams registry operations, and optional Graphitti workflow APIs.
 
 ## Install
 
 ```bash
-npm install @sugarhi11/graph-core
+npm install @graphitti/graph-core
 ```
 
 ## MCP server
@@ -30,7 +30,7 @@ npx graph-mcp
 ## Programmatic use
 
 ```typescript
-import { executeGraphTool, listAvailableTools } from "@sugarhi11/graph-core";
+import { executeGraphTool, listAvailableTools } from "@graphitti/graph-core";
 ```
 
 ## Documentation

@@ -1,6 +1,6 @@
 # Hermes The Graph plugin
 
-Portable Hermes agent plugin for The Graph protocol tools (`graph_*`). Includes an MCP stdio server via `@sugarhi11/graph-core`.
+Portable Hermes agent plugin for The Graph protocol tools (`graph_*`). Includes an MCP stdio server via `@graphitti/graph-core`.
 
 ## Install
 
@@ -11,7 +11,7 @@ hermes plugins enable the-graph
 
 ## MCP configuration
 
-The MCP server runs `graph-mcp` from `@sugarhi11/graph-core`. Configure env vars in `~/.hermes/config.yaml` under `mcp_servers.the-graph`:
+The MCP server runs `graph-mcp` from `@graphitti/graph-core`. Configure env vars in `~/.hermes/config.yaml` under `mcp_servers.the-graph`:
 
 | Variable | Required |
 |---|---|

@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "@sugarhi11/privy-core": "workspace:^0.1.0",
+    "@graphitti/privy-core": "workspace:^0.1.0",
     "typebox": "1.3.18"
   },
   "peerDependencies": {

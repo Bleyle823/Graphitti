@@ -10,7 +10,7 @@ importers:
 
   privy/eve-privy:
     dependencies:
-      '@sugarhi11/privy-core':
+      '@graphitti/privy-core':
         specifier: workspace:^0.1.0
         version: link:../privy-core
       eve:
@@ -26,13 +26,13 @@ importers:
 
   privy/hermes-privy:
     dependencies:
-      '@sugarhi11/privy-core':
+      '@graphitti/privy-core':
         specifier: workspace:^0.1.0
         version: link:../privy-core
 
   privy/openclaw-privy:
     dependencies:
-      '@sugarhi11/privy-core':
+      '@graphitti/privy-core':
         specifier: workspace:^0.1.0
         version: link:../privy-core
       openclaw:
@@ -51,7 +51,7 @@ importers:
 
   privy/plugin-privy:
     dependencies:
-      '@sugarhi11/privy-core':
+      '@graphitti/privy-core':
         specifier: workspace:^0.1.0
         version: link:../privy-core
     devDependencies:
@@ -82,7 +82,7 @@ importers:
 
   the-graph/eve-the-graph:
     dependencies:
-      '@sugarhi11/graph-core':
+      '@graphitti/graph-core':
         specifier: workspace:^0.1.0
         version: link:../graph-core
       eve:
@@ -110,13 +110,13 @@ importers:
 
   the-graph/hermes-the-graph:
     dependencies:
-      '@sugarhi11/graph-core':
+      '@graphitti/graph-core':
         specifier: workspace:^0.1.0
         version: link:../graph-core
 
   the-graph/openclaw-the-graph:
     dependencies:
-      '@sugarhi11/graph-core':
+      '@graphitti/graph-core':
         specifier: workspace:^0.1.0
         version: link:../graph-core
       openclaw:
@@ -135,7 +135,7 @@ importers:
 
   the-graph/plugin-the-graph:
     dependencies:
-      '@sugarhi11/graph-core':
+      '@graphitti/graph-core':
         specifier: workspace:^0.1.0
         version: link:../graph-core
     devDependencies:

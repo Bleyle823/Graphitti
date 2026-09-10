@@ -4,7 +4,7 @@ import {
   PRIVY_TOOLS,
   resolveCredentials,
   type PrivyCredentials,
-} from "@sugarhi11/privy-core";
+} from "@graphitti/privy-core";
 
 function envCredentials(runtime: IAgentRuntime): PrivyCredentials {
   const base = resolveCredentials();

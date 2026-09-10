@@ -1,5 +1,5 @@
 import { defineTool } from "../define-tool.js";
-import { executePrivyTool, resolveCredentials } from "@sugarhi11/privy-core";
+import { executePrivyTool, resolveCredentials } from "@graphitti/privy-core";
 
 export default defineTool({
   name: "privy_list_wallets",

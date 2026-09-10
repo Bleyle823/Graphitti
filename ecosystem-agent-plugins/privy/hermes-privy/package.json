@@ -4,7 +4,7 @@
   "private": true,
   "description": "Hermes portable Agent Plugin for Privy wallet and treasury tools",
   "dependencies": {
-    "@sugarhi11/privy-core": "workspace:^0.1.0"
+    "@graphitti/privy-core": "workspace:^0.1.0"
   },
   "scripts": {
     "build": "node -e \"console.log('hermes-privy: no build step')\""
