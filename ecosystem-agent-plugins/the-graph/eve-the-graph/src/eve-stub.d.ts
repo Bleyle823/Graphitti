@@ -1,5 +1,5 @@
 declare module "eve/tools" {
-  import type { GraphToolDefinition } from "@graphitti/graph-core";
+  import type { GraphToolDefinition } from "@bleyle823/graph-core";
 
   type ToolConfig = {
     name: string;

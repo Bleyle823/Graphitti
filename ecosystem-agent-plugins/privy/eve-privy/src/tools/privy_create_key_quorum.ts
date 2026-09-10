@@ -1,5 +1,5 @@
 import { defineTool } from "../define-tool.js";
-import { executePrivyTool, resolveCredentials } from "@graphitti/privy-core";
+import { executePrivyTool, resolveCredentials } from "@bleyle823/privy-core";
 
 export default defineTool({
   name: "privy_create_key_quorum",

@@ -17,7 +17,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@graphitti/graph-core": "workspace:*"
+    "@bleyle823/graph-core": "workspace:^0.1.0"
   },
   "peerDependencies": {
     "eve": ">=0.37.0"

@@ -17,8 +17,19 @@ pnpm test
 Build core packages first if you only need MCP binaries:
 
 ```bash
-pnpm --filter @graphitti/graph-core build
-pnpm --filter @graphitti/privy-core build
+pnpm --filter @bleyle823/graph-core build
+pnpm --filter @bleyle823/privy-core build
+```
+
+## Published packages
+
+Core catalogs are published to npm:
+
+- [`@bleyle823/graph-core`](https://www.npmjs.com/package/@bleyle823/graph-core) — The Graph tool catalog and `graph-mcp` MCP server
+- [`@bleyle823/privy-core`](https://www.npmjs.com/package/@bleyle823/privy-core) — Privy tool catalog and `privy-mcp` MCP server
+
+```bash
+npm install @bleyle823/graph-core @bleyle823/privy-core
 ```
 
 ## Documentation

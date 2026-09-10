@@ -5,7 +5,7 @@ import {
   PRIVY_TOOLS,
   resolveCredentials,
   type PrivyCredentials,
-} from "@graphitti/privy-core";
+} from "@bleyle823/privy-core";
 
 type PluginApi = {
   registerTool: (

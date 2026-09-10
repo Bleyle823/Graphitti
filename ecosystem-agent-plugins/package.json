@@ -6,7 +6,8 @@
   "packageManager": "pnpm@10.28.0",
   "scripts": {
     "build": "pnpm -r run build",
-    "test": "pnpm --filter @graphitti/graph-core test && pnpm --filter @graphitti/privy-core test && pnpm --filter plugin-the-graph test && pnpm --filter plugin-privy test",
-    "type-check": "pnpm -r run type-check"
+    "test": "pnpm --filter @bleyle823/graph-core test && pnpm --filter @bleyle823/privy-core test && pnpm --filter plugin-the-graph test && pnpm --filter plugin-privy test",
+    "type-check": "pnpm -r run type-check",
+    "publish:cores": "pnpm --filter @bleyle823/graph-core publish --no-git-checks && pnpm --filter @bleyle823/privy-core publish --no-git-checks"
   }
 }
