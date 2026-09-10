@@ -11,7 +11,7 @@ importers:
   privy/eve-privy:
     dependencies:
       '@graphitti/privy-core':
-        specifier: workspace:*
+        specifier: workspace:^0.1.0
         version: link:../privy-core
       eve:
         specifier: '>=0.37.0'
@@ -24,12 +24,16 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
-  privy/hermes-privy: {}
+  privy/hermes-privy:
+    dependencies:
+      '@graphitti/privy-core':
+        specifier: workspace:^0.1.0
+        version: link:../privy-core
 
   privy/openclaw-privy:
     dependencies:
       '@graphitti/privy-core':
-        specifier: workspace:*
+        specifier: workspace:^0.1.0
         version: link:../privy-core
       openclaw:
         specifier: '>=2026.3.24-beta.2'
@@ -48,7 +52,7 @@ importers:
   privy/plugin-privy:
     dependencies:
       '@graphitti/privy-core':
-        specifier: workspace:*
+        specifier: workspace:^0.1.0
         version: link:../privy-core
     devDependencies:
       '@elizaos/core':
@@ -79,7 +83,7 @@ importers:
   the-graph/eve-the-graph:
     dependencies:
       '@graphitti/graph-core':
-        specifier: workspace:*
+        specifier: workspace:^0.1.0
         version: link:../graph-core
       eve:
         specifier: '>=0.37.0'
@@ -104,12 +108,16 @@ importers:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.2)(jiti@2.7.0)(yaml@2.9.0)
 
-  the-graph/hermes-the-graph: {}
+  the-graph/hermes-the-graph:
+    dependencies:
+      '@graphitti/graph-core':
+        specifier: workspace:^0.1.0
+        version: link:../graph-core
 
   the-graph/openclaw-the-graph:
     dependencies:
       '@graphitti/graph-core':
-        specifier: workspace:*
+        specifier: workspace:^0.1.0
         version: link:../graph-core
       openclaw:
         specifier: '>=2026.3.24-beta.2'
@@ -128,7 +136,7 @@ importers:
   the-graph/plugin-the-graph:
     dependencies:
       '@graphitti/graph-core':
-        specifier: workspace:*
+        specifier: workspace:^0.1.0
         version: link:../graph-core
     devDependencies:
       '@elizaos/core':

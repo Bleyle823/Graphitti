@@ -7,6 +7,21 @@ The Graph agent plugins expose one tool group (`graph_*`) for subgraph discovery
 
 Packages live under `ecosystem-agent-plugins/the-graph/` in the Graphitti repo.
 
+## npm
+
+The shared tool catalog is published as `@graphitti/graph-core`:
+
+```bash
+npm install @graphitti/graph-core
+```
+
+Run the MCP stdio server:
+
+```bash
+export THEGRAPH_API_KEY=your_32_char_studio_key
+npx graph-mcp
+```
+
 ## Credentials
 
 | Variable | Required | Purpose |

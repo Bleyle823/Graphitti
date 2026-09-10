@@ -1,7 +1,37 @@
 {
   "name": "@graphitti/graph-core",
   "version": "0.1.0",
+  "description": "Shared The Graph protocol tool catalog and MCP stdio server for agent plugins",
   "type": "module",
+  "license": "Apache-2.0",
+  "author": "Graphitti",
+  "keywords": [
+    "the-graph",
+    "subgraph",
+    "substreams",
+    "mcp",
+    "agent",
+    "graphql"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bleyle823/Graphitti.git",
+    "directory": "ecosystem-agent-plugins/the-graph/graph-core"
+  },
+  "bugs": {
+    "url": "https://github.com/Bleyle823/Graphitti/issues"
+  },
+  "homepage": "https://github.com/Bleyle823/Graphitti/tree/main/ecosystem-agent-plugins/the-graph/graph-core#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,7 +50,8 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

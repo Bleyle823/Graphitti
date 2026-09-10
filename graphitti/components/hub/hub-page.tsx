@@ -1,8 +1,10 @@
 "use client";
 
-import { Globe, Store } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Globe } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { HubMarketplaceListings } from "@/components/hub/hub-marketplace-listings";
+import { HubWorkflowExamples } from "@/components/hub/hub-workflow-examples";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { ListingDetailOverlay } from "@/components/overlays/listing-detail-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
@@ -17,20 +19,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type MarketplaceListing } from "@/lib/api-client";
+import { isCatalogWorkflowName } from "@/lib/marketplace/catalog";
 import { getAllIntegrations } from "@/plugins";
 
-const TABS = ["integrations", "marketplace"] as const;
+const TABS = ["integrations", "workflows", "marketplace"] as const;
 type HubTab = (typeof TABS)[number];
 
 function isHubTab(value: string | null): value is HubTab {
-  return value === "integrations" || value === "marketplace";
+  return (
+    value === "integrations" || value === "workflows" || value === "marketplace"
+  );
+}
+
+function usesListingSort(tab: HubTab): boolean {
+  return tab === "marketplace" || tab === "workflows";
+}
+
+function searchPlaceholder(tab: HubTab): string {
+  if (tab === "marketplace") {
+    return "Search marketplace";
+  }
+  if (tab === "workflows") {
+    return "Search example workflows";
+  }
+  return "Search integrations";
 }
 
 export function HubPage(): React.ReactElement {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { open } = useOverlay();
   const tabParam = searchParams.get("tab");
@@ -47,13 +66,16 @@ export function HubPage(): React.ReactElement {
   }, [query]);
 
   useEffect(() => {
+    if (pathname !== "/hub") {
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (debouncedQuery.trim()) {
       params.set("q", debouncedQuery.trim());
     } else {
       params.delete("q");
     }
-    if (tab === "marketplace") {
+    if (usesListingSort(tab)) {
       params.set("sort", sort);
     } else {
       params.delete("sort");
@@ -63,7 +85,7 @@ export function HubPage(): React.ReactElement {
     if (next !== current) {
       router.replace(`/hub?${next}`, { scroll: false });
     }
-  }, [debouncedQuery, router, searchParams, sort, tab]);
+  }, [debouncedQuery, pathname, router, searchParams, sort, tab]);
 
   const integrations = useMemo(() => getAllIntegrations(), []);
   const filteredIntegrations = useMemo(() => {
@@ -78,13 +100,18 @@ export function HubPage(): React.ReactElement {
     );
   }, [integrations, debouncedQuery, tab]);
 
+  const exampleItems = useMemo(
+    () => items.filter((item) => isCatalogWorkflowName(item.name)),
+    [items]
+  );
+
   useEffect(() => {
-    if (tab !== "marketplace") {
+    if (!usesListingSort(tab)) {
       return;
     }
     setLoading(true);
     api.marketplace
-      .search({ q: debouncedQuery, sort })
+      .search({ q: debouncedQuery, sort, limit: "100" })
       .then((result) => setItems(result.items))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
@@ -93,6 +120,9 @@ export function HubPage(): React.ReactElement {
   const setTab = (next: string): void => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", next);
+    if (!(isHubTab(next) && usesListingSort(next))) {
+      params.delete("sort");
+    }
     router.replace(`/hub?${params.toString()}`, { scroll: false });
   };
 
@@ -102,7 +132,8 @@ export function HubPage(): React.ReactElement {
         <div className="mb-8">
           <h1 className="font-semibold text-2xl tracking-tight">Hub</h1>
           <p className="mt-1 text-muted-foreground text-sm">
-            Browse integrations and listed workflows agents can call.
+            Browse integrations, example workflows, and listed endpoints agents
+            can call.
           </p>
         </div>
 
@@ -110,19 +141,16 @@ export function HubPage(): React.ReactElement {
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <TabsList>
               <TabsTrigger value="integrations">Integrations</TabsTrigger>
+              <TabsTrigger value="workflows">Workflows</TabsTrigger>
               <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             </TabsList>
             <div className="flex flex-1 items-center justify-end gap-2 sm:max-w-md">
               <Input
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={
-                  tab === "marketplace"
-                    ? "Search marketplace"
-                    : "Search integrations"
-                }
+                placeholder={searchPlaceholder(tab)}
                 value={query}
               />
-              {tab === "marketplace" ? (
+              {usesListingSort(tab) ? (
                 <Select onValueChange={setSort} value={sort}>
                   <SelectTrigger className="w-36">
                     <SelectValue />
@@ -183,73 +211,25 @@ export function HubPage(): React.ReactElement {
             )}
           </TabsContent>
 
+          <TabsContent value="workflows">
+            <HubWorkflowExamples
+              items={exampleItems}
+              loading={loading}
+              onClearSearch={() => setQuery("")}
+              onOpen={(item) => router.push(`/workflows/${item.id}`)}
+              query={debouncedQuery}
+            />
+          </TabsContent>
+
           <TabsContent value="marketplace">
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Spinner />
-              </div>
-            ) : items.length === 0 ? (
-              <PageEmptyState
-                action={
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {debouncedQuery ? (
-                      <Button
-                        onClick={() => setQuery("")}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Clear search
-                      </Button>
-                    ) : null}
-                    <Button onClick={() => router.push("/")} size="sm">
-                      List a workflow
-                    </Button>
-                  </div>
-                }
-                description={
-                  debouncedQuery
-                    ? "No listed workflows match that search."
-                    : "Publish a workflow from the editor to make it callable by agents."
-                }
-                icon={Store}
-                title="No listed workflows yet"
-              />
-            ) : (
-              <ul className="space-y-3">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      className="w-full rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50"
-                      onClick={() =>
-                        open(ListingDetailOverlay, { listing: item })
-                      }
-                      type="button"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {item.listedSlug} · {item.workflowType} ·{" "}
-                            {item.chain ?? "arc-testnet"}
-                            {item.category ? ` · ${item.category}` : ""}
-                          </p>
-                        </div>
-                        <p className="text-sm tabular-nums">
-                          {Number(item.priceUsdcPerCall ?? 0) > 0
-                            ? `${item.priceUsdcPerCall} USDC`
-                            : "Free"}
-                        </p>
-                      </div>
-                      {item.description ? (
-                        <p className="mt-2 line-clamp-2 text-muted-foreground text-sm">
-                          {item.description}
-                        </p>
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <HubMarketplaceListings
+              items={items}
+              loading={loading}
+              onClearSearch={() => setQuery("")}
+              onListWorkflow={() => router.push("/")}
+              onOpen={(item) => open(ListingDetailOverlay, { listing: item })}
+              query={debouncedQuery}
+            />
           </TabsContent>
         </Tabs>
       </div>

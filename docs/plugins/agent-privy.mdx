@@ -7,6 +7,22 @@ Privy agent plugins expose one tool group (`privy_*`) for native Privy REST (use
 
 Packages live under `ecosystem-agent-plugins/privy/` in the Graphitti repo.
 
+## npm
+
+The shared tool catalog is published as `@graphitti/privy-core`:
+
+```bash
+npm install @graphitti/privy-core
+```
+
+Run the MCP stdio server:
+
+```bash
+export PRIVY_APP_ID=your_app_id
+export PRIVY_APP_SECRET=your_app_secret
+npx privy-mcp
+```
+
 ## Credentials
 
 | Variable | Required | Purpose |
