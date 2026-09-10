@@ -17,7 +17,7 @@ const TREASURY_CHAIN = "base_sepolia";
 function buildAutoTransferPolicyRules(
   spendCapUsdc: string,
   allowlistedAddresses: string[] = []
-) {
+): Record<string, unknown>[] {
   const recipientCondition =
     allowlistedAddresses.length > 0
       ? {
@@ -28,7 +28,7 @@ function buildAutoTransferPolicyRules(
         }
       : null;
 
-  const rules: Record<string, unknown>[] = [
+  return [
     {
       name: "Allow small USDC transfers",
       method: "transfer",
@@ -48,25 +48,17 @@ function buildAutoTransferPolicyRules(
         },
         {
           field_source: "action_request_body",
-          field: "amount",
+          field: "source.amount",
           operator: "lte",
           value: spendCapUsdc,
         },
         ...(recipientCondition ? [recipientCondition] : []),
       ],
     },
-    {
-      name: "Deny other transfer actions",
-      method: "transfer",
-      action: "DENY",
-      conditions: [],
-    },
   ];
-
-  return rules;
 }
 
-function buildOwnerTransferPolicyRules() {
+function buildOwnerTransferPolicyRules(): Record<string, unknown>[] {
   return [
     {
       name: "Allow owner USDC transfers",
