@@ -25,5 +25,5 @@ export function canManageTreasury(role: string | null | undefined): boolean {
 }
 
 export function canApproveIntents(role: string | null | undefined): boolean {
-  return hasMinimumOrgRole(role, "owner");
+  return hasMinimumOrgRole(role, "admin");
 }

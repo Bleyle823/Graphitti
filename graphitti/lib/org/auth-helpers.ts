@@ -8,7 +8,7 @@ import {
   organizationPayees,
   organizationWallets,
 } from "@/lib/db/schema";
-import { canApproveIntents, canManageTreasury } from "@/lib/org/member-role";
+import { hasMinimumOrgRole } from "@/lib/org/member-role";
 
 export async function requireSessionUser() {
   const session = await auth.api.getSession({
@@ -56,12 +56,7 @@ export async function requireOrgMemberForUser(
     return { success: false as const, error: "Not a member", status: 403 };
   }
 
-  const roleOk =
-    minimumRole === "member"
-      ? true
-      : minimumRole === "admin"
-        ? canManageTreasury(membership.role)
-        : canApproveIntents(membership.role);
+  const roleOk = hasMinimumOrgRole(membership.role, minimumRole);
 
   if (!roleOk) {
     return { success: false as const, error: "Insufficient role", status: 403 };
@@ -75,7 +70,7 @@ export async function requireOrgMemberForUser(
 }
 
 export async function getOrgTreasury(organizationId: string) {
-  return db.query.organizationWallets.findFirst({
+  return await db.query.organizationWallets.findFirst({
     where: and(
       eq(organizationWallets.organizationId, organizationId),
       eq(organizationWallets.isActive, true)
@@ -84,7 +79,7 @@ export async function getOrgTreasury(organizationId: string) {
 }
 
 export async function listOrgPayees(organizationId: string) {
-  return db.query.organizationPayees.findMany({
+  return await db.query.organizationPayees.findMany({
     where: eq(organizationPayees.organizationId, organizationId),
   });
 }

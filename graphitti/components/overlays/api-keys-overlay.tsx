@@ -4,40 +4,77 @@ import { Copy, Key, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { ConfirmOverlay } from "./confirm-overlay";
 import { Overlay } from "./overlay";
 import { useOverlay } from "./overlay-provider";
 
+const SCOPE_OPTIONS = [
+  { value: "workflows:*", id: "scope-workflows-all" },
+  { value: "marketplace:*", id: "scope-marketplace-all" },
+  { value: "wallet:read", id: "scope-wallet-read" },
+  { value: "treasury:read", id: "scope-treasury-read" },
+  { value: "treasury:write", id: "scope-treasury-write" },
+  { value: "treasury:approve", id: "scope-treasury-approve" },
+] as const;
+
 type ApiKey = {
   id: string;
   name: string | null;
   keyPrefix: string;
+  organizationId?: string | null;
+  scopes?: string[] | null;
   createdAt: string;
   lastUsedAt: string | null;
   key?: string;
+};
+
+type OrgOption = {
+  organizationId: string;
+  name: string;
+  role: string;
 };
 
 type ApiKeysOverlayProps = {
   overlayId: string;
 };
 
-/**
- * Overlay for creating a new API key.
- * Pushed onto the stack from ApiKeysOverlay.
- */
 function CreateApiKeyOverlay({
   overlayId,
   onCreated,
+  organizations,
 }: {
   overlayId: string;
   onCreated: (key: ApiKey) => void;
+  organizations: OrgOption[];
 }) {
   const { pop } = useOverlay();
   const [keyName, setKeyName] = useState("");
+  const [organizationId, setOrganizationId] = useState("personal");
+  const [scopes, setScopes] = useState<string[]>([
+    "workflows:*",
+    "marketplace:*",
+    "wallet:read",
+  ]);
   const [creating, setCreating] = useState(false);
+
+  const toggleScope = (scope: string): void => {
+    setScopes((current) =>
+      current.includes(scope)
+        ? current.filter((item) => item !== scope)
+        : [...current, scope]
+    );
+  };
 
   const handleCreate = async () => {
     setCreating(true);
@@ -45,7 +82,11 @@ function CreateApiKeyOverlay({
       const response = await fetch("/api/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: keyName || null }),
+        body: JSON.stringify({
+          name: keyName || null,
+          organizationId: organizationId === "personal" ? null : organizationId,
+          scopes,
+        }),
       });
 
       if (!response.ok) {
@@ -74,40 +115,84 @@ function CreateApiKeyOverlay({
       title="Create API Key"
     >
       <p className="mb-4 text-muted-foreground text-sm">
-        Create a new API key for webhook authentication
+        Personal keys use wfb_. Org keys use gr_ and bind to an organization.
       </p>
-      <div className="space-y-2">
-        <Label htmlFor="key-name">Label (optional)</Label>
-        <Input
-          id="key-name"
-          onChange={(e) => setKeyName(e.target.value)}
-          placeholder="e.g., Production, Testing"
-          value={keyName}
-        />
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="key-name">Label (optional)</Label>
+          <Input
+            id="key-name"
+            onChange={(e) => setKeyName(e.target.value)}
+            placeholder="e.g., Production, Testing"
+            value={keyName}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="key-org">Scope</Label>
+          <Select onValueChange={setOrganizationId} value={organizationId}>
+            <SelectTrigger data-testid="api-key-org" id="key-org">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="personal">Personal (wfb_)</SelectItem>
+              {organizations
+                .filter((org) => org.role === "owner" || org.role === "admin")
+                .map((org) => (
+                  <SelectItem
+                    key={org.organizationId}
+                    value={org.organizationId}
+                  >
+                    {org.name} (gr_)
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Permissions</Label>
+          {SCOPE_OPTIONS.map((scope) => (
+            <div className="flex items-center gap-2 text-sm" key={scope.value}>
+              <Checkbox
+                checked={scopes.includes(scope.value)}
+                id={scope.id}
+                onCheckedChange={() => toggleScope(scope.value)}
+              />
+              <Label className="cursor-pointer font-normal" htmlFor={scope.id}>
+                {scope.value}
+              </Label>
+            </div>
+          ))}
+        </div>
       </div>
     </Overlay>
   );
 }
 
-/**
- * Main API Keys management overlay.
- */
 export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
   const { push, closeAll } = useOverlay();
   const [loading, setLoading] = useState(true);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadApiKeys = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/api-keys");
-      if (!response.ok) {
+      const [keysResponse, treasuryResponse] = await Promise.all([
+        fetch("/api/api-keys"),
+        fetch("/api/treasury"),
+      ]);
+      if (!keysResponse.ok) {
         throw new Error("Failed to load API keys");
       }
-      const keys = await response.json();
-      setApiKeys(keys);
+      setApiKeys(await keysResponse.json());
+      if (treasuryResponse.ok) {
+        const treasury = (await treasuryResponse.json()) as {
+          organizations?: OrgOption[];
+        };
+        setOrganizations(treasury.organizations ?? []);
+      }
     } catch (error) {
       console.error("Failed to load API keys:", error);
       toast.error("Failed to load API keys");
@@ -177,7 +262,10 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
           label: "New API Key",
           variant: "outline",
           onClick: () =>
-            push(CreateApiKeyOverlay, { onCreated: handleKeyCreated }),
+            push(CreateApiKeyOverlay, {
+              onCreated: handleKeyCreated,
+              organizations,
+            }),
         },
         { label: "Done", onClick: closeAll },
       ]}
@@ -185,7 +273,7 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
       title="API Keys"
     >
       <p className="-mt-2 mb-4 text-muted-foreground text-sm">
-        Manage API keys for webhook authentication
+        Personal keys start with wfb_. Organization keys start with gr_.
       </p>
 
       {loading ? (
@@ -194,14 +282,16 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Newly created key warning */}
           {newlyCreatedKey && (
             <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3">
               <p className="mb-2 font-medium text-sm text-yellow-600 dark:text-yellow-400">
                 Copy your API key now. You won't be able to see it again!
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-muted px-2 py-1 font-mono text-xs">
+                <code
+                  className="flex-1 rounded bg-muted px-2 py-1 font-mono text-xs"
+                  data-testid="api-key-plaintext"
+                >
                   {newlyCreatedKey}
                 </code>
                 <Button
@@ -223,7 +313,6 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
             </div>
           )}
 
-          {/* API Keys list */}
           {apiKeys.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground text-sm">
               <Key className="mx-auto mb-2 size-8 opacity-50" />
@@ -241,7 +330,10 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                      <code
+                        className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
+                        data-testid="api-key-prefix"
+                      >
                         {apiKey.keyPrefix}...
                       </code>
                       {apiKey.name && (
@@ -249,7 +341,8 @@ export function ApiKeysOverlay({ overlayId }: ApiKeysOverlayProps) {
                       )}
                     </div>
                     <p className="mt-1 text-muted-foreground text-xs">
-                      Created {formatDate(apiKey.createdAt)}
+                      {apiKey.organizationId ? "Org key" : "Personal"} · Created{" "}
+                      {formatDate(apiKey.createdAt)}
                       {apiKey.lastUsedAt &&
                         ` · Last used ${formatDate(apiKey.lastUsedAt)}`}
                     </p>

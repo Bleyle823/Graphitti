@@ -27,6 +27,7 @@ async function getOrgWallet(input: TreasuryStepInput) {
     walletId: wallet.privyWalletId,
     address: wallet.address,
     autoSpendCapUsdc: wallet.autoSpendCapUsdc,
+    dailySpendCapUsdc: wallet.dailySpendCapUsdc,
     autoPolicyId: wallet.autoPolicyId,
     humanPolicyId: wallet.humanPolicyId,
   });
