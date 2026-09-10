@@ -172,15 +172,23 @@ export async function createPrivyKeyQuorum(input: {
   publicKeys?: string[];
   keyQuorumIds?: string[];
 }): Promise<PrivyKeyQuorum> {
-  return privyFetch<PrivyKeyQuorum>("/v1/key_quorums", {
+  const body: Record<string, unknown> = {
+    display_name: input.displayName,
+    authorization_threshold: input.authorizationThreshold,
+  };
+  if (input.userIds && input.userIds.length > 0) {
+    body.user_ids = input.userIds;
+  }
+  if (input.publicKeys && input.publicKeys.length > 0) {
+    body.public_keys = input.publicKeys;
+  }
+  if (input.keyQuorumIds && input.keyQuorumIds.length > 0) {
+    body.key_quorum_ids = input.keyQuorumIds;
+  }
+
+  return await privyFetch<PrivyKeyQuorum>("/v1/key_quorums", {
     method: "POST",
-    body: JSON.stringify({
-      display_name: input.displayName,
-      authorization_threshold: input.authorizationThreshold,
-      user_ids: input.userIds,
-      public_keys: input.publicKeys,
-      key_quorum_ids: input.keyQuorumIds,
-    }),
+    body: JSON.stringify(body),
   });
 }
 

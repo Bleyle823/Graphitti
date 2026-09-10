@@ -11,7 +11,6 @@ import {
   invitation,
   member,
   organization as organizationTable,
-  organizationWallets,
   sessions,
   users,
   verifications,
@@ -20,7 +19,7 @@ import {
   workflowExecutionsRelations,
   workflows,
 } from "./db/schema";
-import { provisionOrgTreasury } from "./privy/provision-org-treasury";
+import { ensureOrgTreasury } from "./privy/ensure-org-treasury";
 
 const statement = {
   workflow: ["create", "read", "update", "delete"],
@@ -76,9 +75,8 @@ const schema = {
 
 function isLocalhostUrl(value: string): boolean {
   try {
-    const host = new URL(
-      value.includes("://") ? value : `https://${value}`
-    ).hostname;
+    const host = new URL(value.includes("://") ? value : `https://${value}`)
+      .hostname;
     return host === "localhost" || host === "127.0.0.1" || host === "::1";
   } catch {
     return /localhost|127\.0\.0\.1|::1/i.test(value);
@@ -167,34 +165,7 @@ async function provisionOrganizationTreasury(input: {
   organizationName: string;
   creatorUserId: string;
 }) {
-  const existing = await db.query.organizationWallets.findFirst({
-    where: eq(organizationWallets.organizationId, input.organizationId),
-  });
-  if (existing) {
-    return;
-  }
-
-  try {
-    const provisioned = await provisionOrgTreasury({
-      organizationId: input.organizationId,
-      organizationName: input.organizationName,
-      creatorUserId: input.creatorUserId,
-    });
-
-    await db.insert(organizationWallets).values({
-      organizationId: input.organizationId,
-      userId: input.creatorUserId,
-      privyWalletId: provisioned.privyWalletId,
-      address: provisioned.address,
-      privyOrganizationId: provisioned.privyOrganizationId,
-      ownerQuorumId: provisioned.ownerQuorumId,
-      operatorSignerId: provisioned.operatorSignerId,
-      autoPolicyId: provisioned.autoPolicyId,
-      humanPolicyId: provisioned.humanPolicyId,
-    });
-  } catch (error) {
-    console.error("[Org Treasury] Failed to provision Privy wallet:", error);
-  }
+  await ensureOrgTreasury(input);
 }
 
 // Build plugins array conditionally
