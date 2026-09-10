@@ -9,12 +9,13 @@ import {
   createPrivyOrgWallet,
   createPrivyPolicy,
   getPrivyOperatorSignerId,
+  updatePrivyPolicy,
 } from "@/lib/web3/privy-client";
 
 const DEFAULT_AUTO_SPEND_CAP = "50";
 const TREASURY_CHAIN = "base_sepolia";
 
-function buildAutoTransferPolicyRules(
+export function buildAutoTransferPolicyRules(
   spendCapUsdc: string,
   allowlistedAddresses: string[] = []
 ): Record<string, unknown>[] {
@@ -169,14 +170,12 @@ export async function provisionOrgTreasury(
 }
 
 export async function syncPayeeAllowlistPolicy(input: {
-  organizationName: string;
-  ownerQuorumId: string;
   autoPolicyId: string;
   spendCapUsdc: string;
   allowlistedAddresses: string[];
 }): Promise<void> {
-  await createPrivyPolicy({
-    name: `${input.organizationName} auto payroll`,
+  await updatePrivyPolicy(input.autoPolicyId, {
+    name: "auto payroll",
     rules: buildAutoTransferPolicyRules(
       input.spendCapUsdc,
       input.allowlistedAddresses
