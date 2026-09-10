@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FPL_WORKFLOW_TEMPLATES } from "./fpl-templates";
 import { FINANCIAL_FLOW_WORKFLOW_TEMPLATES } from "./financial-flow-templates";
+import { FPL_WORKFLOW_TEMPLATES } from "./fpl-templates";
 import { MONITOR_WORKFLOW_TEMPLATES } from "./monitor-templates";
 import {
   type ExportedWorkflowFile,
@@ -61,17 +61,29 @@ function loadExport(relativePath: string): ExportedWorkflowFile {
   return JSON.parse(raw) as ExportedWorkflowFile;
 }
 
-export function loadAllWorkflowTemplates(): WorkflowTemplate[] {
-  const imported = IMPORT_SOURCES.map(({ file, key, addIntegrationNote }) =>
-    normalizeExportedWorkflow(loadExport(file), key, { addIntegrationNote })
-  );
-
+export function loadInMemoryWorkflowTemplates(): WorkflowTemplate[] {
   return [
-    ...imported,
     ...PLUGIN_WORKFLOW_TEMPLATES,
     ...TREASURY_WORKFLOW_TEMPLATES,
     ...FINANCIAL_FLOW_WORKFLOW_TEMPLATES,
     ...FPL_WORKFLOW_TEMPLATES,
     ...MONITOR_WORKFLOW_TEMPLATES,
   ];
+}
+
+export function loadAllWorkflowTemplates(): WorkflowTemplate[] {
+  const imported: WorkflowTemplate[] = [];
+  for (const source of IMPORT_SOURCES) {
+    try {
+      imported.push(
+        normalizeExportedWorkflow(loadExport(source.file), source.key, {
+          addIntegrationNote: source.addIntegrationNote,
+        })
+      );
+    } catch (error) {
+      console.error(`[templates] skipped ${source.file}`, error);
+    }
+  }
+
+  return [...imported, ...loadInMemoryWorkflowTemplates()];
 }

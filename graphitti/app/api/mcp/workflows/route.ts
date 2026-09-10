@@ -3,14 +3,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { ensureCatalogListings } from "@/lib/marketplace/ensure-catalog";
 import {
   LISTING_PUBLIC_COLUMNS,
   upsertListing,
 } from "@/lib/marketplace/listing";
-import {
-  checkIpRateLimit,
-  getClientIp,
-} from "@/lib/marketplace/rate-limit";
+import { checkIpRateLimit, getClientIp } from "@/lib/marketplace/rate-limit";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,13 +29,22 @@ export async function GET(request: Request) {
     );
   }
 
+  try {
+    await ensureCatalogListings();
+  } catch (error) {
+    console.error("[catalog] failed to ensure marketplace listings:", error);
+  }
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? undefined;
   const category = searchParams.get("category") ?? undefined;
   const chain = searchParams.get("chain") ?? undefined;
   const workflowType = searchParams.get("workflowType");
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? "20")));
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(searchParams.get("limit") ?? "20"))
+  );
   const sort = searchParams.get("sort") ?? "recent";
 
   const filters = [eq(workflows.isListed, true), isNull(workflows.deletedAt)];
@@ -90,7 +97,10 @@ export async function POST(request: Request) {
   };
 
   if (!body.workflowId) {
-    return NextResponse.json({ error: "workflowId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "workflowId is required" },
+      { status: 400 }
+    );
   }
 
   const result = await upsertListing(session.user.id, {
@@ -106,7 +116,10 @@ export async function POST(request: Request) {
   });
 
   if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json(
+      { error: result.error },
+      { status: result.status }
+    );
   }
 
   const listing = result.listing;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Building2, Plus, Wallet } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,20 +62,125 @@ type TreasuryResponse = {
   }>;
 };
 
+type OrgWalletCardProps = {
+  treasury: TreasuryResponse["treasury"];
+  fundAmount: string;
+  fundLoading: boolean;
+  provisioning: boolean;
+  provisionError: string | null;
+  onFundAmountChange: (value: string) => void;
+  onFund: () => void;
+  onProvision: () => void;
+};
+
+function treasuryAddressLabel(
+  address: string | undefined,
+  provisioning: boolean
+): string {
+  if (address) {
+    return address;
+  }
+  if (provisioning) {
+    return "Provisioning address...";
+  }
+  return "Not provisioned";
+}
+
+function start(task: Promise<unknown>): void {
+  task.catch(() => {
+    /* errors are toasted by the async handler */
+  });
+}
+
+function OrgWalletCard({
+  treasury,
+  fundAmount,
+  fundLoading,
+  provisioning,
+  provisionError,
+  onFundAmountChange,
+  onFund,
+  onProvision,
+}: OrgWalletCardProps): React.ReactElement {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Wallet className="size-4" />
+          Org wallet
+        </CardTitle>
+        <CardDescription>
+          Base Sepolia treasury controlled by Privy policies and key quorums.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div>
+          <div className="text-muted-foreground">Address</div>
+          <div className="break-all font-mono">
+            {treasuryAddressLabel(treasury?.address, provisioning)}
+          </div>
+          {provisionError ? (
+            <p className="pt-2 text-destructive text-xs">{provisionError}</p>
+          ) : null}
+        </div>
+        <div>
+          <div className="text-muted-foreground">Auto spend cap</div>
+          <div>{treasury?.autoSpendCapUsdc ?? "50"} USDC</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground">Operator policy</div>
+          <div className="font-mono text-xs">
+            {treasury?.autoPolicyId ?? "Pending"}
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Input
+            onChange={(event) => onFundAmountChange(event.target.value)}
+            placeholder="Amount"
+            value={fundAmount}
+          />
+          {treasury?.address ? (
+            <Button disabled={fundLoading} onClick={onFund}>
+              Fund treasury
+            </Button>
+          ) : (
+            <Button
+              disabled={provisioning}
+              onClick={onProvision}
+              variant="outline"
+            >
+              {provisioning ? "Provisioning..." : "Provision wallet"}
+            </Button>
+          )}
+        </div>
+        <p className="text-muted-foreground text-xs">
+          Live financial flow: Privy wallet transfer from your connected
+          embedded wallet.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function TreasuryPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<TreasuryResponse | null>(null);
   const [fundAmount, setFundAmount] = useState("10");
   const [fundLoading, setFundLoading] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [payeeOpen, setPayeeOpen] = useState(false);
   const [payeeLabel, setPayeeLabel] = useState("");
   const [payeeAddress, setPayeeAddress] = useState("");
   const [payeeAmount, setPayeeAmount] = useState("25");
+  const autoProvisionedOrgRef = useRef<string | null>(null);
 
-  const loadTreasury = useCallback(async () => {
-    setLoading(true);
+  const loadTreasury = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const response = await fetch("/api/treasury");
       if (!response.ok) {
@@ -87,13 +192,77 @@ export function TreasuryPage(): React.ReactElement {
         error instanceof Error ? error.message : "Failed to load treasury"
       );
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
 
+  const provisionTreasury = useCallback(
+    async (organizationId: string): Promise<boolean> => {
+      setProvisioning(true);
+      setProvisionError(null);
+      try {
+        const response = await fetch("/api/treasury/provision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ organizationId }),
+        });
+        const result = (await response.json()) as { error?: string };
+        if (!response.ok) {
+          throw new Error(result.error ?? "Failed to provision treasury");
+        }
+        await loadTreasury(true);
+        return true;
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to provision treasury";
+        setProvisionError(message);
+        toast.error(message);
+        return false;
+      } finally {
+        setProvisioning(false);
+      }
+    },
+    [loadTreasury]
+  );
+
   useEffect(() => {
-    void loadTreasury();
+    start(loadTreasury());
   }, [loadTreasury]);
+
+  useEffect(() => {
+    const organizationId = data?.activeOrganizationId;
+    if (!organizationId || data.treasury?.address || loading) {
+      return;
+    }
+    if (autoProvisionedOrgRef.current === organizationId) {
+      return;
+    }
+    autoProvisionedOrgRef.current = organizationId;
+    start(provisionTreasury(organizationId));
+  }, [
+    data?.activeOrganizationId,
+    data?.treasury?.address,
+    loading,
+    provisionTreasury,
+  ]);
+
+  useEffect(() => {
+    const onWalletLinked = (): void => {
+      const organizationId = data?.activeOrganizationId;
+      if (!organizationId || data.treasury?.address) {
+        return;
+      }
+      autoProvisionedOrgRef.current = null;
+      start(provisionTreasury(organizationId));
+    };
+    window.addEventListener("graphitti:wallet-linked", onWalletLinked);
+    return () =>
+      window.removeEventListener("graphitti:wallet-linked", onWalletLinked);
+  }, [data?.activeOrganizationId, data?.treasury?.address, provisionTreasury]);
 
   async function handleSetActiveOrg(organizationId: string) {
     await authClient.organization.setActive({ organizationId });
@@ -129,7 +298,7 @@ export function TreasuryPage(): React.ReactElement {
   }
 
   async function handleFundTreasury() {
-    if (!data?.activeOrganizationId) {
+    if (!(data?.activeOrganizationId && data.treasury?.address)) {
       return;
     }
     setFundLoading(true);
@@ -219,7 +388,7 @@ export function TreasuryPage(): React.ReactElement {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select
-              onValueChange={(value) => void handleSetActiveOrg(value)}
+              onValueChange={(value) => start(handleSetActiveOrg(value))}
               value={data?.activeOrganizationId ?? undefined}
             >
               <SelectTrigger className="w-[220px]">
@@ -246,53 +415,22 @@ export function TreasuryPage(): React.ReactElement {
         {data?.activeOrganizationId ? (
           <>
             <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wallet className="size-4" />
-                    Org wallet
-                  </CardTitle>
-                  <CardDescription>
-                    Base Sepolia treasury controlled by Privy policies and key
-                    quorums.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">Address</div>
-                    <div className="break-all font-mono">
-                      {data.treasury?.address ?? "Provisioning..."}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Auto spend cap</div>
-                    <div>{data.treasury?.autoSpendCapUsdc ?? "50"} USDC</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Operator policy</div>
-                    <div className="font-mono text-xs">
-                      {data.treasury?.autoPolicyId ?? "Pending"}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Input
-                      onChange={(event) => setFundAmount(event.target.value)}
-                      placeholder="Amount"
-                      value={fundAmount}
-                    />
-                    <Button
-                      disabled={fundLoading}
-                      onClick={() => void handleFundTreasury()}
-                    >
-                      Fund treasury
-                    </Button>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    Live financial flow: Privy wallet transfer from your
-                    connected embedded wallet.
-                  </p>
-                </CardContent>
-              </Card>
+              <OrgWalletCard
+                fundAmount={fundAmount}
+                fundLoading={fundLoading}
+                onFund={() => start(handleFundTreasury())}
+                onFundAmountChange={setFundAmount}
+                onProvision={() => {
+                  if (!data.activeOrganizationId) {
+                    return;
+                  }
+                  autoProvisionedOrgRef.current = null;
+                  start(provisionTreasury(data.activeOrganizationId));
+                }}
+                provisionError={provisionError}
+                provisioning={provisioning}
+                treasury={data.treasury}
+              />
 
               <Card>
                 <CardHeader>
@@ -378,7 +516,7 @@ export function TreasuryPage(): React.ReactElement {
                         (data.role === "owner" || data.role === "admin") ? (
                           <Button
                             onClick={() =>
-                              void handleApproveIntent(intent.privyIntentId)
+                              start(handleApproveIntent(intent.privyIntentId))
                             }
                             size="sm"
                             variant="outline"
@@ -422,7 +560,7 @@ export function TreasuryPage(): React.ReactElement {
             value={orgName}
           />
           <DialogFooter>
-            <Button onClick={() => void handleCreateOrg()}>Create</Button>
+            <Button onClick={() => start(handleCreateOrg())}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -450,7 +588,7 @@ export function TreasuryPage(): React.ReactElement {
             />
           </div>
           <DialogFooter>
-            <Button onClick={() => void handleAddPayee()}>Save payee</Button>
+            <Button onClick={() => start(handleAddPayee())}>Save payee</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
