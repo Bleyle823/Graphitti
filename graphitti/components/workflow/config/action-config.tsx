@@ -38,6 +38,7 @@ import {
   getAllIntegrations,
 } from "@/plugins";
 import { ActionConfigRenderer } from "./action-config-renderer";
+import { OrgWalletBinding } from "./org-wallet-binding";
 import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
 type ActionConfigProps = {
@@ -401,7 +402,9 @@ export function ActionConfig({
 
   // Check if there are existing connections for this integration type
   const hasExistingConnections = useMemo(() => {
-    if (!integrationType) return false;
+    if (!integrationType) {
+      return false;
+    }
     return globalIntegrations.some((i) => i.type === integrationType);
   }, [integrationType, globalIntegrations]);
 
@@ -542,12 +545,25 @@ export function ActionConfig({
 
       {/* Plugin actions - declarative config fields */}
       {pluginAction && !SYSTEM_ACTION_IDS.includes(actionType) && (
-        <ActionConfigRenderer
-          config={config}
-          disabled={disabled}
-          fields={pluginAction.configFields}
-          onUpdateConfig={handlePluginUpdateConfig}
-        />
+        <>
+          <OrgWalletBinding
+            actionType={actionType}
+            config={config}
+            hasWalletIdField={
+              actionType.startsWith("privy/") &&
+              pluginAction.configFields.some(
+                (field) => "key" in field && field.key === "walletId"
+              )
+            }
+            onUpdateConfig={onUpdateConfig}
+          />
+          <ActionConfigRenderer
+            config={config}
+            disabled={disabled}
+            fields={pluginAction.configFields}
+            onUpdateConfig={handlePluginUpdateConfig}
+          />
+        </>
       )}
     </>
   );

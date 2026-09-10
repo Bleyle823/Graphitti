@@ -17,6 +17,10 @@ import {
 } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import {
+  applyOrgWalletToNodes,
+  workflowUsesOrgWallet,
+} from "@/lib/workflow/bind-org-wallet-nodes";
+import {
   currentWorkflowIdAtom,
   currentWorkflowNameAtom,
   currentWorkflowVisibilityAtom,
@@ -503,6 +507,76 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
     setGlobalIntegrations,
     setIntegrationsLoaded,
     setHasUnsavedChanges,
+  ]);
+
+  const lastOrgWalletBindRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!(isOwner && currentWorkflowId && nodes.length > 0)) {
+      return;
+    }
+    if (!workflowUsesOrgWallet(nodes)) {
+      return;
+    }
+    if (lastOrgWalletBindRef.current === currentWorkflowId) {
+      return;
+    }
+
+    const bindOrgWallet = async () => {
+      try {
+        const response = await fetch("/api/treasury");
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as {
+          treasury: { address: string; privyWalletId: string } | null;
+        };
+        if (!payload.treasury?.privyWalletId) {
+          lastOrgWalletBindRef.current = currentWorkflowId;
+          return;
+        }
+        const applied = applyOrgWalletToNodes(nodes, payload.treasury);
+        lastOrgWalletBindRef.current = currentWorkflowId;
+        if (!applied.changed) {
+          return;
+        }
+        for (const node of applied.nodes) {
+          const original = nodes.find((item) => item.id === node.id);
+          if (!original || original.data.config === node.data?.config) {
+            continue;
+          }
+          updateNodeData({
+            id: node.id,
+            data: {
+              config: node.data?.config,
+            },
+          });
+        }
+        setHasUnsavedChanges(true);
+      } catch (error) {
+        console.error("Failed to bind org wallet to workflow nodes:", error);
+      }
+    };
+
+    const onTreasuryReady = () => {
+      lastOrgWalletBindRef.current = null;
+      bindOrgWallet().catch(() => {
+        // Ignore bind failures; the editor can retry after Treasury is ready.
+      });
+    };
+
+    bindOrgWallet().catch(() => {
+      // Ignore bind failures; the editor can retry after Treasury is ready.
+    });
+    window.addEventListener("graphitti:treasury-ready", onTreasuryReady);
+    return () =>
+      window.removeEventListener("graphitti:treasury-ready", onTreasuryReady);
+  }, [
+    currentWorkflowId,
+    isOwner,
+    nodes,
+    setHasUnsavedChanges,
+    updateNodeData,
   ]);
 
   // Keyboard shortcuts

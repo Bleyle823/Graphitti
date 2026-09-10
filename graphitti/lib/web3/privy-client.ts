@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  createPrivyAuthorizationSignature,
+  needsAuthorizationSignature,
+} from "@/lib/web3/privy-authorization";
+
 const PRIVY_API = "https://api.privy.io";
 
 export type PrivyWallet = {
@@ -73,22 +78,109 @@ function basicAuthHeader(appId: string, appSecret: string): string {
   return `Basic ${Buffer.from(`${appId}:${appSecret}`).toString("base64")}`;
 }
 
+function extraPrivyHeaders(
+  headers: Record<string, string>
+): Record<string, string> {
+  const extra: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const normalized = key.toLowerCase();
+    if (
+      normalized.startsWith("privy-") &&
+      normalized !== "privy-app-id" &&
+      normalized !== "privy-authorization-signature" &&
+      normalized !== "privy-authorization-key"
+    ) {
+      extra[normalized] = value;
+    }
+  }
+  return extra;
+}
+
+function mergePrivyHeaders(
+  init: RequestInit,
+  appId: string,
+  appSecret: string
+): Record<string, string> {
+  const incoming = (init.headers as Record<string, string> | undefined) ?? {};
+  const withoutKey: Record<string, string> = {};
+  for (const [key, value] of Object.entries(incoming)) {
+    if (key.toLowerCase() !== "privy-authorization-key") {
+      withoutKey[key] = value;
+    }
+  }
+  return {
+    Authorization: basicAuthHeader(appId, appSecret),
+    "privy-app-id": appId,
+    "Content-Type": "application/json",
+    ...withoutKey,
+  };
+}
+
+function readPrivyErrorMessage(body: unknown, status: number): string {
+  if (typeof body === "object" && body) {
+    if (
+      "error" in body &&
+      typeof (body as { error: unknown }).error === "string"
+    ) {
+      return (body as { error: string }).error;
+    }
+    if (
+      "message" in body &&
+      typeof (body as { message: unknown }).message === "string"
+    ) {
+      return (body as { message: string }).message;
+    }
+  }
+  return `Privy HTTP ${status}`;
+}
+
+function withAuthorizationSignature(input: {
+  headers: Record<string, string>;
+  method: string;
+  path: string;
+  body: BodyInit | null | undefined;
+  appId: string;
+}): Record<string, string> {
+  if (
+    !needsAuthorizationSignature(input.method, input.path) ||
+    input.headers["privy-authorization-signature"]
+  ) {
+    return input.headers;
+  }
+
+  const authorizationKey = process.env.PRIVY_AUTHORIZATION_KEY?.trim();
+  if (!authorizationKey) {
+    throw new Error(
+      "PRIVY_AUTHORIZATION_KEY is required to sign Privy wallet actions. Add the authorization private key from the Privy dashboard."
+    );
+  }
+
+  return {
+    ...input.headers,
+    "privy-authorization-signature": createPrivyAuthorizationSignature({
+      method: input.method,
+      path: input.path,
+      body: input.body,
+      appId: input.appId,
+      authorizationKey,
+      extraPrivyHeaders: extraPrivyHeaders(input.headers),
+    }),
+  };
+}
+
 export async function privyFetch<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
   const { appId, appSecret } = getAppCredentials();
-  const headers: Record<string, string> = {
-    Authorization: basicAuthHeader(appId, appSecret),
-    "privy-app-id": appId,
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string> | undefined),
-  };
-
-  const authorizationKey = process.env.PRIVY_AUTHORIZATION_KEY;
-  if (authorizationKey && !headers["privy-authorization-signature"]) {
-    headers["privy-authorization-key"] = authorizationKey;
-  }
+  const method = (init.method ?? "GET").toUpperCase();
+  const headers = withAuthorizationSignature({
+    headers: mergePrivyHeaders(init, appId, appSecret),
+    method,
+    path,
+    body: init.body,
+    appId,
+  });
 
   const response = await fetch(`${PRIVY_API}${path}`, {
     ...init,
@@ -106,50 +198,40 @@ export async function privyFetch<T>(
   }
 
   if (!response.ok) {
-    const message =
-      typeof body === "object" &&
-      body &&
-      "error" in body &&
-      typeof (body as { error: unknown }).error === "string"
-        ? (body as { error: string }).error
-        : typeof body === "object" &&
-            body &&
-            "message" in body &&
-            typeof (body as { message: unknown }).message === "string"
-          ? (body as { message: string }).message
-          : `Privy HTTP ${response.status}`;
-    throw new Error(message);
+    throw new Error(readPrivyErrorMessage(body, response.status));
   }
 
   return body as T;
 }
 
 export async function getPrivyUser(privyUserId: string): Promise<PrivyUser> {
-  return privyFetch<PrivyUser>(`/v1/users/${encodeURIComponent(privyUserId)}`);
+  return await privyFetch<PrivyUser>(
+    `/v1/users/${encodeURIComponent(privyUserId)}`
+  );
 }
 
 export async function listPrivyWallets(): Promise<{ data: PrivyWallet[] }> {
-  return privyFetch<{ data: PrivyWallet[] }>("/v1/wallets");
+  return await privyFetch<{ data: PrivyWallet[] }>("/v1/wallets");
 }
 
 export async function createPrivyWallet(
   chainType = "ethereum"
 ): Promise<PrivyWallet> {
-  return privyFetch<PrivyWallet>("/v1/wallets", {
+  return await privyFetch<PrivyWallet>("/v1/wallets", {
     method: "POST",
     body: JSON.stringify({ chain_type: chainType }),
   });
 }
 
 export async function getPrivyWallet(walletId: string): Promise<PrivyWallet> {
-  return privyFetch<PrivyWallet>(`/v1/wallets/${walletId}`);
+  return await privyFetch<PrivyWallet>(`/v1/wallets/${walletId}`);
 }
 
 export async function getPrivyWalletTransaction(
   walletId: string,
   transactionId: string
 ): Promise<Record<string, unknown>> {
-  return privyFetch<Record<string, unknown>>(
+  return await privyFetch<Record<string, unknown>>(
     `/v1/wallets/${walletId}/transactions/${transactionId}`
   );
 }
@@ -198,7 +280,7 @@ export async function createPrivyPolicy(input: {
   rules: Record<string, unknown>[];
   ownerId?: string;
 }): Promise<PrivyPolicy> {
-  return privyFetch<PrivyPolicy>("/v1/policies", {
+  return await privyFetch<PrivyPolicy>("/v1/policies", {
     method: "POST",
     body: JSON.stringify({
       version: "1.0",
@@ -210,11 +292,27 @@ export async function createPrivyPolicy(input: {
   });
 }
 
+export async function updatePrivyPolicy(
+  policyId: string,
+  input: {
+    name?: string;
+    rules: Record<string, unknown>[];
+  }
+): Promise<PrivyPolicy> {
+  return await privyFetch<PrivyPolicy>(`/v1/policies/${policyId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name: input.name,
+      rules: input.rules,
+    }),
+  });
+}
+
 export async function createPrivyOrganization(input: {
   displayName: string;
   defaultKeyQuorumId: string;
 }): Promise<PrivyOrganization> {
-  return privyFetch<PrivyOrganization>("/v1/organizations", {
+  return await privyFetch<PrivyOrganization>("/v1/organizations", {
     method: "POST",
     body: JSON.stringify({
       display_name: input.displayName,
@@ -232,7 +330,7 @@ export async function createPrivyOrgWallet(input: {
   }>;
   privyOrganizationId?: string;
 }): Promise<PrivyWallet> {
-  return privyFetch<PrivyWallet>("/v1/wallets", {
+  return await privyFetch<PrivyWallet>("/v1/wallets", {
     method: "POST",
     body: JSON.stringify({
       chain_type: "ethereum",
@@ -270,17 +368,20 @@ export async function privyWalletTransfer(
   walletId: string,
   body: WalletTransferRequest
 ): Promise<PrivyWalletAction> {
-  return privyFetch<PrivyWalletAction>(`/v1/wallets/${walletId}/transfer`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  return await privyFetch<PrivyWalletAction>(
+    `/v1/wallets/${walletId}/transfer`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
 }
 
 export async function privyWalletSwap(
   walletId: string,
   body: Record<string, unknown>
 ): Promise<PrivyWalletAction> {
-  return privyFetch<PrivyWalletAction>(`/v1/wallets/${walletId}/swap`, {
+  return await privyFetch<PrivyWalletAction>(`/v1/wallets/${walletId}/swap`, {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -290,16 +391,19 @@ export async function createPrivyTransferIntent(
   walletId: string,
   body: WalletTransferRequest
 ): Promise<PrivyIntent> {
-  return privyFetch<PrivyIntent>(`/v1/intents/wallets/${walletId}/transfer`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  return await privyFetch<PrivyIntent>(
+    `/v1/intents/wallets/${walletId}/transfer`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
 }
 
 export async function getPrivyIntent(
   intentId: string
 ): Promise<PrivyIntent & Record<string, unknown>> {
-  return privyFetch<PrivyIntent & Record<string, unknown>>(
+  return await privyFetch<PrivyIntent & Record<string, unknown>>(
     `/v1/intents/${intentId}`
   );
 }
@@ -308,7 +412,7 @@ export async function signPrivyIntent(
   intentId: string,
   body?: Record<string, unknown>
 ): Promise<PrivyIntent & Record<string, unknown>> {
-  return privyFetch<PrivyIntent & Record<string, unknown>>(
+  return await privyFetch<PrivyIntent & Record<string, unknown>>(
     `/v1/intents/${intentId}/sign`,
     {
       method: "POST",
@@ -321,7 +425,7 @@ export async function getPrivyWalletAction(
   walletId: string,
   actionId: string
 ): Promise<PrivyWalletAction & Record<string, unknown>> {
-  return privyFetch<PrivyWalletAction & Record<string, unknown>>(
+  return await privyFetch<PrivyWalletAction & Record<string, unknown>>(
     `/v1/wallets/${walletId}/actions/${actionId}`
   );
 }

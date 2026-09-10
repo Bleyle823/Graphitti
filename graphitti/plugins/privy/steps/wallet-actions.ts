@@ -3,8 +3,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
-import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { recordOrganizationIntent } from "@/lib/org/record-intent";
+import { assertOrgPayeeAllowed } from "@/lib/privy/payee-guard";
+import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import {
   createPrivyKeyQuorum,
   createPrivyPolicy,
@@ -15,6 +16,7 @@ import {
   type WalletTransferRequest,
 } from "@/lib/web3/privy-client";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
+import { resolveStepWalletId } from "@/lib/web3/resolve-workflow-wallet";
 import { applyPrivyCredentials } from "../credentials";
 
 type PrivyStepInput = StepInput & {
@@ -132,8 +134,20 @@ async function walletTransfer(input: WalletTransferInput) {
   if (authError) {
     return authError;
   }
-  if (!(input.walletId && input.destinationAddress && input.amount)) {
+  const wallet = await resolveStepWalletId(input);
+  if (!wallet.success) {
+    return fail(wallet.error);
+  }
+  if (!(wallet.walletId && input.destinationAddress && input.amount)) {
     return fail("walletId, destinationAddress, and amount are required");
+  }
+
+  const payeeGate = await assertOrgPayeeAllowed(
+    wallet.walletId,
+    input.destinationAddress
+  );
+  if (!payeeGate.success) {
+    return fail(payeeGate.error);
   }
 
   try {
@@ -144,7 +158,7 @@ async function walletTransfer(input: WalletTransferInput) {
       input.useIntent === "1";
 
     if (useIntent) {
-      const intent = await createPrivyTransferIntent(input.walletId, body);
+      const intent = await createPrivyTransferIntent(wallet.walletId, body);
       await maybeRecordIntent(input, intent, input);
       return ok({
         intent_id: intent.intent_id,
@@ -153,7 +167,7 @@ async function walletTransfer(input: WalletTransferInput) {
       });
     }
 
-    const action = await privyWalletTransfer(input.walletId, body);
+    const action = await privyWalletTransfer(wallet.walletId, body);
     return ok({
       id: action.id,
       status: action.status,
@@ -170,12 +184,16 @@ async function walletSwap(input: WalletSwapInput) {
   if (authError) {
     return authError;
   }
-  if (!(input.walletId && input.fromAsset && input.toAsset && input.amount)) {
+  const wallet = await resolveStepWalletId(input);
+  if (!wallet.success) {
+    return fail(wallet.error);
+  }
+  if (!(wallet.walletId && input.fromAsset && input.toAsset && input.amount)) {
     return fail("walletId, fromAsset, toAsset, and amount are required");
   }
 
   try {
-    const action = await privyWalletSwap(input.walletId, {
+    const action = await privyWalletSwap(wallet.walletId, {
       chain: input.chain || "base_sepolia",
       from_asset: input.fromAsset,
       to_asset: input.toAsset,
