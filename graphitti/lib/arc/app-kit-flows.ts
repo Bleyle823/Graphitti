@@ -1,4 +1,4 @@
-import { circleFetch, CIRCLE_API, CIRCLE_IRIS } from "@/lib/circle/client";
+import { CIRCLE_API, CIRCLE_IRIS, circleFetch } from "@/lib/circle/client";
 import { ARC_USDC_ERC20, CHAINS } from "@/lib/web3/chains";
 
 export const ARC_GENESIS = {

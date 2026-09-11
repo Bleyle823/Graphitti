@@ -880,7 +880,6 @@ export function AbiWithAutoFetchField({
         // changes are already synced via TemplateBadgeTextarea's effect when
         // the field is blurred.
         key={`${field.key}-${useProxyAbi ? "proxy" : "impl"}${isDiamond ? `-${useDiamondAbi ? "diamond" : "proxy"}` : ""}`}
-        rows={4}
         onChange={(val) => {
           onChange(val);
           setError(null);
@@ -890,6 +889,7 @@ export function AbiWithAutoFetchField({
             ? "Paste your ABI here"
             : "ABI will be fetched automatically when a contract address and network are set"
         }
+        rows={4}
         value={value}
       />
     </div>

@@ -1,4 +1,5 @@
 import { readJson } from "@/lib/http-json";
+import { getErrorMessage } from "@/lib/utils";
 
 export const GRAPH_GATEWAY = "https://gateway.thegraph.com";
 
@@ -72,29 +73,45 @@ export async function graphQlPost(options: {
     headers.Authorization = `Bearer ${options.apiKey}`;
   }
 
-  const response = await fetch(options.url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      query: options.query,
-      variables: options.variables,
-      operationName: options.operationName,
-    }),
-  });
+  try {
+    const response = await fetch(options.url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        query: options.query,
+        variables: options.variables,
+        operationName: options.operationName,
+      }),
+    });
 
-  const body = await readJson<{
-    data?: unknown;
-    errors?: Array<{ message: string }>;
-  }>(response);
+    const body = await readJson<{
+      data?: unknown;
+      errors?: Array<{ message: string }>;
+    }>(response);
 
-  const errors = body.errors;
-  return {
-    data: body.data,
-    errors,
-    httpStatus: response.status,
-    query_url: options.url,
-    query_url_x402: options.url.includes("/x402/")
-      ? options.url
-      : options.url.replace("/api/", "/api/x402/"),
-  };
+    const errors = body.errors;
+    return {
+      data: body.data,
+      errors,
+      httpStatus: response.status,
+      query_url: options.url,
+      query_url_x402: options.url.includes("/x402/")
+        ? options.url
+        : options.url.replace("/api/", "/api/x402/"),
+    };
+  } catch (error) {
+    return {
+      data: undefined,
+      errors: [
+        {
+          message: `Gateway request failed (${options.url}): ${getErrorMessage(error)}`,
+        },
+      ],
+      httpStatus: 0,
+      query_url: options.url,
+      query_url_x402: options.url.includes("/x402/")
+        ? options.url
+        : options.url.replace("/api/", "/api/x402/"),
+    };
+  }
 }

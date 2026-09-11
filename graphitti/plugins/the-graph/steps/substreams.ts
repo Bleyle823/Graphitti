@@ -9,7 +9,7 @@ import {
 } from "@/lib/the-graph/substreams-registry";
 import type { TheGraphCredentials } from "../credentials";
 import { loadTheGraphCredentials } from "../load-credentials";
-import { aliasNetwork, asRecordArray, asString, isRecord } from "./shared";
+import { aliasNetwork, asRecordArray, asString, graphStepError, isRecord } from "./shared";
 
 type SubstreamsInput = StepInput & {
   integrationId?: string;
@@ -56,7 +56,7 @@ async function searchHandler(
       query_url_x402: "",
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Substreams registry request failed", error));
   }
 }
 
@@ -105,7 +105,7 @@ async function getPackageHandler(
       query_url_x402: "",
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Substreams registry request failed", error));
   }
 }
 

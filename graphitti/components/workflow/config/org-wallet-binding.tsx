@@ -8,9 +8,14 @@ import { truncateAddress } from "@/lib/address-utils";
 import {
   GET_ORG_WALLET_ACTION,
   isUnresolvedWalletId,
-  orgWalletTemplate,
+  resolveWalletIdBinding,
 } from "@/lib/workflow/bind-org-wallet-nodes";
-import { nodesAtom, type WorkflowNode } from "@/lib/workflow-store";
+import {
+  edgesAtom,
+  nodesAtom,
+  type WorkflowEdge,
+  type WorkflowNode,
+} from "@/lib/workflow-store";
 
 type TreasuryPayload = {
   treasury: {
@@ -19,15 +24,23 @@ type TreasuryPayload = {
   } | null;
 };
 
-function applyTreasuryBinding(input: {
+type PersonalWalletPayload = {
+  privyWalletId: string | null;
+  address: string | null;
+};
+
+function applyWalletBinding(input: {
   config: Record<string, unknown>;
-  treasury: { address: string; privyWalletId: string };
+  treasury: TreasuryPayload["treasury"];
+  personalWallet: PersonalWalletPayload;
   nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  currentNodeId?: string;
   hasWalletIdField: boolean;
   isOrgWalletNode: boolean;
   onUpdateConfig: (key: string, value: string) => void;
 }): void {
-  if (input.isOrgWalletNode) {
+  if (input.isOrgWalletNode && input.treasury?.privyWalletId) {
     if (input.config.connectedWalletId !== input.treasury.privyWalletId) {
       input.onUpdateConfig("connectedWalletId", input.treasury.privyWalletId);
     }
@@ -42,29 +55,34 @@ function applyTreasuryBinding(input: {
     return;
   }
 
-  const orgNode = input.nodes.find(
-    (node) => node.data.config?.actionType === GET_ORG_WALLET_ACTION
-  );
-  input.onUpdateConfig(
-    "walletId",
-    orgNode
-      ? orgWalletTemplate(orgNode.id, orgNode.data.label || "Get org wallet")
-      : input.treasury.privyWalletId
-  );
+  const nextWalletId = resolveWalletIdBinding({
+    nodes: input.nodes,
+    edges: input.edges,
+    currentNodeId: input.currentNodeId,
+    treasury: input.treasury,
+    personalWalletId: input.personalWallet.privyWalletId,
+  });
+
+  if (nextWalletId && nextWalletId !== input.config.walletId) {
+    input.onUpdateConfig("walletId", nextWalletId);
+  }
 }
 
 export function OrgWalletBinding({
   actionType,
   config,
+  currentNodeId,
   onUpdateConfig,
   hasWalletIdField,
 }: {
   actionType: string;
   config: Record<string, unknown>;
+  currentNodeId?: string;
   onUpdateConfig: (key: string, value: string) => void;
   hasWalletIdField: boolean;
 }) {
   const nodes = useAtomValue(nodesAtom);
+  const edges = useAtomValue(edgesAtom);
   const boundRef = useRef<string | null>(null);
 
   const isOrgWalletNode = actionType === GET_ORG_WALLET_ACTION;
@@ -77,26 +95,44 @@ export function OrgWalletBinding({
     }
 
     let cancelled = false;
-    fetch("/api/treasury")
-      .then(async (response) => {
-        if (!response.ok || cancelled) {
-          return;
-        }
-        const payload = (await response.json()) as TreasuryPayload;
-        const treasury = payload.treasury;
-        if (!treasury?.privyWalletId || cancelled) {
+
+    Promise.all([
+      fetch("/api/treasury").then(async (response) =>
+        response.ok ? ((await response.json()) as TreasuryPayload) : null
+      ),
+      fetch("/api/privy/wallet").then(async (response) =>
+        response.ok ? ((await response.json()) as PersonalWalletPayload) : null
+      ),
+    ])
+      .then(([treasuryPayload, personalPayload]) => {
+        if (cancelled) {
           return;
         }
 
-        const bindKey = `${actionType}:${treasury.privyWalletId}`;
+        const treasury = treasuryPayload?.treasury ?? null;
+        const personalWallet: PersonalWalletPayload = {
+          privyWalletId: personalPayload?.privyWalletId ?? null,
+          address: personalPayload?.address ?? null,
+        };
+
+        const bindKey = [
+          actionType,
+          currentNodeId ?? "",
+          treasury?.privyWalletId ?? "",
+          personalWallet.privyWalletId ?? "",
+          nodes.map((node) => node.id).join(","),
+        ].join(":");
         if (boundRef.current === bindKey) {
           return;
         }
 
-        applyTreasuryBinding({
+        applyWalletBinding({
           config,
           treasury,
+          personalWallet,
           nodes,
+          edges,
+          currentNodeId,
           hasWalletIdField,
           isOrgWalletNode,
           onUpdateConfig,
@@ -104,7 +140,7 @@ export function OrgWalletBinding({
         boundRef.current = bindKey;
       })
       .catch(() => {
-        // Ignore fetch errors; the node stays disconnected until Treasury is available.
+        // Ignore fetch errors; the node stays disconnected until wallets are available.
       });
 
     return () => {
@@ -113,11 +149,30 @@ export function OrgWalletBinding({
   }, [
     actionType,
     config,
+    currentNodeId,
+    edges,
     hasWalletIdField,
     isOrgWalletNode,
     nodes,
     onUpdateConfig,
   ]);
+
+  useEffect(() => {
+    const onTreasuryDeleted = (): void => {
+      boundRef.current = null;
+    };
+    window.addEventListener("graphitti:treasury-deleted", onTreasuryDeleted);
+    window.addEventListener("graphitti:treasury-ready", onTreasuryDeleted);
+    window.addEventListener("graphitti:wallet-linked", onTreasuryDeleted);
+    return () => {
+      window.removeEventListener(
+        "graphitti:treasury-deleted",
+        onTreasuryDeleted
+      );
+      window.removeEventListener("graphitti:treasury-ready", onTreasuryDeleted);
+      window.removeEventListener("graphitti:wallet-linked", onTreasuryDeleted);
+    };
+  }, []);
 
   if (!isOrgWalletNode) {
     return null;

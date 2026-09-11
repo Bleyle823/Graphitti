@@ -1,6 +1,11 @@
 import { readJson } from "@/lib/http-json";
+import { getErrorMessage } from "@/lib/utils";
 
 const TOKEN_API = "https://token-api.thegraph.com";
+
+function tokenApiFetchError(url: string, error: unknown): string {
+  return `Token API request failed (${url}): ${getErrorMessage(error)}`;
+}
 
 export async function tokenApiGet(
   path: string,
@@ -14,22 +19,30 @@ export async function tokenApiGet(
     }
   }
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      Accept: "application/json",
-    },
-  });
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
+    });
 
-  const data = await readJson<Record<string, unknown>>(response);
-  if (!response.ok) {
-    const message =
-      typeof data.error === "string"
-        ? data.error
-        : typeof data.message === "string"
-          ? data.message
-          : `Token API HTTP ${response.status}`;
-    return { httpStatus: response.status, data, error: message };
+    const data = await readJson<Record<string, unknown>>(response);
+    if (!response.ok) {
+      const message =
+        typeof data.error === "string"
+          ? data.error
+          : typeof data.message === "string"
+            ? data.message
+            : `Token API HTTP ${response.status}`;
+      return { httpStatus: response.status, data, error: message };
+    }
+    return { httpStatus: response.status, data };
+  } catch (error) {
+    return {
+      httpStatus: 0,
+      data: null,
+      error: tokenApiFetchError(url.toString(), error),
+    };
   }
-  return { httpStatus: response.status, data };
 }

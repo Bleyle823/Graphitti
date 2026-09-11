@@ -635,9 +635,9 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     ],
   },
   {
-    name: "Kelp rsETH Backing Monitor (Supabase)",
+    name: "Kelp rsETH Backing Monitor (Substreams → Supabase)",
     description:
-      "Poll Supabase backing_snapshots every Ethereum block via PostgREST. Reads live Kelp rsETH backing data from SQL sinks (mainnet + Arbitrum trigger). Block trigger needs KeeperHub.",
+      "Detects unbacked rsETH mints by comparing total rsETH circulation across Ethereum mainnet and Arbitrum against verified ETH collateral in the KelpDAO LRTDepositPool. Substreams SQL sinks index live snapshots into Supabase; this workflow reads the latest row every Ethereum block (~12s). Alerts when supply exceeds backing by more than 50 bps (0.5%). Add Supabase credentials in Project Integrations.",
     nodes: [
       {
         id: "rseth-sb-block-trigger",
@@ -659,14 +659,14 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: "rseth-sb-monitor-note",
         type: "note",
         dragHandle: ".sticky-note-drag-handle",
-        width: 300,
-        height: 220,
-        position: { x: -340, y: 80 },
+        width: 320,
+        height: 240,
+        position: { x: -360, y: 60 },
         data: {
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Configure Project Integrations → Supabase (SUPABASE_URL + anon key). Run SQL sinks from substreams/ (mainnet + Arbitrum Docker containers) for fresh backing_snapshots rows. Block trigger needs KeeperHub.",
+            text: "1) Project Integrations → Supabase: paste Project URL + anon key. 2) Bind Supabase on Get latest row. 3) Replace webhook URL. 4) Deploy with KeeperHub. Substreams SQL sinks (substreams/README.md) write backing_snapshots in Supabase.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -679,20 +679,19 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: "action",
         position: { x: 280, y: 200 },
         data: {
-          label: "Query Backing Snapshot",
+          label: "Get latest row",
           type: "action",
           config: {
-            actionType: "supabase/query-table",
+            actionType: "supabase/get-latest-row",
             table: "backing_snapshots",
-            select:
-              "block_number,mainnet_supply,arb_supply,total_supply,adapter_balance,total_backing,excess,deviation_bps,bridge_deviation_bps,should_alert,effective_supply",
             orderBy: "block_number",
             orderDirection: "desc",
-            limit: "1",
+            select:
+              "block_number,timestamp,mainnet_supply,arb_supply,total_supply,steth_deposits,ethx_deposits,native_eth_deposits,adapter_balance,total_backing,excess,deviation_bps,bridge_deviation_bps,bridge_excess,should_alert,threshold_bps,effective_supply",
           },
           status: "idle",
           description:
-            "Fetch latest backing_snapshots row from Supabase PostgREST",
+            "Latest backing_snapshots row from Supabase (indexed by Substreams SQL sinks)",
         },
       },
       {
@@ -705,7 +704,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           config: {
             actionType: "Condition",
             condition:
-              "{{@rseth-sb-query:Query Backing Snapshot.should_alert}} === true",
+              "{{@rseth-sb-query:Get latest row.should_alert}} === true",
           },
           status: "idle",
           description:
@@ -725,7 +724,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             webhookMethod: "POST",
             webhookHeaders: '{"Content-Type": "application/json"}',
             webhookPayload:
-              '{"alert":"KELP rsETH BACKING DEVIATION","blockNumber":"{{@rseth-sb-query:Query Backing Snapshot.block_number}}","mainnetSupply":"{{@rseth-sb-query:Query Backing Snapshot.mainnet_supply}}","arbSupply":"{{@rseth-sb-query:Query Backing Snapshot.arb_supply}}","totalBacking":"{{@rseth-sb-query:Query Backing Snapshot.total_backing}}","excess":"{{@rseth-sb-query:Query Backing Snapshot.excess}}","deviationBps":{{@rseth-sb-query:Query Backing Snapshot.deviation_bps}},"bridgeDeviationBps":{{@rseth-sb-query:Query Backing Snapshot.bridge_deviation_bps}},"effectiveSupply":"{{@rseth-sb-query:Query Backing Snapshot.effective_supply}}"}',
+              '{"alert":"KELP rsETH UNBACKED MINT DETECTED","summary":"{{@rseth-sb-query:Get latest row.alert_summary}}","timestamp":"{{@rseth-sb-query:Get latest row.timestamp}}","blockNumber":"{{@rseth-sb-query:Get latest row.block_number}}","mainnetSupply":"{{@rseth-sb-query:Get latest row.mainnet_supply}}","arbSupply":"{{@rseth-sb-query:Get latest row.arb_supply}}","totalSupply":"{{@rseth-sb-query:Get latest row.total_supply}}","stethDeposits":"{{@rseth-sb-query:Get latest row.steth_deposits}}","ethxDeposits":"{{@rseth-sb-query:Get latest row.ethx_deposits}}","nativeEthDeposits":"{{@rseth-sb-query:Get latest row.native_eth_deposits}}","totalBacking":"{{@rseth-sb-query:Get latest row.total_backing}}","excess":"{{@rseth-sb-query:Get latest row.excess}}","deviationBps":{{@rseth-sb-query:Get latest row.deviation_bps}},"bridgeDeviationBps":{{@rseth-sb-query:Get latest row.bridge_deviation_bps}},"effectiveSupply":"{{@rseth-sb-query:Get latest row.effective_supply}}"}',
           },
           status: "idle",
           description:

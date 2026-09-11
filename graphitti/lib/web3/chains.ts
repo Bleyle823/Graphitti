@@ -39,7 +39,7 @@ export const CHAINS: Record<string, SupportedChain> = {
   arbitrum: {
     id: "arbitrum",
     label: "Arbitrum",
-    chainId: 42161,
+    chainId: 42_161,
     rpcUrl: "https://arb1.arbitrum.io/rpc",
     explorerUrl: "https://arbiscan.io",
     nativeSymbol: "ETH",
@@ -69,7 +69,7 @@ export const CHAINS: Record<string, SupportedChain> = {
   "arc-testnet": {
     id: "arc-testnet",
     label: "Arc Testnet",
-    chainId: 5042002,
+    chainId: 5_042_002,
     rpcUrl: "https://rpc.testnet.arc.network",
     explorerUrl: "https://testnet.arcscan.app",
     nativeSymbol: "USDC",
@@ -79,7 +79,7 @@ export const CHAINS: Record<string, SupportedChain> = {
   sepolia: {
     id: "sepolia",
     label: "Ethereum Sepolia",
-    chainId: 11155111,
+    chainId: 11_155_111,
     rpcUrl: "https://rpc.sepolia.org",
     explorerUrl: "https://sepolia.etherscan.io",
     nativeSymbol: "ETH",

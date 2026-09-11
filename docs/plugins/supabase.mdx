@@ -1,69 +1,75 @@
 ---
 title: Supabase
-description: Query Supabase tables through PostgREST in workflows.
+description: Read live Supabase rows in workflows with URL + anon key only.
 ---
 
-Use `SUPABASE_URL` and `SUPABASE_ANON_KEY` from Project Integrations. The anon key is safe for read-only tables protected by Row Level Security.
+Add **Project Integrations → Supabase** with your project URL and anon key from [Supabase Project Settings → API](https://supabase.com/dashboard/project/_/settings/api).
 
 | Action | Purpose |
 |---|---|
-| Query table | Read rows with select, order, filter, and limit |
+| Get latest row | Newest row from any table (table + sort column) |
+| Query table | Multiple rows with filters and limits |
 
 ## Credentials
 
 | Variable | Required | Purpose |
 |---|---|---|
 | `SUPABASE_URL` | Yes | Project URL from Supabase dashboard |
-| `SUPABASE_ANON_KEY` | Yes | Publishable anon key for PostgREST reads |
-
-Get both from [Supabase Project Settings → API](https://supabase.com/dashboard/project/_/settings/api).
+| `SUPABASE_ANON_KEY` | Yes | Publishable anon key for read-only access |
 
 Do not use the service role key in workflow steps unless you add write actions with strict RLS review.
 
-## Query table
+## Get latest row
 
-Reads rows from a table via PostgREST:
+Reads the newest row from any table:
 
 ```
-GET {SUPABASE_URL}/rest/v1/{table}?select=...&order=...&limit=...
+GET {SUPABASE_URL}/rest/v1/{table}?select=...&order={column}.desc&limit=1
 ```
-
-### Config fields
 
 | Field | Description |
 |---|---|
-| Table | Required. e.g. `backing_snapshots` |
-| Select columns | Comma-separated list or `*` |
-| Order by | Column name, e.g. `block_number` |
-| Order direction | `desc` or `asc` |
-| Row limit | Max rows (default 1) |
-| PostgREST filters | e.g. `should_alert=eq.true` |
-| Schema profile | Optional. Sets `Accept-Profile` for non-public schemas (e.g. `arbitrum`) |
+| Table | Required. Any PostgREST table your RLS allows |
+| Sort by column | Column used for newest-first ordering (e.g. `created_at`, `block_number`) |
+| Sort direction | Newest first (default) or oldest first |
+| Columns | `*` or comma-separated list |
+| Schema profile | Optional non-public schema (e.g. `arbitrum`) |
 
 ### Outputs
 
 | Field | Description |
 |---|---|
-| `rows` | Matching rows |
-| `count` | Row count |
-| `latest` | First row |
-| `has_match` | True when count > 0 |
+| `latest` | Full row object |
+| `rows` | Array (one row when limit is 1) |
+| `has_match` | True when a row was returned |
+| `alert_summary` | Present when the row includes `should_alert` |
+| *column names* | Each column from `latest` is also exposed at the top level |
 
-When querying Kelp `backing_snapshots`, flattened aliases are also exposed: `should_alert`, `deviation_bps`, `bridge_deviation_bps`, `block_number`, `mainnet_supply`, `arb_supply`, `total_backing`, `excess`, `effective_supply`.
+## Query table
 
-## Kelp rsETH backing monitor
+Read multiple rows with PostgREST filters:
 
-Use the **Kelp rsETH Backing Monitor (Supabase)** workflow template:
+| Field | Description |
+|---|---|
+| Table | Required |
+| Columns | `*` or comma-separated list |
+| Sort by column | Optional |
+| Row limit | Default 10, max 1000 |
+| PostgREST filters | e.g. `status=eq.active` |
+| Schema profile | Optional |
 
-1. Add **Project Integrations → Supabase** credentials.
-2. Keep local Docker SQL sinks running (mainnet + Arbitrum) so `backing_snapshots` stays current.
-3. Deploy the workflow with a KeeperHub block trigger on Ethereum mainnet.
+## Kelp rsETH example (Substreams → Supabase)
+
+Use **Kelp rsETH Backing Monitor (Substreams → Supabase)** in the workflow examples sidebar:
+
+1. Add Supabase credentials in Project Integrations.
+2. Duplicate the example workflow.
+3. Bind **Supabase** on **Get latest row** (preconfigured: `backing_snapshots`, sort `block_number`).
 4. Replace the webhook URL placeholder.
-
-Workflow shape:
+5. Deploy with a KeeperHub block trigger on Ethereum mainnet.
 
 ```
-Block trigger → supabase/query-table → Condition (should_alert) → webhook/send-webhook
+Block trigger → supabase/get-latest-row → Condition (should_alert) → webhook
 ```
 
-One Supabase node is enough: the SQL trigger merges Arbitrum supply into each `backing_snapshots` row before PostgREST serves it.
+Substreams SQL sinks write `backing_snapshots` in Supabase (`substreams/README.md`).

@@ -42,6 +42,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   circle: "Circle",
   arc: "Arc",
   privy: "Privy",
+  supabase: "Supabase",
   "the-graph": "The Graph",
   "fantasy-premier-league": "FPL",
 };

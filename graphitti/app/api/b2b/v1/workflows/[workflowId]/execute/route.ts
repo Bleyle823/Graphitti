@@ -15,9 +15,10 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ workflowId: string }> }
 ) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "workflows:execute",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["workflows:execute"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }
@@ -39,7 +40,9 @@ export async function POST(
     return b2bError("Workflow contains invalid integration references", 403);
   }
 
-  const body = (await request.json().catch(() => ({}))) as { input?: Record<string, unknown> };
+  const body = (await request.json().catch(() => ({}))) as {
+    input?: Record<string, unknown>;
+  };
   const input = body.input ?? {};
 
   const [execution] = await db

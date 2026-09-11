@@ -54,7 +54,7 @@ export function FlyoutPanel({
         >
           <ChevronRight className="size-4" />
           <span
-            className="text-xs tracking-wider uppercase"
+            className="text-xs uppercase tracking-wider"
             style={{ writingMode: "vertical-rl" }}
           >
             {collapsedLabel}

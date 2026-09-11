@@ -462,10 +462,9 @@ export function resolveTemplateReference(
   if (newFormat) {
     const [, rawNodeId, rest] = newFormat;
     const sanitizedNodeId = rawNodeId.replace(/[^a-zA-Z0-9]/g, "_");
-    const output =
-      nodeOutputs[sanitizedNodeId] ?? nodeOutputs[rawNodeId];
+    const output = nodeOutputs[sanitizedNodeId] ?? nodeOutputs[rawNodeId];
     if (!output) {
-      return undefined;
+      return;
     }
 
     const dotIndex = rest.indexOf(".");

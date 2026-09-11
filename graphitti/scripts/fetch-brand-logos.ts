@@ -5,7 +5,13 @@
  * Run: pnpm fetch-brand-logos
  */
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -86,10 +92,7 @@ function syncKeeperhubProtocols(): void {
     if (!file.endsWith(".png")) {
       continue;
     }
-    copyFileSync(
-      join(KEEPERHUB_PROTOCOLS, file),
-      join(PROTOCOL_DIR, file)
-    );
+    copyFileSync(join(KEEPERHUB_PROTOCOLS, file), join(PROTOCOL_DIR, file));
     console.log(`   Copied protocols/${file}`);
   }
 }

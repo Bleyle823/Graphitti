@@ -1,8 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import { validateUint } from "@/lib/solidity-type-fields";
-import { useMemo } from "react";
 
 type ProtocolUintFieldProps = {
   fieldKey: string;
@@ -41,7 +41,7 @@ export function ProtocolUintField({
         value={String(value ?? "")}
       />
       {validation && (
-        <p className="mt-1 text-xs text-destructive">{validation}</p>
+        <p className="mt-1 text-destructive text-xs">{validation}</p>
       )}
     </div>
   );

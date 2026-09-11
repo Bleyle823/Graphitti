@@ -562,9 +562,7 @@ export const PanelInner = () => {
           onValueChange={setActiveTab}
           value={activeTab}
         >
-          <TabsList
-            className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5"
-          >
+          <TabsList className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5">
             <TabsTrigger
               className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
               value="properties"
@@ -790,7 +788,9 @@ export const PanelInner = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={handleDelete}>
+                Delete
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -807,9 +807,7 @@ export const PanelInner = () => {
         onValueChange={setActiveTab}
         value={activeTab}
       >
-        <TabsList
-          className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5"
-        >
+        <TabsList className="h-14 w-full shrink-0 rounded-none border-b bg-transparent px-4 py-2.5">
           <TabsTrigger
             className="bg-transparent text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
             value="properties"
@@ -888,6 +886,7 @@ export const PanelInner = () => {
               selectedNode.data.config?.actionType ? (
                 <ActionConfig
                   config={selectedNode.data.config || {}}
+                  currentNodeId={selectedNode.id}
                   disabled={isGenerating || !isOwner}
                   isOwner={isOwner}
                   onUpdateConfig={handleUpdateConfig}

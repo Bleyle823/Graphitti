@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  executeListingCall,
-} from "@/lib/marketplace/call-listing";
-import { mcpToolsList, type JsonRpcRequest } from "@/lib/mcp/json-rpc";
+import { executeListingCall } from "@/lib/marketplace/call-listing";
+import { type JsonRpcRequest, mcpToolsList } from "@/lib/mcp/json-rpc";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -110,7 +108,7 @@ export async function POST(
     {
       jsonrpc: "2.0",
       id,
-      error: { code: -32601, message: `Unknown method ${body.method}` },
+      error: { code: -32_601, message: `Unknown method ${body.method}` },
     },
     { headers: corsHeaders }
   );

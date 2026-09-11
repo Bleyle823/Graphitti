@@ -10,9 +10,10 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ slug: string }> }
 ) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "marketplace:call",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["marketplace:call"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }

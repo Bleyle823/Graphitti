@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, userWallets } from "@/lib/db/schema";
+import { type UserWallet, users, userWallets } from "@/lib/db/schema";
 import { cloneCatalogTemplatesForUser } from "@/lib/marketplace/clone-catalog";
 import { getPrivyWallet } from "@/lib/web3/privy-client";
 import {
@@ -54,6 +54,98 @@ async function promoteWalletUser(
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+}
+
+async function upsertUserWallet(input: {
+  userId: string;
+  privyUserId: string | undefined;
+  walletId: string;
+  address: string;
+}): Promise<UserWallet> {
+  const walletValues = {
+    privyUserId: input.privyUserId,
+    privyWalletId: input.walletId,
+    address: input.address,
+    chainType: "ethereum",
+    updatedAt: new Date(),
+  };
+
+  const existingForUser = await db.query.userWallets.findFirst({
+    where: eq(userWallets.userId, input.userId),
+  });
+  if (existingForUser) {
+    return (
+      await db
+        .update(userWallets)
+        .set(walletValues)
+        .where(eq(userWallets.id, existingForUser.id))
+        .returning()
+    )[0];
+  }
+
+  const existingForWallet = await db.query.userWallets.findFirst({
+    where: eq(userWallets.privyWalletId, input.walletId),
+  });
+  if (existingForWallet) {
+    if (
+      existingForWallet.privyUserId &&
+      input.privyUserId &&
+      existingForWallet.privyUserId !== input.privyUserId
+    ) {
+      throw new Error(
+        "This Privy wallet is already linked to another Graphitti account."
+      );
+    }
+
+    return (
+      await db
+        .update(userWallets)
+        .set({
+          ...walletValues,
+          userId: input.userId,
+        })
+        .where(eq(userWallets.id, existingForWallet.id))
+        .returning()
+    )[0];
+  }
+
+  try {
+    return (
+      await db
+        .insert(userWallets)
+        .values({
+          userId: input.userId,
+          privyUserId: input.privyUserId,
+          privyWalletId: input.walletId,
+          address: input.address,
+          chainType: "ethereum",
+        })
+        .returning()
+    )[0];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("idx_user_wallets_privy_wallet")) {
+      throw error;
+    }
+
+    const raced = await db.query.userWallets.findFirst({
+      where: eq(userWallets.privyWalletId, input.walletId),
+    });
+    if (!raced) {
+      throw error;
+    }
+
+    return (
+      await db
+        .update(userWallets)
+        .set({
+          ...walletValues,
+          userId: input.userId,
+        })
+        .where(eq(userWallets.id, raced.id))
+        .returning()
+    )[0];
+  }
 }
 
 export async function POST(request: Request) {
@@ -115,36 +207,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = await db.query.userWallets.findFirst({
-      where: eq(userWallets.userId, session.user.id),
+    const row = await upsertUserWallet({
+      userId: session.user.id,
+      privyUserId,
+      walletId,
+      address,
     });
-
-    const row = existing
-      ? (
-          await db
-            .update(userWallets)
-            .set({
-              privyUserId,
-              privyWalletId: walletId,
-              address,
-              chainType: "ethereum",
-              updatedAt: new Date(),
-            })
-            .where(eq(userWallets.id, existing.id))
-            .returning()
-        )[0]
-      : (
-          await db
-            .insert(userWallets)
-            .values({
-              userId: session.user.id,
-              privyUserId,
-              privyWalletId: walletId,
-              address,
-              chainType: "ethereum",
-            })
-            .returning()
-        )[0];
 
     await promoteWalletUser(session.user.id, row.address);
     const cloned = await cloneCatalogTemplatesForUser(session.user.id);

@@ -1,9 +1,9 @@
-import { CHAINS } from "@/lib/web3/chains";
 import {
   getAddressUrl as buildAddressUrl,
   getTransactionUrl as buildTransactionUrl,
 } from "@/lib/explorer";
 import type { ExplorerConfig } from "@/lib/explorer/types";
+import { CHAINS } from "@/lib/web3/chains";
 
 const cache = new Map<number, ExplorerConfig | null>();
 
@@ -12,9 +12,11 @@ export function clearExplorerConfigCache(): void {
 }
 
 function chainIdToExplorerConfig(chainId: number): ExplorerConfig | undefined {
-  const chain = Object.values(CHAINS).find((entry) => entry.chainId === chainId);
+  const chain = Object.values(CHAINS).find(
+    (entry) => entry.chainId === chainId
+  );
   if (!chain) {
-    return undefined;
+    return;
   }
   return {
     chainId: chain.chainId,

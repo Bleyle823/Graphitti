@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
 import { cn } from "@/lib/utils";
+import { createStickyNoteNode } from "@/lib/workflow/sticky-note";
 import {
   addNodeAtom,
   deleteEdgeAtom,
@@ -17,7 +18,6 @@ import {
   selectedNodeAtom,
   type WorkflowNode,
 } from "@/lib/workflow-store";
-import { createStickyNoteNode } from "@/lib/workflow/sticky-note";
 
 export type ContextMenuType = "node" | "edge" | "pane" | null;
 

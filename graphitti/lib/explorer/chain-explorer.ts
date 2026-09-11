@@ -1,5 +1,5 @@
-import { requireChain } from "@/lib/web3/chains";
 import type { ExplorerConfig } from "@/lib/explorer/types";
+import { requireChain } from "@/lib/web3/chains";
 
 export function getExplorerConfigForNetwork(network: string): ExplorerConfig {
   const chain = requireChain(network);

@@ -24,12 +24,8 @@ function evaluateForEach(input: ForEachInput): ForEachResult {
 }
 
 // biome-ignore lint/suspicious/useAwait: workflow "use step" requires async
-export async function forEachStep(
-  input: ForEachInput
-): Promise<ForEachResult> {
+export async function forEachStep(input: ForEachInput): Promise<ForEachResult> {
   "use step";
-  return withStepLogging(input, () =>
-    Promise.resolve(evaluateForEach(input))
-  );
+  return withStepLogging(input, () => Promise.resolve(evaluateForEach(input)));
 }
 forEachStep.maxRetries = 0;

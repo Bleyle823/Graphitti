@@ -2,32 +2,26 @@ import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
 import { SupabaseIcon } from "./icon";
 
-const kelpOutputFields = [
+const latestRowOutputFields = [
   { field: "rows", description: "Matching table rows" },
   { field: "count", description: "Number of rows returned" },
-  { field: "latest", description: "First row when limit >= 1" },
-  { field: "has_match", description: "True when at least one row matches" },
-  { field: "should_alert", description: "Kelp: latest.should_alert" },
-  { field: "deviation_bps", description: "Kelp: latest.deviation_bps" },
   {
-    field: "bridge_deviation_bps",
-    description: "Kelp: latest.bridge_deviation_bps",
+    field: "latest",
+    description:
+      "Most recent row; each column is also available by name (e.g. status, block_number)",
   },
-  { field: "block_number", description: "Kelp: latest.block_number" },
-  { field: "mainnet_supply", description: "Kelp: latest.mainnet_supply" },
-  { field: "arb_supply", description: "Kelp: latest.arb_supply" },
-  { field: "total_backing", description: "Kelp: latest.total_backing" },
-  { field: "excess", description: "Kelp: latest.excess" },
+  { field: "has_match", description: "True when at least one row was returned" },
   {
-    field: "effective_supply",
-    description: "Kelp: latest.effective_supply",
+    field: "alert_summary",
+    description: "Optional summary when the row includes should_alert",
   },
 ];
 
 const supabasePlugin: IntegrationPlugin = {
   type: "supabase",
   label: "Supabase",
-  description: "Query tables via Supabase PostgREST REST API",
+  description:
+    "Read live rows from Supabase with project URL + anon key — no SQL in the workflow",
   icon: SupabaseIcon,
 
   formFields: [
@@ -52,7 +46,7 @@ const supabasePlugin: IntegrationPlugin = {
       configKey: "anonKey",
       envVar: "SUPABASE_ANON_KEY",
       helpText:
-        "Publishable anon key for read-only access via RLS. Do not use the service role key in workflows.",
+        "Publishable anon key. Works with any table your RLS policy allows the anon role to read.",
     },
   ],
 
@@ -65,68 +59,125 @@ const supabasePlugin: IntegrationPlugin = {
 
   actions: [
     {
-      slug: "query-table",
-      label: "Query table",
+      slug: "get-latest-row",
+      label: "Get latest row",
       description:
-        "Read rows from a Supabase table through PostgREST (select, order, filter, limit)",
+        "Fetch the newest row from any Supabase table — set table name and sort column",
       category: "Supabase",
-      stepFunction: "queryTableStep",
-      stepImportPath: "query-table",
-      outputFields: kelpOutputFields,
+      stepFunction: "getLatestRowStep",
+      stepImportPath: "get-latest-row",
+      outputFields: latestRowOutputFields,
       configFields: [
         {
           key: "table",
           label: "Table",
           type: "template-input",
-          placeholder: "backing_snapshots",
-          example: "backing_snapshots",
+          placeholder: "your_table",
+          example: "events",
           required: true,
         },
         {
-          key: "select",
-          label: "Select columns",
-          type: "template-input",
-          placeholder: "* or block_number,should_alert",
-          defaultValue: "*",
-        },
-        {
           key: "orderBy",
-          label: "Order by",
+          label: "Sort by column",
           type: "template-input",
-          placeholder: "block_number",
-          defaultValue: "block_number",
+          placeholder: "created_at",
+          defaultValue: "created_at",
+          required: true,
         },
         {
           key: "orderDirection",
-          label: "Order direction",
+          label: "Sort direction",
           type: "select",
           options: [
-            { value: "desc", label: "Descending" },
-            { value: "asc", label: "Ascending" },
+            { value: "desc", label: "Newest first" },
+            { value: "asc", label: "Oldest first" },
           ],
           defaultValue: "desc",
         },
         {
-          key: "limit",
-          label: "Row limit",
-          type: "number",
-          placeholder: "1",
-          defaultValue: "1",
-          min: 1,
-          max: 1000,
-        },
-        {
-          key: "filters",
-          label: "PostgREST filters",
+          key: "select",
+          label: "Columns",
           type: "template-input",
-          placeholder: "should_alert=eq.true",
-          example: "should_alert=eq.true",
+          placeholder: "* or id,status,created_at",
+          defaultValue: "*",
         },
         {
           key: "schema",
           label: "Schema profile",
           type: "template-input",
-          placeholder: "arbitrum (optional; default public)",
+          placeholder: "public (default) or arbitrum",
+        },
+      ],
+    },
+    {
+      slug: "query-table",
+      label: "Query table",
+      description:
+        "Read multiple rows with PostgREST filters, limits, and custom ordering",
+      category: "Supabase",
+      stepFunction: "queryTableStep",
+      stepImportPath: "query-table",
+      outputFields: latestRowOutputFields,
+      configFields: [
+        {
+          key: "table",
+          label: "Table",
+          type: "template-input",
+          placeholder: "your_table",
+          example: "events",
+          required: true,
+        },
+        {
+          type: "group",
+          label: "Query options",
+          defaultExpanded: false,
+          fields: [
+            {
+              key: "select",
+              label: "Columns",
+              type: "template-input",
+              placeholder: "* or id,status",
+              defaultValue: "*",
+            },
+            {
+              key: "orderBy",
+              label: "Sort by column",
+              type: "template-input",
+              placeholder: "created_at",
+            },
+            {
+              key: "orderDirection",
+              label: "Sort direction",
+              type: "select",
+              options: [
+                { value: "desc", label: "Descending" },
+                { value: "asc", label: "Ascending" },
+              ],
+              defaultValue: "desc",
+            },
+            {
+              key: "limit",
+              label: "Row limit",
+              type: "number",
+              placeholder: "10",
+              defaultValue: "10",
+              min: 1,
+              max: 1000,
+            },
+            {
+              key: "filters",
+              label: "PostgREST filters",
+              type: "template-input",
+              placeholder: "status=eq.active",
+              example: "status=eq.active",
+            },
+            {
+              key: "schema",
+              label: "Schema profile",
+              type: "template-input",
+              placeholder: "public (default) or arbitrum",
+            },
+          ],
         },
       ],
     },

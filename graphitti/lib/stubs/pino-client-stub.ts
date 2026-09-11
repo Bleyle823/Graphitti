@@ -31,7 +31,7 @@ export const levels = {
 } as const;
 
 function createLogger(): Logger {
-  const noop: LogFn = () => undefined;
+  const noop: LogFn = () => {};
   return {
     info: noop,
     error: noop,

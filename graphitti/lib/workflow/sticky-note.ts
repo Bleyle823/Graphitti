@@ -39,7 +39,8 @@ export const STICKY_NOTE_COLORS: StickyNoteColor[] = [
 ];
 
 export const STICKY_NOTE_COLOR_CLASSES: Record<StickyNoteColor, string> = {
-  yellow: "bg-amber-200/70 border-amber-300/80 dark:bg-amber-400/25 dark:border-amber-500/40",
+  yellow:
+    "bg-amber-200/70 border-amber-300/80 dark:bg-amber-400/25 dark:border-amber-500/40",
   pink: "bg-pink-200/70 border-pink-300/80 dark:bg-pink-400/25 dark:border-pink-500/40",
   blue: "bg-sky-200/70 border-sky-300/80 dark:bg-sky-400/25 dark:border-sky-500/40",
   green:
@@ -66,12 +67,14 @@ export const STICKY_NOTE_FONT_SIZE_CLASSES: Record<StickyNoteFontSize, string> =
     lg: "text-base leading-relaxed",
   };
 
-export const STICKY_NOTE_TEXT_ALIGN_CLASSES: Record<StickyNoteTextAlign, string> =
-  {
-    left: "text-left",
-    center: "text-center",
-    right: "text-right",
-  };
+export const STICKY_NOTE_TEXT_ALIGN_CLASSES: Record<
+  StickyNoteTextAlign,
+  string
+> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
 
 export const STICKY_NOTE_MIN_WIDTH = 160;
 export const STICKY_NOTE_MIN_HEIGHT = 120;
@@ -103,9 +106,7 @@ export function parseStickyNoteConfig(
   };
 }
 
-export function createStickyNoteNodeData(
-  config?: Partial<StickyNoteConfig>
-): {
+export function createStickyNoteNodeData(config?: Partial<StickyNoteConfig>): {
   label: string;
   description: string;
   type: "note";
