@@ -7,7 +7,12 @@ export type SupportedChain = {
   nativeSymbol: string;
   nativeDecimals: number;
   cctpDomain?: number;
+  /** Chains that reject transactions below a protocol fee floor (Arc). */
+  minMaxFeePerGasWei?: bigint;
 };
+
+/** Arc rejects transactions with maxFeePerGas below 20 Gwei. */
+export const ARC_MIN_MAX_FEE_PER_GAS_WEI = BigInt("20000000000");
 
 export const ARC_USDC_ERC20 =
   "0x3600000000000000000000000000000000000000" as const;
@@ -75,6 +80,7 @@ export const CHAINS: Record<string, SupportedChain> = {
     nativeSymbol: "USDC",
     nativeDecimals: 18,
     cctpDomain: 26,
+    minMaxFeePerGasWei: ARC_MIN_MAX_FEE_PER_GAS_WEI,
   },
   sepolia: {
     id: "sepolia",

@@ -1,8 +1,10 @@
 import "server-only";
 
+import { logWarn } from "@/lib/logging";
 import { type SupportedChain, toCaip2 } from "./chains";
 import { privyFetch } from "./privy-client";
-import { getPrivyGasConfigForChain } from "./privy-gas";
+import { getPrivyGasAttempts, type PrivyGasAttempt } from "./privy-gas";
+import { sendRawTransaction } from "./privy-raw-tx";
 
 type RpcSuccess = {
   method: string;
@@ -34,16 +36,49 @@ export type SendSponsoredTxResult = {
   gasAsset?: string;
 };
 
-export async function sendSponsoredTransaction(
-  input: SendSponsoredTxInput
-): Promise<SendSponsoredTxResult> {
-  const gas = getPrivyGasConfigForChain(input.chain);
-  const sponsor = input.sponsor ?? gas.sponsor;
+/**
+ * Errors that mean "this gas payment route is unavailable" rather than "this
+ * transaction is invalid" — the send is retried on the next route.
+ */
+const GAS_ROUTE_FAILURE_PATTERNS = [
+  "erc20 sponsorship",
+  "erc-20 gas sponsorship",
+  "no balance of the token",
+  "sponsor_options",
+  "sponsorship is not enabled",
+  "gas sponsorship",
+  "gas credits",
+  "paymaster",
+  "asset is not configured",
+  "not configured for",
+  "unsupported chain",
+  "insufficient balance",
+] as const;
 
+/** Privy only broadcasts on chains enabled for the app (Arc is not). */
+const CHAIN_NOT_AUTHORIZED_PATTERNS = [
+  "not authorized to transact on chain",
+  "chain is not supported",
+  "unsupported caip2",
+] as const;
+
+function matchesAny(message: string, patterns: readonly string[]): boolean {
+  const normalized = message.toLowerCase();
+  return patterns.some((pattern) => normalized.includes(pattern));
+}
+
+async function submitTransaction(input: {
+  walletId: string;
+  chain: SupportedChain;
+  to: string;
+  data?: string;
+  value?: string;
+  attempt: PrivyGasAttempt;
+}): Promise<string> {
   const body: Record<string, unknown> = {
     method: "eth_sendTransaction",
     caip2: toCaip2(input.chain),
-    sponsor,
+    sponsor: input.attempt.sponsor,
     params: {
       transaction: {
         to: input.to,
@@ -54,8 +89,8 @@ export async function sendSponsoredTransaction(
   };
 
   // User-pays: wallet pays gas in USDC (or configured asset); app credits untouched.
-  if (sponsor && gas.sponsorOptions) {
-    body.sponsor_options = gas.sponsorOptions;
+  if (input.attempt.sponsorOptions) {
+    body.sponsor_options = input.attempt.sponsorOptions;
   }
 
   const result = await privyFetch<RpcSuccess>(
@@ -72,13 +107,53 @@ export async function sendSponsoredTransaction(
   if (!hash) {
     throw new Error("Privy did not return a transaction hash");
   }
+  return hash;
+}
 
-  return {
-    hash,
-    sponsored: sponsor,
-    gasMode: gas.mode,
-    gasAsset: gas.sponsorOptions?.asset,
-  };
+export async function sendSponsoredTransaction(
+  input: SendSponsoredTxInput
+): Promise<SendSponsoredTxResult> {
+  const attempts =
+    input.sponsor === false
+      ? [{ label: "self-pay", sponsor: false } satisfies PrivyGasAttempt]
+      : getPrivyGasAttempts(input.chain);
+
+  const failures: string[] = [];
+
+  for (const attempt of attempts) {
+    try {
+      const hash = await submitTransaction({ ...input, attempt });
+      return {
+        hash,
+        sponsored: attempt.sponsor,
+        gasMode: attempt.label,
+        gasAsset: attempt.asset,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (matchesAny(message, CHAIN_NOT_AUTHORIZED_PATTERNS)) {
+        logWarn("[Privy] Chain not enabled for app; signing and broadcasting", {
+          chain: input.chain.id,
+        });
+        const raw = await sendRawTransaction(input);
+        return { hash: raw.hash, sponsored: false, gasMode: "self-pay-raw" };
+      }
+
+      failures.push(`${attempt.label}: ${message}`);
+      if (!matchesAny(message, GAS_ROUTE_FAILURE_PATTERNS)) {
+        throw error;
+      }
+      logWarn("[Privy] Gas route unavailable, trying next", {
+        chain: input.chain.id,
+        gas_mode: attempt.label,
+      });
+    }
+  }
+
+  throw new Error(
+    `No gas payment route succeeded on ${input.chain.label}. ${failures.join("; ")}`
+  );
 }
 
 export async function personalSign(options: {
