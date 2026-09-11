@@ -1,0 +1,17 @@
+specVersion: 0.0.6
+description: Kelp rsETH unbacked-mint detector (mainnet supply + LRTDepositPool backing vs Arbitrum OFT)
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: substreams
+    name: kelp-rseth-unbacked-mints
+    network: mainnet
+    source:
+      startBlock: 25900000
+      package:
+        moduleName: graph_out_subgraph
+        file: substreams-challenge-v0.1.0.spkg
+    mapping:
+      kind: substreams/graph-entities
+      apiVersion: 0.0.5

@@ -1,0 +1,46 @@
+specVersion: v0.1.0
+package:
+  name: substreams_challenge
+  version: v0.1.0
+  description: Detects unbacked rsETH mints vs KelpDAO LRTDepositPool collateral
+
+imports:
+  entity: https://github.com/streamingfast/substreams-entity-change/releases/download/v1.1.0/substreams-entity-change-v1.1.0.spkg
+
+protobuf:
+  files:
+    - contract.proto
+  importPaths:
+    - ./proto
+  descriptorSets:
+    - module: buf.build/streamingfast/substreams-sink-sql
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/substreams.wasm
+
+modules:
+  - name: map_backing_mainnet
+    kind: map
+    initialBlock: 25900000
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:contract.v1.BackingSnapshots
+
+  - name: graph_out_subgraph
+    kind: map
+    initialBlock: 25900000
+    inputs:
+      - map: map_backing_mainnet
+    output:
+      type: proto:sf.substreams.entity.v1.EntityChanges
+
+network: mainnet
+
+sink:
+  module: map_backing_mainnet
+  type: sf.substreams.sink.sql.v1.Service
+  config:
+    engine: postgres

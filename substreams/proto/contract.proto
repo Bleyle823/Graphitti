@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package contract.v1;
+
+import "sf/substreams/sink/sql/schema/v1/schema.proto";
+
+message BackingSnapshot {
+  option (schema.table) = { name: "backing_snapshots" };
+
+  string id = 1 [(schema.field) = { primary_key: true }];
+  uint64 block_number = 2;
+  int64 timestamp = 3;
+  string mainnet_supply = 4;
+  string arb_supply = 5;
+  string total_supply = 6;
+  string steth_deposits = 7;
+  string ethx_deposits = 8;
+  string native_eth_deposits = 9;
+  string total_backing = 10;
+  string excess = 11;
+  int32 deviation_bps = 12;
+  bool should_alert = 13;
+  int32 threshold_bps = 14;
+  string adapter_balance = 15;
+  string effective_supply = 16;
+  string bridge_excess = 17;
+  int32 bridge_deviation_bps = 18;
+}
+
+message BackingSnapshots {
+  repeated BackingSnapshot snapshots = 1;
+}
+
+message ArbRsethSupply {
+  option (schema.table) = { name: "arb_rseth_supply" };
+
+  string supply = 1;
+  uint64 block_number = 2 [(schema.field) = { primary_key: true }];
+}

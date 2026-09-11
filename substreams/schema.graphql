@@ -1,0 +1,20 @@
+type BackingSnapshot @entity(immutable: true) {
+  id: ID!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  mainnetSupply: BigInt!
+  arbSupply: BigInt!
+  totalSupply: BigInt!
+  stethDeposits: BigInt!
+  ethxDeposits: BigInt!
+  nativeEthDeposits: BigInt!
+  totalBacking: BigInt!
+  excess: BigInt!
+  deviationBps: Int!
+  shouldAlert: Boolean!
+  thresholdBps: Int!
+  adapterBalance: BigInt!
+  effectiveSupply: BigInt!
+  bridgeExcess: BigInt!
+  bridgeDeviationBps: Int!
+}

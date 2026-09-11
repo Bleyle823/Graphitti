@@ -24,7 +24,8 @@ const STEPS = [
     notes: [
       "Map module emits your proto entities.",
       "graph_out converts to proto:sf.substreams.sink.entity.v1.EntityChanges.",
-      "See substreams/kelp-rseth-backing-alerts (+ kelp-rseth-arbitrum-supply store) for reference.",
+      "See substreams/ (monolithic crate: substreams.yaml + substreams.arbitrum.yaml).",
+      "For SQL sink → Supabase (no Studio subgraph), use Kelp rsETH Backing Monitor (Supabase) workflow.",
     ],
   },
   {
@@ -37,16 +38,19 @@ const STEPS = [
   {
     title: "5. Deploy subgraph to Graph Studio (24/7 indexer)",
     commands: [
-      "graph auth --studio <DEPLOY_KEY>",
-      "graph codegen && graph build",
-      "graph deploy --studio <your-subgraph-slug>",
+      "pnpm substreams:deploy-kelp",
+      "# or manually: cd substreams && make deploy-subgraph",
+    ],
+    notes: [
+      "Writes substreams/deployments.json with subgraph id.",
+      "Graphitti Kelp workflow resolves id from deployments.json — no manual paste.",
     ],
   },
   {
     title: "6. Bind subgraph to Graphitti workflow",
     notes: [
-      "Record subgraph id from Studio / Explorer.",
-      "Paste id into the-graph/query-substreams-entity node (id field).",
+      "Kelp rsETH Backing Monitor template wires Query + Status nodes to Resolve Substreams Package.subgraph_id.",
+      "Ensure deployments.json has id after deploy (or set KELP_SUBGRAPH_ID as fallback).",
       "Configure entityName, whereJson, orderBy, minField as needed.",
       "Optional: the-graph/get-substreams-stream-status to confirm _meta sync.",
     ],
@@ -82,5 +86,5 @@ for (const step of STEPS) {
 
 console.log(`\n${"=".repeat(60)}`);
 console.log(
-  "\nReference packages:\n  substreams/kelp-rseth-arbitrum-supply/ (Arbitrum store)\n  substreams/kelp-rseth-backing-alerts/ (mainnet + graph_out)\n"
+  "\nReference package:\n  substreams/ (Kelp SQL sink → Supabase; Kelp Supabase workflow)\n"
 );

@@ -1,4 +1,6 @@
 import { fail } from "@/lib/http-json";
+import { kelpSubgraphManifestFallback } from "@/lib/the-graph/kelp-substreams-deployments";
+import { getErrorMessage } from "@/lib/utils";
 import { graphQlPost, subgraphQueryUrl, subgraphX402Url } from "@/lib/the-graph/gateway";
 import type { TheGraphCredentials } from "../credentials";
 import { validateGatewayApiKey } from "../credentials";
@@ -114,4 +116,156 @@ export function asRecordArray(value: unknown): Record<string, unknown>[] {
     return [];
   }
   return value.filter(isRecord);
+}
+
+const UNRESOLVED_SUBGRAPH_ID_PATTERNS = [
+  /^YOUR_.*SUBGRAPH_ID$/i,
+  /^YOUR_SUBGRAPH_ID$/i,
+  /^subgraph_id_here$/i,
+];
+
+export function isUnresolvedSubgraphId(value: unknown): boolean {
+  if (typeof value !== "string" || value.trim() === "") {
+    return true;
+  }
+  const trimmed = value.trim();
+  if (trimmed.includes("{{")) {
+    return false;
+  }
+  return UNRESOLVED_SUBGRAPH_ID_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+const KELP_PACKAGE_SLUG = "kelp-rseth-backing-alerts";
+
+const SUBGRAPH_BY_SLUG_QUERY = `
+query SubgraphBySlug($keyword: String!, $first: Int!) {
+  subgraphMetadataSearch(text: $keyword, first: $first) {
+    displayName
+    subgraphs {
+      id
+      currentVersion {
+        subgraphDeployment {
+          id
+          ipfsHash
+        }
+      }
+    }
+  }
+}
+`;
+
+export type ResolvedSubgraphIdentifiers = {
+  id?: string;
+  deploymentId?: string;
+  ipfsHash?: string;
+};
+
+export async function lookupSubgraphByPackageSlug(
+  slug: string,
+  apiKey: string
+): Promise<ResolvedSubgraphIdentifiers | null> {
+  const result = await postNetworkSubgraph({
+    apiKey,
+    query: SUBGRAPH_BY_SLUG_QUERY,
+    variables: { keyword: slug, first: 10 },
+  });
+  const gqlError = graphqlErrorMessage(result.errors);
+  if (gqlError) {
+    return null;
+  }
+
+  const searchResults = isRecord(result.data)
+    ? asRecordArray(result.data.subgraphMetadataSearch)
+    : [];
+  const slugLower = slug.toLowerCase();
+
+  for (const item of searchResults) {
+    const displayName = asString(item.displayName)?.toLowerCase() ?? "";
+    if (!displayName.includes(slugLower) && displayName !== slugLower) {
+      continue;
+    }
+    const subgraphs = asRecordArray(item.subgraphs);
+    const match = subgraphs[0];
+    if (!match) {
+      continue;
+    }
+    const deployment = isRecord(match.currentVersion)
+      ? isRecord(match.currentVersion.subgraphDeployment)
+        ? match.currentVersion.subgraphDeployment
+        : null
+      : null;
+    return {
+      id: asString(match.id),
+      deploymentId: deployment ? asString(deployment.id) : undefined,
+      ipfsHash: deployment ? asString(deployment.ipfsHash) : undefined,
+    };
+  }
+
+  return null;
+}
+
+export function kelpSubgraphEnvFallback(): ResolvedSubgraphIdentifiers {
+  return {
+    id: process.env.KELP_SUBGRAPH_ID?.trim() || undefined,
+    deploymentId: process.env.KELP_DEPLOYMENT_ID?.trim() || undefined,
+    ipfsHash: process.env.KELP_IPFS_HASH?.trim() || undefined,
+  };
+}
+
+export function graphStepError(context: string, error: unknown): string {
+  return `${context}: ${getErrorMessage(error)}`;
+}
+
+export async function resolveSubgraphIdentifiers(input: {
+  id?: string;
+  deploymentId?: string;
+  ipfsHash?: string;
+  packageSlug?: string;
+  apiKey: string;
+}): Promise<
+  | { ok: true; identifiers: ResolvedSubgraphIdentifiers }
+  | { ok: false; error: string }
+> {
+  let id = input.id?.trim();
+  let deploymentId = input.deploymentId?.trim();
+  let ipfsHash = input.ipfsHash?.trim();
+
+  if (id && isUnresolvedSubgraphId(id)) {
+    id = undefined;
+  }
+  if (deploymentId && isUnresolvedSubgraphId(deploymentId)) {
+    deploymentId = undefined;
+  }
+  if (ipfsHash && isUnresolvedSubgraphId(ipfsHash)) {
+    ipfsHash = undefined;
+  }
+
+  if (id || deploymentId || ipfsHash) {
+    return { ok: true, identifiers: { id, deploymentId, ipfsHash } };
+  }
+
+  const manifestFallback = kelpSubgraphManifestFallback();
+  if (
+    manifestFallback.id ||
+    manifestFallback.deploymentId ||
+    manifestFallback.ipfsHash
+  ) {
+    return { ok: true, identifiers: manifestFallback };
+  }
+
+  const envFallback = kelpSubgraphEnvFallback();
+  if (envFallback.id || envFallback.deploymentId || envFallback.ipfsHash) {
+    return { ok: true, identifiers: envFallback };
+  }
+
+  const slug = input.packageSlug?.trim() || KELP_PACKAGE_SLUG;
+  const discovered = await lookupSubgraphByPackageSlug(slug, input.apiKey);
+  if (discovered?.id || discovered?.deploymentId || discovered?.ipfsHash) {
+    return { ok: true, identifiers: discovered };
+  }
+
+  return {
+    ok: false,
+    error: `Subgraph not deployed for "${slug}". Run pnpm substreams:deploy-kelp (writes substreams/deployments.json), or set KELP_SUBGRAPH_ID in .env.local.`,
+  };
 }

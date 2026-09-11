@@ -1,0 +1,16 @@
+{
+  "package": "substreams-challenge-v0.1.0.spkg",
+  "subgraph": {
+    "slug": "kelp-rseth-unbacked-mints",
+    "network": "mainnet",
+    "startBlock": 25900000,
+    "module": "graph_out_subgraph",
+    "ipfs": {
+      "manifest": "QmaMWCkuBwTdLJvbMZupiPiS5HHKBaeY7mEi8zFtUUdBg8",
+      "schema": "QmPVKhCLDfN7pJzknRbjNmuTGVB8mA13BEQg9UUB1h9GGF",
+      "spkg": "QmRRSeEfFfzMMrH17NV5KX47CmT4as4bhQ5QH2BBKqYwye"
+    },
+    "studioUrl": "https://thegraph.com/studio/subgraph/kelp-rseth-unbacked-mints"
+  },
+  "notes": "IPFS upload succeeded. Studio deploy needs a Subgraph Studio deploy key (graph auth). Then: graph deploy kelp-rseth-unbacked-mints --version-label 0.1.0"
+}

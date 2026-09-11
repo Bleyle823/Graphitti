@@ -1,0 +1,42 @@
+specVersion: v0.1.0
+package:
+  name: kelp-rseth-arbitrum-supply
+  version: v0.1.0
+  description: rsETH OFT totalSupply on Arbitrum for Kelp unbacked-mint detection
+
+protobuf:
+  files:
+    - contract.proto
+  importPaths:
+    - ./proto
+  descriptorSets:
+    - module: buf.build/streamingfast/substreams-sink-sql
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/substreams.wasm
+
+network: arbitrum-one
+
+modules:
+  - name: map_arb_rseth_supply
+    kind: map
+    initialBlock: 504100000
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:contract.v1.ArbRsethSupply
+
+  - name: store_arb_rseth_supply
+    kind: store
+    updatePolicy: set
+    valueType: proto:contract.v1.ArbRsethSupply
+    inputs:
+      - map: map_arb_rseth_supply
+
+sink:
+  module: map_arb_rseth_supply
+  type: sf.substreams.sink.sql.v1.Service
+  config:
+    engine: postgres

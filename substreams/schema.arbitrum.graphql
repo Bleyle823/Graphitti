@@ -1,0 +1,5 @@
+type ArbRsethSupply @entity(immutable: true) {
+  id: ID!
+  blockNumber: BigInt!
+  supply: BigInt!
+}

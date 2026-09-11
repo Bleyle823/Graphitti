@@ -1,0 +1,42 @@
+specVersion: v0.1.0
+package:
+  name: substreams_challenge
+  version: v0.1.0
+  description: Cross-chain Kelp backing monitor (mainnet + Arbitrum OFT store)
+
+imports:
+  entity: https://github.com/streamingfast/substreams-entity-change/releases/download/v1.1.0/substreams-entity-change-v1.1.0.spkg
+  arbitrum_supply:
+    file: ./substreams.arbitrum.yaml
+
+protobuf:
+  files:
+    - contract.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/substreams.wasm
+
+modules:
+  - name: map_backing_snapshots
+    kind: map
+    initialBlock: 25900000
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+      - store: arbitrum_supply:store_arb_rseth_supply
+        mode: get
+    output:
+      type: proto:contract.v1.BackingSnapshots
+
+  - name: graph_out
+    kind: map
+    initialBlock: 25900000
+    inputs:
+      - map: map_backing_snapshots
+    output:
+      type: proto:sf.substreams.entity.v1.EntityChanges
+
+network: mainnet

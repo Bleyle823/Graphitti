@@ -1,0 +1,17 @@
+specVersion: 0.0.6
+description: Kelp rsETH OFT totalSupply on Arbitrum
+schema:
+  file: ./schema.arbitrum.graphql
+
+dataSources:
+  - kind: substreams
+    name: kelp-rseth-arbitrum-supply
+    network: arbitrum-one
+    source:
+      startBlock: 501000000
+      package:
+        moduleName: graph_out_arb
+        file: kelp-rseth-arbitrum-supply-v0.1.0.spkg
+    mapping:
+      kind: substreams/graph-entities
+      apiVersion: 0.0.5

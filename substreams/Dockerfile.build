@@ -1,0 +1,19 @@
+FROM rust:1.88-bookworm
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl git pkg-config libssl-dev ca-certificates protobuf-compiler \
+  && rm -rf /var/lib/apt/lists/*
+
+ARG BUF_VERSION=1.47.2
+
+RUN curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64" \
+    -o /usr/local/bin/buf \
+  && chmod +x /usr/local/bin/buf
+
+RUN curl -fsSL "https://github.com/streamingfast/substreams/releases/latest/download/substreams_linux_x86_64.tar.gz" \
+    | tar -xz -C /usr/local/bin substreams \
+  && chmod +x /usr/local/bin/substreams
+
+RUN rustup target add wasm32-unknown-unknown
+
+WORKDIR /work

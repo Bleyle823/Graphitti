@@ -8,6 +8,12 @@ import {
   packageSpkgUrl,
   searchSubstreamsPackages,
 } from "@/lib/the-graph/substreams-registry";
+import {
+  deploymentsManifestPath,
+  kelpPackageFromManifest,
+  kelpSubgraphDeployedIdentifiers,
+  loadKelpSubstreamsDeployments,
+} from "@/lib/the-graph/kelp-substreams-deployments";
 import type { TheGraphCredentials } from "../credentials";
 import { loadTheGraphCredentials } from "../load-credentials";
 import {
@@ -15,8 +21,11 @@ import {
   asRecordArray,
   asString,
   graphqlErrorMessage,
+  graphStepError,
   isRecord,
+  lookupSubgraphByPackageSlug,
   requireGatewayKey,
+  resolveSubgraphIdentifiers,
 } from "./shared";
 
 type StreamInput = StepInput & {
@@ -241,16 +250,23 @@ async function queryEntityHandler(
     return apiKey;
   }
 
+  const resolvedIds = await resolveSubgraphIdentifiers({
+    id: input.id,
+    deploymentId: input.deploymentId,
+    ipfsHash: input.ipfsHash,
+    packageSlug: "kelp-rseth-backing-alerts",
+    apiKey,
+  });
+  if (!resolvedIds.ok) {
+    return fail(resolvedIds.error);
+  }
+
   const parsedWhere = parseWhereJson(input.whereJson);
   if (!parsedWhere.ok) {
     return fail(parsedWhere.error);
   }
 
-  const resolved = resolveGatewayUrl({
-    id: input.id,
-    deploymentId: input.deploymentId,
-    ipfsHash: input.ipfsHash,
-  });
+  const resolved = resolveGatewayUrl(resolvedIds.identifiers);
   if ("error" in resolved) {
     return fail(resolved.error);
   }
@@ -324,7 +340,7 @@ async function queryEntityHandler(
       query_url_x402: resolved.x402Url,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Substreams stream request failed", error));
   }
 }
 
@@ -373,6 +389,8 @@ async function resolvePackageHandler(
       defaultEndpointForNetwork("ethereum");
 
     if (!version) {
+      const fallback = kelpSubgraphDeployedIdentifiers();
+      const manifest = loadKelpSubstreamsDeployments();
       return ok({
         slug,
         found: false,
@@ -381,13 +399,39 @@ async function resolvePackageHandler(
         reference: null,
         endpoint,
         deploy_steps: DEPLOY_STEPS,
-        note: `Package "${slug}" not found in registry. Build and publish your spkg first.`,
+        note: `Package "${slug}" not found in registry. Run pnpm substreams:deploy-kelp to build, publish, and deploy.`,
+        deployments_manifest: deploymentsManifestPath(),
+        manifest,
         query_url: "https://substreams.dev/v1/registry/packages",
         query_url_x402: "",
+        subgraph_id: fallback.id ?? null,
+        deployment_id: fallback.deploymentId ?? null,
+        ipfs_hash: fallback.ipfsHash ?? null,
       });
     }
 
+    const apiKey = requireGatewayKey(credentials);
+    const deployedIds = kelpSubgraphDeployedIdentifiers();
+    let subgraph_id: string | null = deployedIds.id ?? null;
+    let deployment_id: string | null = deployedIds.deploymentId ?? null;
+    let ipfs_hash: string | null = deployedIds.ipfsHash ?? null;
+
+    if (typeof apiKey === "string") {
+      const discovered = await lookupSubgraphByPackageSlug(slug, apiKey);
+      if (discovered?.id) {
+        subgraph_id = discovered.id;
+      }
+      if (discovered?.deploymentId) {
+        deployment_id = discovered.deploymentId;
+      }
+      if (discovered?.ipfsHash) {
+        ipfs_hash = discovered.ipfsHash;
+      }
+    }
+
     const spkg = packageSpkgUrl(slug, version);
+    const manifestPackage = kelpPackageFromManifest(slug);
+    const manifest = loadKelpSubstreamsDeployments();
     return ok({
       slug,
       found: true,
@@ -396,13 +440,21 @@ async function resolvePackageHandler(
       reference: `https://api.substreams.dev/v1/packages/${slug}/${version}`,
       endpoint,
       package: matched ?? null,
+      manifest_package: manifestPackage ?? null,
+      deployments_manifest: deploymentsManifestPath(),
+      manifest,
       deploy_steps: DEPLOY_STEPS,
-      note: "Setup only. Deploy Substreams + subgraph once; workflow nodes pull indexed data.",
+      note: subgraph_id
+        ? "Subgraph id resolved from deployments.json, The Graph Network, or env."
+        : "Run pnpm substreams:deploy-kelp to publish packages and deploy the Studio subgraph.",
       query_url: spkg,
       query_url_x402: "",
+      subgraph_id,
+      deployment_id,
+      ipfs_hash,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Substreams stream request failed", error));
   }
 }
 
@@ -461,11 +513,18 @@ async function streamStatusHandler(
     return apiKey;
   }
 
-  const resolved = resolveGatewayUrl({
+  const resolvedIds = await resolveSubgraphIdentifiers({
     id: input.id,
     deploymentId: input.deploymentId,
     ipfsHash: input.ipfsHash,
+    packageSlug: "kelp-rseth-backing-alerts",
+    apiKey,
   });
+  if (!resolvedIds.ok) {
+    return fail(resolvedIds.error);
+  }
+
+  const resolved = resolveGatewayUrl(resolvedIds.identifiers);
   if ("error" in resolved) {
     return fail(resolved.error);
   }
@@ -499,7 +558,7 @@ async function streamStatusHandler(
       query_url_x402: resolved.x402Url,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Substreams stream request failed", error));
   }
 }
 

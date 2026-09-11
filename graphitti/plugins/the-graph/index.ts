@@ -687,6 +687,9 @@ const theGraphPlugin: IntegrationPlugin = {
         { field: "spkg", description: "spkg URL" },
         { field: "endpoint", description: "Default gRPC endpoint" },
         { field: "deploy_steps", description: "Deploy checklist steps" },
+        { field: "subgraph_id", description: "Resolved subgraph id for graph_out queries" },
+        { field: "deployment_id", description: "Resolved deployment id" },
+        { field: "ipfs_hash", description: "Resolved deployment IPFS hash" },
         ...queryUrlOutputs,
       ],
       configFields: [
