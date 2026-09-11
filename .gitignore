@@ -35,5 +35,11 @@ hackathon/
 **/*.wasm
 **/*_pb.rs
 
+# Local Substreams / sink run artifacts
+**/*.jsonl
+**/*.err
+**/*.log
+substreams/replay.log
+
 # Node
 node_modules/
