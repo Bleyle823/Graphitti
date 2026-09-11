@@ -1,11 +1,11 @@
 "use client";
 
-import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
+import { useMemo } from "react";
 import { SaveAddressBookmark } from "@/components/address-book/save-address-bookmark";
+import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import { parseAddressBookSelection } from "@/lib/address-book-selection";
 import { toChecksumAddress } from "@/lib/address-utils";
 import { validateAddress } from "@/lib/solidity-type-fields";
-import { useMemo } from "react";
 
 type ProtocolAddressFieldProps = {
   fieldKey: string;
@@ -58,7 +58,7 @@ export function ProtocolAddressField({
         />
       </SaveAddressBookmark>
       {validation && (
-        <p className="mt-1 text-xs text-destructive">{validation}</p>
+        <p className="mt-1 text-destructive text-xs">{validation}</p>
       )}
     </div>
   );

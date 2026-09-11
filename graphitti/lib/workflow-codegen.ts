@@ -716,7 +716,10 @@ export function generateWorkflowCode(
     }
 
     // Check if this node's output is used
-    const outputIsUsed = usedNodeOutputs.has(nodeId);
+    const outputIsUsed =
+      usedNodeOutputs.has(nodeId) ||
+      actionType === "treasury/get-org-wallet" ||
+      actionType === "treasury/get-personal-wallet";
 
     // Helper to process a line with await statement
     function processAwaitLine(line: string): string {

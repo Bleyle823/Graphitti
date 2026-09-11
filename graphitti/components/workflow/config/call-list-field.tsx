@@ -2,14 +2,13 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SaveAddressBookmark } from "@/components/address-book/save-address-bookmark";
 import { Button } from "@/components/ui/button";
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import {
   AbiFunctionArgsField,
   AbiFunctionSelectField,
 } from "@/components/workflow/config/action-config-renderer";
-
-import { SaveAddressBookmark } from "@/components/address-book/save-address-bookmark";
 import type { ActionConfigFieldBase } from "@/plugins/registry";
 import { AbiWithAutoFetchField } from "./abi-with-auto-fetch-field";
 import { ChainSelectField } from "./chain-select-field";
@@ -233,9 +232,9 @@ function CallRow({
   );
 
   return (
-    <div className="rounded-md border border-border space-y-2 p-3">
+    <div className="space-y-2 rounded-md border border-border p-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="font-medium text-muted-foreground text-xs">
           Call {index + 1}
         </span>
         {onRemove && (
@@ -255,7 +254,7 @@ function CallRow({
       {!hideNetworkColumn && (
         <div className="space-y-1.5">
           <label
-            className="text-xs font-medium"
+            className="font-medium text-xs"
             htmlFor={`${fieldKey}-net-${entry.id}`}
           >
             Network
@@ -276,7 +275,7 @@ function CallRow({
 
       <div className="space-y-1.5">
         <label
-          className="text-xs font-medium"
+          className="font-medium text-xs"
           htmlFor={`${fieldKey}-addr-${entry.id}`}
         >
           Contract Address
@@ -294,7 +293,7 @@ function CallRow({
 
       <div className="space-y-1.5">
         <label
-          className="text-xs font-medium"
+          className="font-medium text-xs"
           htmlFor={`${fieldKey}-abi-${entry.id}`}
         >
           ABI
@@ -318,7 +317,7 @@ function CallRow({
 
       <div className="space-y-1.5">
         <label
-          className="text-xs font-medium"
+          className="font-medium text-xs"
           htmlFor={`${fieldKey}-fn-${entry.id}`}
         >
           Function
@@ -340,7 +339,7 @@ function CallRow({
 
       <div className="space-y-1.5">
         <label
-          className="text-xs font-medium"
+          className="font-medium text-xs"
           htmlFor={`${fieldKey}-args-${entry.id}`}
         >
           Function Arguments

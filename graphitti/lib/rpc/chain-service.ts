@@ -41,7 +41,9 @@ export async function getAllChains(): Promise<Chain[]> {
 export async function getChainByChainId(
   chainId: number
 ): Promise<Chain | null> {
-  const chain = Object.values(CHAINS).find((entry) => entry.chainId === chainId);
+  const chain = Object.values(CHAINS).find(
+    (entry) => entry.chainId === chainId
+  );
   return chain ? toChainRecord(chain) : null;
 }
 

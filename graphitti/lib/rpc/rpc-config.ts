@@ -321,7 +321,7 @@ function findRpcConfigEntry(
     }
   }
 
-  return undefined;
+  return;
 }
 
 /**

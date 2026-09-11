@@ -2,18 +2,10 @@
 
 import { ChevronDown, Info } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { SaveAddressBookmark } from "@/components/address-book/save-address-bookmark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  SUPPORTED_TIMEZONES,
-  TimezoneSelect,
-} from "@/components/ui/timezone-select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -23,7 +15,15 @@ import {
 } from "@/components/ui/select";
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import { TemplateBadgeTextarea } from "@/components/ui/template-badge-textarea";
-import { SaveAddressBookmark } from "@/components/address-book/save-address-bookmark";
+import {
+  SUPPORTED_TIMEZONES,
+  TimezoneSelect,
+} from "@/components/ui/timezone-select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { AbiComponent } from "@/components/workflow/config/abi-types";
 import { ArrayInputField } from "@/components/workflow/config/array-input-field";
 import { MalformedAbiArgsNotice } from "@/components/workflow/config/malformed-abi-notice";
@@ -34,11 +34,11 @@ import {
 } from "@/lib/abi/function-inputs";
 import { parseAbiFunctionArgs } from "@/lib/abi/parse-args";
 import { computeSelector } from "@/lib/abi/utils";
-import { evaluateShowWhen } from "@/lib/workflow/show-when";
 import { parseAddressBookSelection } from "@/lib/address-book-selection";
 import { toChecksumAddress } from "@/lib/address-utils";
 import { parseSchemaFields } from "@/lib/schema-fields";
 import { getCustomFieldRenderer } from "@/lib/workflow/extension-registry";
+import { evaluateShowWhen } from "@/lib/workflow/show-when";
 import {
   type ActionConfigField,
   type ActionConfigFieldBase,
@@ -186,7 +186,9 @@ function instantToWall(iso: string, timeZone: string): string {
   if (Number.isNaN(date.getTime())) {
     return "";
   }
-  const shifted = new Date(date.getTime() + tzOffsetMinutes(date, timeZone) * 60_000);
+  const shifted = new Date(
+    date.getTime() + tzOffsetMinutes(date, timeZone) * 60_000
+  );
   return shifted.toISOString().slice(0, 16);
 }
 
@@ -343,7 +345,9 @@ function DateTimeField({
     // Default to the browser zone only when the picker can render it; otherwise
     // fall back to UTC so the trigger never shows blank.
     const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    setBrowserTz(detected && SUPPORTED_TIMEZONES.has(detected) ? detected : "UTC");
+    setBrowserTz(
+      detected && SUPPORTED_TIMEZONES.has(detected) ? detected : "UTC"
+    );
   }, []);
 
   // Prefer the saved zone; fall back to the browser zone only when none stored.
@@ -640,7 +644,7 @@ export function AbiFunctionArgsField({
       {functionInputs.map(
         (
           input: { name: string; type: string; components?: AbiComponent[] },
-          index: number,
+          index: number
         ) => {
           const isArray = input.type.endsWith("[]");
           const baseType = isArray ? input.type.slice(0, -2) : input.type;
@@ -700,7 +704,6 @@ const FIELD_RENDERERS: Partial<
   "schema-builder": SchemaBuilderField,
 };
 
-
 /**
  * Helper: Render abi-function-select field.
  *
@@ -737,7 +740,6 @@ function renderAbiFunctionSelect(
     </div>
   );
 }
-
 
 /**
  * Helper: Render abi-function-args field
@@ -858,7 +860,9 @@ function renderField(
                 }}
                 type="button"
               >
-                <Info className={`h-3.5 w-3.5 shrink-0 text-muted-foreground ${field.docUrl ? "cursor-pointer hover:text-primary" : "cursor-help"}`} />
+                <Info
+                  className={`h-3.5 w-3.5 shrink-0 text-muted-foreground ${field.docUrl ? "cursor-pointer hover:text-primary" : "cursor-help"}`}
+                />
               </button>
             </TooltipTrigger>
             <TooltipContent
@@ -972,13 +976,7 @@ export function ActionConfigRenderer({
           );
         }
 
-        return renderField(
-          field,
-          config,
-          onUpdateConfig,
-          disabled,
-          nodeId
-        );
+        return renderField(field, config, onUpdateConfig, disabled, nodeId);
       })}
     </>
   );

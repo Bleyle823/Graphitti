@@ -2,17 +2,25 @@
 
 export const ERROR_LABELS = ["errorCategory", "errorType", "orgSlug"] as const;
 
-export function recordWorkflowExecutionError(_labels: Record<string, string>): void {}
+export function recordWorkflowExecutionError(
+  _labels: Record<string, string>
+): void {}
 
-export function recordWorkflowExecutionFinished(_labels: Record<string, string>): void {}
+export function recordWorkflowExecutionFinished(
+  _labels: Record<string, string>
+): void {}
 
 export function recordWorkflowExecutionErrorByWorkflow(
   _labels: Record<string, string>
 ): void {}
 
-export function recordWorkflowExecutionSkipped(_labels: Record<string, string>): void {}
+export function recordWorkflowExecutionSkipped(
+  _labels: Record<string, string>
+): void {}
 
-export function recordWorkflowExecutionHealed(_labels: Record<string, string>): void {}
+export function recordWorkflowExecutionHealed(
+  _labels: Record<string, string>
+): void {}
 
 export const prometheusMetricsCollector = {
   incrementCounter: () => {},

@@ -12,6 +12,7 @@ import {
   asRecordArray,
   asString,
   graphqlErrorMessage,
+  graphStepError,
   isRecord,
   postNetworkSubgraph,
   queryUrlsForId,
@@ -332,7 +333,7 @@ async function searchHandler(input: DiscoveryInput, credentials: TheGraphCredent
       httpStatus: result.httpStatus,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph discovery request failed", error));
   }
 }
 
@@ -400,7 +401,7 @@ async function recommendHandler(
       httpStatus: result.httpStatus,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph discovery request failed", error));
   }
 }
 
@@ -457,7 +458,7 @@ async function detailHandler(
       httpStatus: result.httpStatus,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph discovery request failed", error));
   }
 }
 
@@ -511,7 +512,7 @@ async function schemaHandler(
       httpStatus: result.httpStatus,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph discovery request failed", error));
   }
 }
 
@@ -557,7 +558,7 @@ async function findByContractHandler(
       httpStatus: result.httpStatus,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph discovery request failed", error));
   }
 }
 

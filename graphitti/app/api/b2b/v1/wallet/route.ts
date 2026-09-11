@@ -10,9 +10,10 @@ export function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "wallet:read",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["wallet:read"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }

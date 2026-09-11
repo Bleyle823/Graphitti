@@ -1,25 +1,23 @@
-import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { requireB2bAuth, resolveOrganizationId } from "@/lib/auth/b2b-auth";
 import { b2bError, b2bJson, b2bOptions } from "@/lib/auth/b2b-response";
-import { db } from "@/lib/db";
-import { organizationIntents } from "@/lib/db/schema";
-import { recordOrganizationIntent } from "@/lib/org/record-intent";
-import { getOrganizationWallet } from "@/lib/web3/wallet-helpers";
 import { requireOrgMemberForUser } from "@/lib/org/auth-helpers";
+import { recordOrganizationIntent } from "@/lib/org/record-intent";
 import {
   createPrivyTransferIntent,
   type WalletTransferRequest,
 } from "@/lib/web3/privy-client";
+import { getOrganizationWallet } from "@/lib/web3/wallet-helpers";
 
 export function OPTIONS() {
   return b2bOptions();
 }
 
 export async function POST(request: Request) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "treasury:write",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["treasury:write"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }
@@ -33,7 +31,10 @@ export async function POST(request: Request) {
     sourceAsset?: string;
   };
 
-  const organizationId = resolveOrganizationId(authResult.auth, body.organizationId);
+  const organizationId = resolveOrganizationId(
+    authResult.auth,
+    body.organizationId
+  );
   if (!organizationId) {
     return b2bError("organizationId is required on org-scoped API keys", 400);
   }
@@ -56,8 +57,9 @@ export async function POST(request: Request) {
     source: {
       chain: body.sourceChain ?? "base_sepolia",
       asset: body.sourceAsset ?? "usdc",
+      amount: body.amountUsdc,
     },
-    destination: { address: body.toAddress },
+    destination: { address: body.toAddress.trim().toLowerCase() },
     amount: body.amountUsdc,
     amount_type: "exact_input",
     nonce: randomUUID(),
@@ -65,7 +67,10 @@ export async function POST(request: Request) {
   };
 
   try {
-    const intent = await createPrivyTransferIntent(wallet.privyWalletId, transferBody);
+    const intent = await createPrivyTransferIntent(
+      wallet.privyWalletId,
+      transferBody
+    );
     await recordOrganizationIntent({
       organizationId,
       privyIntentId: intent.intent_id,
@@ -79,7 +84,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     return b2bError(
-      error instanceof Error ? error.message : "Failed to create treasury intent",
+      error instanceof Error
+        ? error.message
+        : "Failed to create treasury intent",
       502
     );
   }

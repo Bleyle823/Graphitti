@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plug, Play, Store, Workflow } from "lucide-react";
+import { Check, Play, Plug, Store, Workflow } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
@@ -91,10 +91,7 @@ export function GettingStartedChecklist({
         })}
       </ol>
       <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={() => go("/")}
-          size="sm"
-        >
+        <Button onClick={() => go("/")} size="sm">
           New workflow
         </Button>
         <Button

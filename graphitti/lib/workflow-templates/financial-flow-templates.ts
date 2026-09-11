@@ -90,7 +90,11 @@ export const FINANCIAL_FLOW_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       },
     ],
     edges: [
-      { id: "r1", source: "trigger-remittance", target: "get-wallet-remittance" },
+      {
+        id: "r1",
+        source: "trigger-remittance",
+        target: "get-wallet-remittance",
+      },
       {
         id: "r2",
         source: "get-wallet-remittance",
@@ -146,7 +150,8 @@ export const FINANCIAL_FLOW_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             useIntent: "false",
           },
           status: "idle",
-          description: "Privy routes bridging — user sets amount and destination only",
+          description:
+            "Privy routes bridging — user sets amount and destination only",
         },
       },
       {

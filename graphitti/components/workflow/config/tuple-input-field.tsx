@@ -1,8 +1,8 @@
 "use client";
 
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
-import { ArrayInputField } from "@/components/workflow/config/array-input-field";
 import type { AbiComponent } from "@/components/workflow/config/abi-types";
+import { ArrayInputField } from "@/components/workflow/config/array-input-field";
 import { ProtocolAddressField } from "@/components/workflow/config/protocol-fields/protocol-address-field";
 import { ProtocolUintField } from "@/components/workflow/config/protocol-fields/protocol-uint-field";
 
@@ -68,7 +68,7 @@ export function TupleInputField({
         return (
           <div className="space-y-1" key={`${fieldKey}-${comp.name}`}>
             <label
-              className="text-xs font-medium"
+              className="font-medium text-xs"
               htmlFor={`${fieldKey}-${comp.name}`}
             >
               {comp.name}{" "}

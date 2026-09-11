@@ -15,7 +15,7 @@ import {
 import Image from "next/image";
 import type { JSX } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError } from "@/lib/api-client";
+import { ApiError, api } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import {
   OUTPUT_DISPLAY_CONFIGS,
@@ -428,7 +428,7 @@ function ExecutionLogEntry({
   return (
     <div className="relative flex gap-3" key={log.id}>
       {/* Timeline connector */}
-      <div className="relative -ml-px flex flex-col items-center pt-2">
+      <div className="-ml-px relative flex flex-col items-center pt-2">
         {!isFirst && (
           <div className="absolute bottom-full h-2 w-px bg-border" />
         )}

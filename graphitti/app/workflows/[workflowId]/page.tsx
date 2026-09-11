@@ -571,13 +571,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
     window.addEventListener("graphitti:treasury-ready", onTreasuryReady);
     return () =>
       window.removeEventListener("graphitti:treasury-ready", onTreasuryReady);
-  }, [
-    currentWorkflowId,
-    isOwner,
-    nodes,
-    setHasUnsavedChanges,
-    updateNodeData,
-  ]);
+  }, [currentWorkflowId, isOwner, nodes, setHasUnsavedChanges, updateNodeData]);
 
   // Keyboard shortcuts
   const handleSave = useCallback(async () => {
@@ -816,7 +810,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
             {/* Collapse button - hidden while resizing */}
             {!(isDraggingResize || panelCollapsed) && (
               <button
-                className="absolute top-1/2 left-0 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border bg-background opacity-0 shadow-sm transition-opacity hover:bg-muted group-hover:opacity-100"
+                className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-0 flex size-6 items-center justify-center rounded-full border bg-background opacity-0 shadow-sm transition-opacity hover:bg-muted group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsPanelAnimating(true);

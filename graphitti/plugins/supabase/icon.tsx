@@ -1,5 +1,7 @@
-import { Database } from "lucide-react";
+import { PLUGIN_BRAND_ASSETS } from "@/lib/brand/assets";
+import { createBrandLogoIcon } from "@/lib/brand/brand-logo";
 
-export function SupabaseIcon({ className }: { className?: string }) {
-  return <Database aria-label="Supabase" className={className} />;
-}
+export const SupabaseIcon = createBrandLogoIcon(
+  PLUGIN_BRAND_ASSETS.supabase,
+  "Supabase"
+);

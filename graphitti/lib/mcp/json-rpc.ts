@@ -12,17 +12,15 @@ export type JsonRpcRequest = {
 
 export async function searchListedWorkflows(params: Record<string, unknown>) {
   const q = typeof params.q === "string" ? params.q : undefined;
-  const category = typeof params.category === "string" ? params.category : undefined;
+  const category =
+    typeof params.category === "string" ? params.category : undefined;
   const chain = typeof params.chain === "string" ? params.chain : undefined;
   const workflowType =
     params.workflowType === "read" || params.workflowType === "write"
       ? params.workflowType
       : undefined;
 
-  const filters = [
-    eq(workflows.isListed, true),
-    isNull(workflows.deletedAt),
-  ];
+  const filters = [eq(workflows.isListed, true), isNull(workflows.deletedAt)];
   if (q) {
     filters.push(ilike(workflows.name, `%${q}%`));
   }

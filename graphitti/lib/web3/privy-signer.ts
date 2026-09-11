@@ -1,8 +1,8 @@
 import "server-only";
 
-import { toCaip2, type SupportedChain } from "./chains";
+import { type SupportedChain, toCaip2 } from "./chains";
 import { privyFetch } from "./privy-client";
-import { getPrivyGasConfig } from "./privy-gas";
+import { getPrivyGasConfigForChain } from "./privy-gas";
 
 type RpcSuccess = {
   method: string;
@@ -37,7 +37,7 @@ export type SendSponsoredTxResult = {
 export async function sendSponsoredTransaction(
   input: SendSponsoredTxInput
 ): Promise<SendSponsoredTxResult> {
-  const gas = getPrivyGasConfig();
+  const gas = getPrivyGasConfigForChain(input.chain);
   const sponsor = input.sponsor ?? gas.sponsor;
 
   const body: Record<string, unknown> = {

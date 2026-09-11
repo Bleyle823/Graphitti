@@ -10,9 +10,10 @@ export function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "marketplace:read",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["marketplace:read"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }
@@ -20,7 +21,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? undefined;
   const category = searchParams.get("category") ?? undefined;
-  const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? "20")));
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(searchParams.get("limit") ?? "20"))
+  );
 
   const filters = [eq(workflows.isListed, true), isNull(workflows.deletedAt)];
   if (q) {

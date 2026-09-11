@@ -7,6 +7,7 @@ import type { TheGraphCredentials } from "../credentials";
 import { loadTheGraphCredentials } from "../load-credentials";
 import {
   graphqlErrorMessage,
+  graphStepError,
   parseVariablesJson,
   requireGatewayKey,
 } from "./shared";
@@ -108,7 +109,7 @@ async function queryHandler(input: QueryInput, credentials: TheGraphCredentials)
       input.operationName?.trim() || undefined
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph query request failed", error));
   }
 }
 
@@ -136,7 +137,7 @@ async function indexingHandler(
       query_url_x402: result.data.query_url_x402,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph query request failed", error));
   }
 }
 
@@ -168,7 +169,7 @@ async function lendingHandler(
       query_url_x402: result.data.query_url_x402,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph query request failed", error));
   }
 }
 

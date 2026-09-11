@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  Bold,
-} from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Bold } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Label } from "@/components/ui/label";
@@ -15,10 +10,10 @@ import {
   parseStickyNoteConfig,
   STICKY_NOTE_COLORS,
   STICKY_NOTE_FONT_SIZE_CLASSES,
-  type StickyNoteFontSize,
-  type StickyNoteTextAlign,
   STICKY_NOTE_SWATCH_CLASSES,
   STICKY_NOTE_TEXT_ALIGN_CLASSES,
+  type StickyNoteFontSize,
+  type StickyNoteTextAlign,
 } from "@/lib/workflow/sticky-note";
 
 type NoteConfigProps = {

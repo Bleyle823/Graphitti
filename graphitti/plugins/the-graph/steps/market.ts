@@ -5,7 +5,7 @@ import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { marketGet } from "@/lib/the-graph/market";
 import type { TheGraphCredentials } from "../credentials";
 import { loadTheGraphCredentials } from "../load-credentials";
-import { requireMarketBearer } from "./shared";
+import { graphStepError, requireMarketBearer } from "./shared";
 
 type MarketInput = StepInput & {
   integrationId?: string;
@@ -71,7 +71,7 @@ async function subscriptionHandler(
       withOrg(`${PORTAL}/GetOrganizationSubscription`, input.organizationId)
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -88,7 +88,7 @@ async function usageHandler(
       )
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -105,7 +105,7 @@ async function billPreviewHandler(
       })
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -119,7 +119,7 @@ async function connectionsHandler(
       withOrg(`${PORTAL}/ActiveConnections`, input.organizationId)
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -133,7 +133,7 @@ async function listDeploymentsHandler(
       withOrg(`${HOSTED}/ListDeployments`, input.organizationId)
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -154,7 +154,7 @@ async function deploymentStateHandler(
       })
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -176,7 +176,7 @@ async function deploymentEventsHandler(
       })
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 
@@ -199,7 +199,7 @@ async function deploymentLogsHandler(
       })
     );
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Graph market request failed", error));
   }
 }
 

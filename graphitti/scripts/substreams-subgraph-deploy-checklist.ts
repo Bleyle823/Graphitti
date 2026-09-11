@@ -25,7 +25,7 @@ const STEPS = [
       "Map module emits your proto entities.",
       "graph_out converts to proto:sf.substreams.sink.entity.v1.EntityChanges.",
       "See substreams/ (monolithic crate: substreams.yaml + substreams.arbitrum.yaml).",
-      "For SQL sink → Supabase (no Studio subgraph), use Kelp rsETH Backing Monitor (Supabase) workflow.",
+      "For SQL sink → Supabase (no Studio subgraph), use Kelp rsETH Backing Monitor (Substreams → Supabase) workflow.",
     ],
   },
   {

@@ -15,9 +15,7 @@ import { CodeEditorField } from "@/components/workflow/config/code-editor-field"
 import { FailOnErrorSwitchField } from "@/components/workflow/config/fail-on-error-switch-field";
 import { GasLimitMultiplierField } from "@/components/workflow/config/gas-limit-multiplier-field";
 import { TokenSelectField } from "@/components/workflow/config/token-select-field";
-import {
-  registerFieldRenderer,
-} from "@/lib/workflow/extension-registry";
+import { registerFieldRenderer } from "@/lib/workflow/extension-registry";
 
 // ============================================================================
 // Register Custom Field Renderers

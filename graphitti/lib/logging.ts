@@ -13,7 +13,7 @@ export const ErrorCategory = {
 } as const;
 
 export type ErrorCategory =
-  (typeof ErrorCategory)[keyof typeof ErrorCategory]
+  | (typeof ErrorCategory)[keyof typeof ErrorCategory]
   | "validation"
   | "configuration"
   | "external_service"

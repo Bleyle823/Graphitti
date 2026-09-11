@@ -1,8 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import { validateBytes } from "@/lib/solidity-type-fields";
-import { useMemo } from "react";
 
 type ProtocolBytesFieldProps = {
   fieldKey: string;
@@ -42,7 +42,7 @@ export function ProtocolBytesField({
         value={value ?? ""}
       />
       {validation && (
-        <p className="mt-1 text-xs text-destructive">{validation}</p>
+        <p className="mt-1 text-destructive text-xs">{validation}</p>
       )}
     </div>
   );

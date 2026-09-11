@@ -1,5 +1,5 @@
-import type { ComponentType } from "react";
 import Image from "next/image";
+import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 
 /** Intrinsic render size — displayed size comes from className (e.g. size-12). */

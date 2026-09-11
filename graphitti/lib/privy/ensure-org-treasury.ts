@@ -31,21 +31,6 @@ export async function ensureOrgTreasury(input: EnsureOrgTreasuryInput) {
     return { success: true as const, treasury: existing };
   }
 
-  const leftover = await db.query.organizationWallets.findFirst({
-    where: eq(organizationWallets.organizationId, input.organizationId),
-  });
-  if (leftover) {
-    try {
-      await bindOrgWalletToMemberWorkflows(input.organizationId);
-    } catch (error) {
-      console.error(
-        "[Org Treasury] Failed to bind org wallet to workflows:",
-        error
-      );
-    }
-    return { success: true as const, treasury: leftover };
-  }
-
   try {
     const provisioned = await provisionOrgTreasury({
       organizationId: input.organizationId,

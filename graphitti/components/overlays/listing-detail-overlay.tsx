@@ -16,16 +16,16 @@ export function ListingDetailOverlay({
   listing,
 }: ListingDetailOverlayProps) {
   const router = useRouter();
-  const mcpPath = listing.listedSlug
-    ? `/mcp/w/${listing.listedSlug}`
-    : null;
+  const mcpPath = listing.listedSlug ? `/mcp/w/${listing.listedSlug}` : null;
 
   const copyEndpoint = async (): Promise<void> => {
     if (!mcpPath) {
       return;
     }
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}${mcpPath}`);
+      await navigator.clipboard.writeText(
+        `${window.location.origin}${mcpPath}`
+      );
       toast.success("Endpoint copied");
     } catch {
       toast.error("Could not copy endpoint");
