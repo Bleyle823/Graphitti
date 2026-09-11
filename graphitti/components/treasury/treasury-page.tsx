@@ -3,6 +3,17 @@
 import { Building2, Plus, Trash2, Wallet } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -81,7 +92,36 @@ type OrgWalletCardProps = {
   onFundAmountChange: (value: string) => void;
   onFund: () => void;
   onProvision: () => void;
+  onDelete: () => void;
+  deleteLoading: boolean;
 };
+
+function treasuryDeletedStorageKey(organizationId: string): string {
+  return `graphitti:treasury-deleted:${organizationId}`;
+}
+
+function isTreasuryDeletedForOrg(organizationId: string): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return (
+    sessionStorage.getItem(treasuryDeletedStorageKey(organizationId)) === "1"
+  );
+}
+
+function markTreasuryDeletedForOrg(organizationId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  sessionStorage.setItem(treasuryDeletedStorageKey(organizationId), "1");
+}
+
+function clearTreasuryDeletedForOrg(organizationId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  sessionStorage.removeItem(treasuryDeletedStorageKey(organizationId));
+}
 
 function treasuryAddressLabel(
   address: string | undefined,
@@ -119,6 +159,8 @@ function OrgWalletCard({
   onFundAmountChange,
   onFund,
   onProvision,
+  onDelete,
+  deleteLoading,
 }: OrgWalletCardProps): React.ReactElement {
   return (
     <Card>
@@ -213,6 +255,38 @@ function OrgWalletCard({
           Live financial flow: Privy wallet transfer from your connected
           embedded wallet.
         </p>
+        {treasury?.address && canManage ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                className="mt-2"
+                data-testid="delete-treasury"
+                disabled={deleteLoading}
+                size="sm"
+                variant="destructive"
+              >
+                {deleteLoading ? "Deleting..." : "Delete treasury"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete treasury wallet?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Operator payroll and policy-gated transfers stop. Your
+                  personal embedded wallet is used for normal signing again.
+                  Funds stay on-chain at the treasury address; they are not
+                  swept.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>
+                  Delete treasury
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -234,6 +308,7 @@ export function TreasuryPage(): React.ReactElement {
   const [payeeLabel, setPayeeLabel] = useState("");
   const [payeeAddress, setPayeeAddress] = useState("");
   const [payeeAmount, setPayeeAmount] = useState("25");
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const autoProvisionedOrgRef = useRef<string | null>(null);
 
   const loadTreasury = useCallback(async (silent = false) => {
@@ -281,6 +356,7 @@ export function TreasuryPage(): React.ReactElement {
         }
         await loadTreasury(true);
         if (typeof window !== "undefined") {
+          clearTreasuryDeletedForOrg(organizationId);
           window.dispatchEvent(new Event("graphitti:treasury-ready"));
         }
         return true;
@@ -308,7 +384,10 @@ export function TreasuryPage(): React.ReactElement {
     if (!organizationId || data.treasury?.address || loading) {
       return;
     }
-    if (autoProvisionedOrgRef.current === organizationId) {
+    if (
+      autoProvisionedOrgRef.current === organizationId ||
+      isTreasuryDeletedForOrg(organizationId)
+    ) {
       return;
     }
     autoProvisionedOrgRef.current = organizationId;
@@ -323,7 +402,11 @@ export function TreasuryPage(): React.ReactElement {
   useEffect(() => {
     const onWalletLinked = (): void => {
       const organizationId = data?.activeOrganizationId;
-      if (!organizationId || data.treasury?.address) {
+      if (
+        !organizationId ||
+        data.treasury?.address ||
+        isTreasuryDeletedForOrg(organizationId)
+      ) {
         return;
       }
       autoProvisionedOrgRef.current = null;
@@ -390,6 +473,39 @@ export function TreasuryPage(): React.ReactElement {
       toast.error(error instanceof Error ? error.message : "Funding failed");
     } finally {
       setFundLoading(false);
+    }
+  }
+
+  async function handleDeleteTreasury() {
+    if (!data?.activeOrganizationId) {
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      const response = await fetch("/api/treasury", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: data.activeOrganizationId,
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(result.error ?? "Failed to delete treasury");
+      }
+      markTreasuryDeletedForOrg(data.activeOrganizationId);
+      autoProvisionedOrgRef.current = data.activeOrganizationId;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("graphitti:treasury-deleted"));
+      }
+      toast.success("Treasury deleted. Personal signing restored.");
+      await loadTreasury(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete treasury"
+      );
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -573,16 +689,19 @@ export function TreasuryPage(): React.ReactElement {
                 capSaving={capSaving}
                 dailyCap={dailyCap}
                 dailySpendUsedUsdc={data.dailySpendUsedUsdc ?? "0"}
+                deleteLoading={deleteLoading}
                 fundAmount={fundAmount}
                 fundLoading={fundLoading}
                 onAutoCapChange={setAutoCap}
                 onDailyCapChange={setDailyCap}
+                onDelete={() => start(handleDeleteTreasury())}
                 onFund={() => start(handleFundTreasury())}
                 onFundAmountChange={setFundAmount}
                 onProvision={() => {
                   if (!data.activeOrganizationId) {
                     return;
                   }
+                  clearTreasuryDeletedForOrg(data.activeOrganizationId);
                   autoProvisionedOrgRef.current = null;
                   start(provisionTreasury(data.activeOrganizationId));
                 }}

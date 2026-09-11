@@ -321,6 +321,15 @@ export async function createPrivyOrganization(input: {
   });
 }
 
+export async function archivePrivyWallet(
+  walletId: string
+): Promise<PrivyWallet> {
+  return await privyFetch<PrivyWallet>(`/v1/wallets/${walletId}/archive`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export async function createPrivyOrgWallet(input: {
   ownerId: string;
   policyIds: string[];

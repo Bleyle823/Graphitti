@@ -10,6 +10,7 @@ import {
   requireSessionUser,
 } from "@/lib/org/auth-helpers";
 import { getDailySpendUsedUsdc } from "@/lib/org/spend-ledger";
+import { deactivateOrgTreasury } from "@/lib/privy/deactivate-org-treasury";
 
 export async function GET() {
   const authResult = await requireSessionUser();
@@ -71,4 +72,43 @@ export async function GET() {
     payees,
     intents,
   });
+}
+
+export async function DELETE(request: Request) {
+  const authResult = await requireSessionUser();
+  if (!authResult.success) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    );
+  }
+
+  const session = await auth.api.getSession({ headers: request.headers });
+  const body = (await request.json().catch(() => ({}))) as {
+    organizationId?: string;
+  };
+  const organizationId =
+    body.organizationId ?? session?.session.activeOrganizationId;
+
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: "No active organization" },
+      { status: 400 }
+    );
+  }
+
+  const access = await requireOrgMember(organizationId, "admin");
+  if (!access.success) {
+    return NextResponse.json(
+      { error: access.error },
+      { status: access.status }
+    );
+  }
+
+  const result = await deactivateOrgTreasury(organizationId);
+  if (!result.success) {
+    return NextResponse.json({ error: result.error }, { status: 502 });
+  }
+
+  return NextResponse.json({ success: true });
 }
