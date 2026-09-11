@@ -67,6 +67,30 @@ export function getPrivyGasConfig(): PrivyGasConfig {
   };
 }
 
+/** Arc and similar chains use native USDC for gas — Privy paymaster is unsupported. */
+export function chainUsesNativeStableGas(chain: {
+  chainId: number;
+  nativeSymbol: string;
+}): boolean {
+  return chain.chainId === 5_042_002 || chain.nativeSymbol === "USDC";
+}
+
+export function getPrivyGasConfigForChain(chain: {
+  chainId: number;
+  nativeSymbol: string;
+}): PrivyGasConfig {
+  if (chainUsesNativeStableGas(chain)) {
+    const mode = getPrivyGasMode();
+    const asset = getPrivyGasAsset();
+    return {
+      mode,
+      asset,
+      sponsor: false,
+    };
+  }
+  return getPrivyGasConfig();
+}
+
 /** True when the wallet does not need native ETH for gas. */
 export function isPrivyGaslessEth(): boolean {
   return getPrivyGasMode() === "user-pays" || getPrivyGasMode() === "app-pays";

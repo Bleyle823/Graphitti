@@ -118,13 +118,15 @@ function buildTransferBody(
     | "destinationAsset"
   >
 ): WalletTransferRequest {
+  const destinationAddress = input.destinationAddress.trim().toLowerCase();
   return {
     source: {
       chain: input.sourceChain,
       asset: input.sourceAsset,
+      amount: input.amount,
     },
     destination: {
-      address: input.destinationAddress,
+      address: destinationAddress,
       ...(input.destinationChain ? { chain: input.destinationChain } : {}),
       ...(input.destinationAsset ? { asset: input.destinationAsset } : {}),
     },

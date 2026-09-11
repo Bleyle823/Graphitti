@@ -15,8 +15,8 @@ import {
   Redo2,
   Save,
   Settings2,
-  Store,
   StickyNote,
+  Store,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -25,7 +25,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useHasMounted } from "@/hooks/use-has-mounted";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
   DropdownMenu,
@@ -34,13 +33,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import { ApiError, api } from "@/lib/api-client";
 import { authClient, useSession } from "@/lib/auth-client";
 import { useWalletAccess } from "@/lib/hooks/use-wallet-access";
 import { integrationsAtom } from "@/lib/integrations-store";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
-import { authPromptOpenAtom } from "@/lib/ui-store";
 import type { IntegrationType } from "@/lib/types/integration";
+import { authPromptOpenAtom } from "@/lib/ui-store";
+import { evaluateShowWhen } from "@/lib/workflow/show-when";
+import { workflowRequiresLinkedWallet } from "@/lib/workflow/requires-linked-wallet";
+import {
+  createStickyNoteNode,
+  getFlowViewportCenterPosition,
+} from "@/lib/workflow/sticky-note";
 import {
   addNodeAtom,
   canRedoAtom,
@@ -80,15 +86,10 @@ import {
   getIntegrationLabels,
 } from "@/plugins";
 import type { ActionConfigFieldBase } from "@/plugins/registry";
-import { evaluateShowWhen } from "@/lib/workflow/show-when";
-import {
-  createStickyNoteNode,
-  getFlowViewportCenterPosition,
-} from "@/lib/workflow/sticky-note";
 import { ConfigurationOverlay } from "../overlays/configuration-overlay";
-import { ListingOverlay } from "../overlays/listing-overlay";
 import { ConfirmOverlay } from "../overlays/confirm-overlay";
 import { ExportWorkflowOverlay } from "../overlays/export-workflow-overlay";
+import { ListingOverlay } from "../overlays/listing-overlay";
 import { MakePublicOverlay } from "../overlays/make-public-overlay";
 import { useOverlay } from "../overlays/overlay-provider";
 import { WorkflowIssuesOverlay } from "../overlays/workflow-issues-overlay";
@@ -654,9 +655,13 @@ function useWorkflowHandlers({
       return;
     }
 
-    if (!walletAccessPending && !hasWalletAccess) {
+    const needsLinkedWallet = workflowRequiresLinkedWallet(nodes);
+    if (
+      needsLinkedWallet &&
+      !(walletAccessPending || hasWalletAccess)
+    ) {
       setAuthPromptOpen(true);
-      toast.info("Connect a wallet to run workflows.");
+      toast.info("Connect a wallet to run workflows that use Privy or on-chain actions.");
       return;
     }
 
@@ -876,7 +881,9 @@ function useWorkflowActions(
 
   const handleDeleteWorkflow = () => {
     if (!isOwner) {
-      toast.info("Duplicate this example to your workflows before deleting it.");
+      toast.info(
+        "Duplicate this example to your workflows before deleting it."
+      );
       return;
     }
     openOverlay(ConfirmOverlay, {
@@ -961,7 +968,9 @@ function useWorkflowActions(
     try {
       const workflows = await api.workflow.getAll();
       const list = Array.isArray(workflows) ? workflows : [];
-      setAllWorkflows(list.filter((workflow) => workflow.name !== "__current__"));
+      setAllWorkflows(
+        list.filter((workflow) => workflow.name !== "__current__")
+      );
     } catch (error) {
       console.error("Failed to load workflows:", error);
       toast.error(
@@ -1540,7 +1549,9 @@ function WorkflowMenuComponent({
     <div className="flex flex-col gap-1">
       <div className="flex h-9 max-w-[160px] items-center overflow-hidden rounded-md border bg-secondary text-secondary-foreground sm:max-w-none">
         {hasMounted ? (
-          <DropdownMenu onOpenChange={(open) => open && actions.loadWorkflows()}>
+          <DropdownMenu
+            onOpenChange={(open) => open && actions.loadWorkflows()}
+          >
             <DropdownMenuTrigger asChild>{menuTrigger}</DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
               <DropdownMenuItem
@@ -1604,9 +1615,7 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
 
   return (
     <>
-      <div
-        className="pointer-events-auto fixed top-[calc(var(--header-height)+12px)] left-[calc(var(--nav-content-offset,var(--nav-sidebar-width,200px))+12px)] z-40 max-md:left-3"
-      >
+      <div className="pointer-events-auto fixed top-[calc(var(--header-height)+12px)] left-[calc(var(--nav-content-offset,var(--nav-sidebar-width,200px))+12px)] z-40 max-md:left-3">
         <div className="flex items-center gap-2">
           <WorkflowMenuComponent
             actions={actions}
@@ -1625,9 +1634,7 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
         className="pointer-events-auto fixed top-[calc(var(--header-height)+12px)] z-40 flex flex-col-reverse items-end gap-2 lg:flex-row lg:items-center"
         style={{
           right: actionsRightOffset,
-          transition: isPanelAnimating
-            ? "right 300ms ease-out"
-            : undefined,
+          transition: isPanelAnimating ? "right 300ms ease-out" : undefined,
         }}
       >
         <div className="flex flex-col-reverse items-end gap-2 lg:flex-row lg:items-center">
