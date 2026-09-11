@@ -56,7 +56,7 @@ export async function writeTransaction(
     if (gas.mode === "user-pays") {
       return {
         success: false,
-        error: `${message} (gas mode: user-pays via ${gas.asset}; ensure the wallet holds enough ${gas.asset.toUpperCase()} and Privy dashboard is set to User pays)`,
+        error: `${message} (tried paying gas in ${gas.asset.toUpperCase()}, then app gas credits, then the wallet's native balance — fund the wallet or enable a gas mode in the Privy dashboard)`,
       };
     }
     return { success: false, error: message };
