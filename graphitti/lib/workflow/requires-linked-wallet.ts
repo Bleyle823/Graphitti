@@ -11,9 +11,7 @@ const PERSONAL_WALLET_ACTION_PREFIXES = [
   "arc/",
 ] as const;
 
-const PERSONAL_WALLET_ACTIONS = new Set([
-  "treasury/get-personal-wallet",
-]);
+const PERSONAL_WALLET_ACTIONS = new Set(["treasury/get-personal-wallet"]);
 
 export function workflowRequiresLinkedWallet(
   nodes: WorkflowNodeLike[]

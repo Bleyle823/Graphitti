@@ -41,8 +41,8 @@ import { integrationsAtom } from "@/lib/integrations-store";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import type { IntegrationType } from "@/lib/types/integration";
 import { authPromptOpenAtom } from "@/lib/ui-store";
-import { evaluateShowWhen } from "@/lib/workflow/show-when";
 import { workflowRequiresLinkedWallet } from "@/lib/workflow/requires-linked-wallet";
+import { evaluateShowWhen } from "@/lib/workflow/show-when";
 import {
   createStickyNoteNode,
   getFlowViewportCenterPosition,
@@ -656,12 +656,11 @@ function useWorkflowHandlers({
     }
 
     const needsLinkedWallet = workflowRequiresLinkedWallet(nodes);
-    if (
-      needsLinkedWallet &&
-      !(walletAccessPending || hasWalletAccess)
-    ) {
+    if (needsLinkedWallet && !(walletAccessPending || hasWalletAccess)) {
       setAuthPromptOpen(true);
-      toast.info("Connect a wallet to run workflows that use Privy or on-chain actions.");
+      toast.info(
+        "Connect a wallet to run workflows that use Privy or on-chain actions."
+      );
       return;
     }
 

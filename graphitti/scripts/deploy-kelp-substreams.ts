@@ -13,7 +13,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -83,7 +83,9 @@ function commandExists(name: string): boolean {
 
 function loadDeployments(): DeploymentsFile {
   try {
-    return JSON.parse(readFileSync(DEPLOYMENTS_PATH, "utf8")) as DeploymentsFile;
+    return JSON.parse(
+      readFileSync(DEPLOYMENTS_PATH, "utf8")
+    ) as DeploymentsFile;
   } catch {
     return {
       subgraph: {
