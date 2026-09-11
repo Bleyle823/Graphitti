@@ -505,7 +505,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Deploy kelp-rseth-arbitrum-supply (Arbitrum store) AND kelp-rseth-backing-alerts (mainnet + graph_out) — both streams must run 24/7. pnpm substreams:deploy-checklist. Paste subgraph id on Query + Status nodes. Block trigger needs KeeperHub. Replace webhook URL.",
+            text: "Deploy both packages with pnpm substreams:deploy-kelp (builds substreams/, publishes to registry, deploys Studio subgraph, writes deployments.json). Both streams must run 24/7. Block trigger needs KeeperHub.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -539,7 +539,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "the-graph/get-substreams-stream-status",
-            id: "YOUR_KELP_SUBGRAPH_ID",
+            id: "{{@rseth-resolve-package:Resolve Substreams Package.subgraph_id}}",
           },
           status: "idle",
           description: "Confirm subgraph _meta is near chain head",
@@ -554,7 +554,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "the-graph/query-substreams-entity",
-            id: "YOUR_KELP_SUBGRAPH_ID",
+            id: "{{@rseth-resolve-package:Resolve Substreams Package.subgraph_id}}",
             entityName: "backingSnapshots",
             entityFields:
               "id,blockNumber,shouldAlert,deviationBps,deviationPct,thresholdBps,mainnetSupplyEth,arbSupplyEth,totalSupplyEth,totalBackingEthHuman,excessEthHuman",
@@ -631,6 +631,124 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: "e-rseth-4",
         source: "rseth-deviation-condition",
         target: "rseth-webhook-alert",
+      },
+    ],
+  },
+  {
+    name: "Kelp rsETH Backing Monitor (Supabase)",
+    description:
+      "Poll Supabase backing_snapshots every Ethereum block via PostgREST. Reads live Kelp rsETH backing data from SQL sinks (mainnet + Arbitrum trigger). Block trigger needs KeeperHub.",
+    nodes: [
+      {
+        id: "rseth-sb-block-trigger",
+        type: "trigger",
+        position: { x: 0, y: 200 },
+        data: {
+          label: "Ethereum Mainnet Block",
+          type: "trigger",
+          config: {
+            triggerType: "Block",
+            network: "1",
+            blockInterval: "1",
+          },
+          status: "idle",
+          description: "Fires every Ethereum mainnet block (~12s)",
+        },
+      },
+      {
+        id: "rseth-sb-monitor-note",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 300,
+        height: 220,
+        position: { x: -340, y: 80 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Configure Project Integrations → Supabase (SUPABASE_URL + anon key). Run SQL sinks from substreams/ (mainnet + Arbitrum Docker containers) for fresh backing_snapshots rows. Block trigger needs KeeperHub.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "rseth-sb-query",
+        type: "action",
+        position: { x: 280, y: 200 },
+        data: {
+          label: "Query Backing Snapshot",
+          type: "action",
+          config: {
+            actionType: "supabase/query-table",
+            table: "backing_snapshots",
+            select:
+              "block_number,mainnet_supply,arb_supply,total_supply,adapter_balance,total_backing,excess,deviation_bps,bridge_deviation_bps,should_alert,effective_supply",
+            orderBy: "block_number",
+            orderDirection: "desc",
+            limit: "1",
+          },
+          status: "idle",
+          description:
+            "Fetch latest backing_snapshots row from Supabase PostgREST",
+        },
+      },
+      {
+        id: "rseth-sb-deviation-condition",
+        type: "action",
+        position: { x: 560, y: 200 },
+        data: {
+          label: "Deviation Above Threshold?",
+          type: "action",
+          config: {
+            actionType: "Condition",
+            condition:
+              "{{@rseth-sb-query:Query Backing Snapshot.should_alert}} === true",
+          },
+          status: "idle",
+          description:
+            "Routes to alert when should_alert is true (vault or bridge deviation > 50 bps)",
+        },
+      },
+      {
+        id: "rseth-sb-webhook-alert",
+        type: "action",
+        position: { x: 840, y: 200 },
+        data: {
+          label: "Send Webhook Alert",
+          type: "action",
+          config: {
+            actionType: "webhook/send-webhook",
+            webhookUrl: "https://YOUR_PAGERDUTY_OR_SLACK_WEBHOOK_URL",
+            webhookMethod: "POST",
+            webhookHeaders: '{"Content-Type": "application/json"}',
+            webhookPayload:
+              '{"alert":"KELP rsETH BACKING DEVIATION","blockNumber":"{{@rseth-sb-query:Query Backing Snapshot.block_number}}","mainnetSupply":"{{@rseth-sb-query:Query Backing Snapshot.mainnet_supply}}","arbSupply":"{{@rseth-sb-query:Query Backing Snapshot.arb_supply}}","totalBacking":"{{@rseth-sb-query:Query Backing Snapshot.total_backing}}","excess":"{{@rseth-sb-query:Query Backing Snapshot.excess}}","deviationBps":{{@rseth-sb-query:Query Backing Snapshot.deviation_bps}},"bridgeDeviationBps":{{@rseth-sb-query:Query Backing Snapshot.bridge_deviation_bps}},"effectiveSupply":"{{@rseth-sb-query:Query Backing Snapshot.effective_supply}}"}',
+          },
+          status: "idle",
+          description:
+            "Replace placeholder URL with PagerDuty, Opsgenie, or Slack incoming webhook",
+        },
+      },
+    ],
+    edges: [
+      {
+        id: "e-rseth-sb-1",
+        source: "rseth-sb-block-trigger",
+        target: "rseth-sb-query",
+      },
+      {
+        id: "e-rseth-sb-2",
+        source: "rseth-sb-query",
+        target: "rseth-sb-deviation-condition",
+      },
+      {
+        id: "e-rseth-sb-3",
+        source: "rseth-sb-deviation-condition",
+        target: "rseth-sb-webhook-alert",
+        sourceHandle: "true",
       },
     ],
   },
