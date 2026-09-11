@@ -24,33 +24,26 @@ import {
   STICKY_NOTE_MAX_WIDTH,
   STICKY_NOTE_MIN_HEIGHT,
   STICKY_NOTE_MIN_WIDTH,
+  STICKY_NOTE_SWATCH_CLASSES,
+  STICKY_NOTE_TEXT_ALIGN_CLASSES,
   type StickyNoteColor,
   type StickyNoteFontSize,
   type StickyNoteTextAlign,
-  STICKY_NOTE_SWATCH_CLASSES,
-  STICKY_NOTE_TEXT_ALIGN_CLASSES,
 } from "@/lib/workflow/sticky-note";
 import {
-  type WorkflowNodeData,
   updateNodeDataAtom,
+  type WorkflowNodeData,
 } from "@/lib/workflow-store";
 
 const TEXT_ALIGN_OPTIONS: StickyNoteTextAlign[] = ["left", "center", "right"];
 
-const TEXT_ALIGN_ICONS: Record<
-  StickyNoteTextAlign,
-  typeof AlignLeft
-> = {
+const TEXT_ALIGN_ICONS: Record<StickyNoteTextAlign, typeof AlignLeft> = {
   left: AlignLeft,
   center: AlignCenter,
   right: AlignRight,
 };
 
-function StickyNoteNodeComponent({
-  id,
-  data,
-  selected,
-}: NodeProps) {
+function StickyNoteNodeComponent({ id, data, selected }: NodeProps) {
   const updateNodeData = useSetAtom(updateNodeDataAtom);
   const nodeData = data as WorkflowNodeData;
   const noteConfig = useMemo(
@@ -91,7 +84,7 @@ function StickyNoteNodeComponent({
 
       {selected ? (
         <div
-          className="absolute -top-11 left-0 z-10 flex max-w-[min(100%,28rem)] items-center gap-1 rounded-md border bg-popover p-1 shadow-sm nodrag nopan"
+          className="-top-11 nodrag nopan absolute left-0 z-10 flex max-w-[min(100%,28rem)] items-center gap-1 rounded-md border bg-popover p-1 shadow-sm"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="flex items-center gap-0.5 px-0.5">

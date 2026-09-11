@@ -225,7 +225,7 @@ function DesktopOverlayContainer() {
             {/* Dialog container */}
             <motion.div
               animate="visible"
-              className="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 px-4"
+              className="-translate-x-1/2 -translate-y-1/2 fixed top-1/2 left-1/2 z-50 w-full max-w-lg px-4"
               exit="exit"
               initial="hidden"
               variants={containerVariants}

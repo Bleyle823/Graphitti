@@ -68,8 +68,7 @@ export function AddStepButton({
     for (const edge of outgoingEdges) {
       const target = nodes.find((node) => node.id === edge.target);
       if (target) {
-        const displacement =
-          (target.position.y - sourceAbsY) * BEZIER_FACTOR;
+        const displacement = (target.position.y - sourceAbsY) * BEZIER_FACTOR;
         if (displacement > 0) {
           maxDown = Math.max(maxDown, displacement);
         } else {

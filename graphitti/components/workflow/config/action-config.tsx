@@ -43,6 +43,7 @@ import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
 type ActionConfigProps = {
   config: Record<string, unknown>;
+  currentNodeId?: string;
   onUpdateConfig: (key: string, value: string) => void;
   disabled: boolean;
   isOwner?: boolean;
@@ -334,6 +335,7 @@ function normalizeActionType(actionType: string): string {
 
 export function ActionConfig({
   config,
+  currentNodeId,
   onUpdateConfig,
   disabled,
   isOwner = true,
@@ -549,6 +551,7 @@ export function ActionConfig({
           <OrgWalletBinding
             actionType={actionType}
             config={config}
+            currentNodeId={currentNodeId}
             hasWalletIdField={
               actionType.startsWith("privy/") &&
               pluginAction.configFields.some(

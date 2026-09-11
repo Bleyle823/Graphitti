@@ -43,3 +43,6 @@ substreams/replay.log
 
 # Node
 node_modules/
+
+# Generated Substreams subgraph build outputs
+substreams/build/

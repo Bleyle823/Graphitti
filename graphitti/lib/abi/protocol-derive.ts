@@ -134,7 +134,7 @@ function toInputComponents(
   params: AbiParam[] | undefined
 ): ProtocolActionInputComponent[] | undefined {
   if (!params || params.length === 0) {
-    return undefined;
+    return;
   }
   return params.map((p) => ({
     name: p.name,

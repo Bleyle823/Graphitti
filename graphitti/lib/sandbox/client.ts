@@ -145,14 +145,14 @@ function extractLineNumber(stack: string | undefined): number | undefined {
   // Defensive: the decoded outcome crosses an untrusted boundary, so `stack`
   // may not actually be a string at runtime; `.match` on a non-string throws.
   if (typeof stack !== "string") {
-    return undefined;
+    return;
   }
   const match = stack.match(VM_LINE_REGEX);
   if (match?.[1]) {
     const rawLine = Number.parseInt(match[1], 10);
     return Math.max(1, rawLine - 1);
   }
-  return undefined;
+  return;
 }
 
 function postOnce(

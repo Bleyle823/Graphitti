@@ -23,19 +23,19 @@ export async function GET(request: Request) {
   const includeDisabled = searchParams.get("includeDisabled") === "true";
 
   const response: GetChainsResponse = Object.values(CHAINS).map((chain) => ({
-      id: chain.id,
-      chainId: chain.chainId,
-      name: chain.label,
-      symbol: chain.nativeSymbol,
-      chainType: "evm",
-      explorerUrl: chain.explorerUrl ?? null,
-      explorerAddressPath: "/address/{address}",
-      explorerApiUrl: null,
-      explorerApiType: "etherscan",
-      isTestnet: chain.id.includes("testnet") || chain.id === "sepolia",
-      isEnabled: true,
-      usePrivateMempoolRpc: false,
-    }));
+    id: chain.id,
+    chainId: chain.chainId,
+    name: chain.label,
+    symbol: chain.nativeSymbol,
+    chainType: "evm",
+    explorerUrl: chain.explorerUrl ?? null,
+    explorerAddressPath: "/address/{address}",
+    explorerApiUrl: null,
+    explorerApiType: "etherscan",
+    isTestnet: chain.id.includes("testnet") || chain.id === "sepolia",
+    isEnabled: true,
+    usePrivateMempoolRpc: false,
+  }));
 
   return NextResponse.json(response);
 }

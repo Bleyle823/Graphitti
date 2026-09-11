@@ -15,13 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { signIn, signUp } from "@/lib/auth-client";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
-import { isPrivyConfigured } from "@/lib/privy/client-config";
+import { signIn, signUp } from "@/lib/auth-client";
 import {
   getEnabledAuthProviders,
   getSingleProvider,
 } from "@/lib/auth-providers";
+import { isPrivyConfigured } from "@/lib/privy/client-config";
 
 type AuthDialogProps = {
   children?: ReactNode;

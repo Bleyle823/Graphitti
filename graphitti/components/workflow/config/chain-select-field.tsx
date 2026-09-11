@@ -180,7 +180,9 @@ export function ChainSelectField({
       <SelectItem key={chain.chainId} value={String(chain.chainId)}>
         <div className="flex items-center gap-2">
           <span>{chain.name}</span>
-          <span className="text-muted-foreground text-xs">({chain.symbol})</span>
+          <span className="text-muted-foreground text-xs">
+            ({chain.symbol})
+          </span>
         </div>
       </SelectItem>
     );
@@ -194,7 +196,9 @@ export function ChainSelectField({
       >
         <div className="flex items-center gap-2">
           <span>{chain.name} (Flashbots)</span>
-          <span className="text-muted-foreground text-xs">({chain.symbol})</span>
+          <span className="text-muted-foreground text-xs">
+            ({chain.symbol})
+          </span>
         </div>
       </SelectItem>
     );

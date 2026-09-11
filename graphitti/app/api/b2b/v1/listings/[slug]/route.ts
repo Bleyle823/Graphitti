@@ -13,9 +13,10 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ slug: string }> }
 ) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "marketplace:read",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["marketplace:read"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }

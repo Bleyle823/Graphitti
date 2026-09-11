@@ -14,9 +14,10 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ intentId: string }> }
 ) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "treasury:approve",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["treasury:approve"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }

@@ -1,7 +1,4 @@
-import type {
-  FailoverStateChangeCallback,
-  RpcMetricsCollector,
-} from "./index";
+import type { FailoverStateChangeCallback, RpcMetricsCollector } from "./index";
 
 export type SolanaRpcMetricsCollector = RpcMetricsCollector;
 export type SolanaFailoverStateChangeCallback = FailoverStateChangeCallback;

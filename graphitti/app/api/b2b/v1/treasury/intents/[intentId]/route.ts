@@ -14,9 +14,10 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ intentId: string }> }
 ) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "treasury:read",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["treasury:read"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }

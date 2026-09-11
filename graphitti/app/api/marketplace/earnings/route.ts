@@ -12,7 +12,11 @@ export async function GET(request: Request) {
   }
 
   const owned = await db
-    .select({ id: workflows.id, listedSlug: workflows.listedSlug, name: workflows.name })
+    .select({
+      id: workflows.id,
+      listedSlug: workflows.listedSlug,
+      name: workflows.name,
+    })
     .from(workflows)
     .where(eq(workflows.userId, session.user.id));
 
@@ -33,7 +37,10 @@ export async function GET(request: Request) {
     .where(inArray(workflowPayments.workflowId, ids))
     .orderBy(desc(workflowPayments.createdAt));
 
-  const gross = payments.reduce((sum, row) => sum + Number(row.amountUsdc || 0), 0);
+  const gross = payments.reduce(
+    (sum, row) => sum + Number(row.amountUsdc || 0),
+    0
+  );
   const feeBps = getPlatformFeeBps();
   const net = gross * (1 - feeBps / 10_000);
 

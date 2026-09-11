@@ -255,7 +255,7 @@ export function ActionGrid({
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 gap-2">
         <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
           <Input
             className="pl-9"
             data-testid="action-search-input"

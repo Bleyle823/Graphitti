@@ -1,11 +1,11 @@
 import "server-only";
 
-import { getChainIdFromNetwork } from "@/lib/rpc/network-utils";
-import { requireChain } from "@/lib/web3/chains";
 import {
   fetchEtherscanAbi,
   fetchEtherscanSourceCode,
 } from "@/lib/explorer/etherscan";
+import { getChainIdFromNetwork } from "@/lib/rpc/network-utils";
+import { requireChain } from "@/lib/web3/chains";
 
 type AbiCacheEntry = {
   abi: string;

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { executeListingCall } from "@/lib/marketplace/call-listing";
 import {
-  executeListingCall,
-  listingCorsHeaders,
-} from "@/lib/marketplace/call-listing";
-import { mcpToolsList, searchListedWorkflows, type JsonRpcRequest } from "@/lib/mcp/json-rpc";
+  type JsonRpcRequest,
+  mcpToolsList,
+  searchListedWorkflows,
+} from "@/lib/mcp/json-rpc";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,11 @@ export function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-async function handleRpc(body: JsonRpcRequest, slug?: string, request?: Request) {
+async function handleRpc(
+  body: JsonRpcRequest,
+  slug?: string,
+  request?: Request
+) {
   const id = body.id ?? null;
   if (body.method === "initialize") {
     return {
@@ -49,7 +54,7 @@ async function handleRpc(body: JsonRpcRequest, slug?: string, request?: Request)
         return {
           jsonrpc: "2.0",
           id,
-          error: { code: -32602, message: "slug is required" },
+          error: { code: -32_602, message: "slug is required" },
         };
       }
 
@@ -69,7 +74,8 @@ async function handleRpc(body: JsonRpcRequest, slug?: string, request?: Request)
               : {}),
             ...(request?.headers.get("PAYMENT-SIGNATURE")
               ? {
-                  "PAYMENT-SIGNATURE": request.headers.get("PAYMENT-SIGNATURE")!,
+                  "PAYMENT-SIGNATURE":
+                    request.headers.get("PAYMENT-SIGNATURE")!,
                 }
               : {}),
             ...(request?.headers.get("PAYMENT-RESPONSE")
@@ -104,7 +110,7 @@ async function handleRpc(body: JsonRpcRequest, slug?: string, request?: Request)
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32601, message: `Unknown tool ${name}` },
+      error: { code: -32_601, message: `Unknown tool ${name}` },
     };
   }
   if (body.method === "notifications/initialized") {
@@ -113,7 +119,7 @@ async function handleRpc(body: JsonRpcRequest, slug?: string, request?: Request)
   return {
     jsonrpc: "2.0",
     id,
-    error: { code: -32601, message: `Unknown method ${body.method}` },
+    error: { code: -32_601, message: `Unknown method ${body.method}` },
   };
 }
 

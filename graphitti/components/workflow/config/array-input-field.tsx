@@ -21,10 +21,7 @@ type ArrayInputFieldProps = {
   components?: AbiComponent[];
 };
 
-function parseArrayValue(
-  value: unknown,
-  nextId: () => number
-): ArrayItem[] {
+function parseArrayValue(value: unknown, nextId: () => number): ArrayItem[] {
   if (Array.isArray(value) && value.length > 0) {
     return value.map((v) => ({
       id: nextId(),
@@ -133,9 +130,7 @@ export function ArrayInputField({
           {isTuple ? (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-xs">
-                  [{index}]
-                </span>
+                <span className="text-muted-foreground text-xs">[{index}]</span>
                 <Button
                   className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
                   disabled={disabled}
@@ -164,9 +159,7 @@ export function ArrayInputField({
                 <TemplateBadgeInput
                   disabled={disabled}
                   id={`${fieldKey}-item-${item.id}`}
-                  onChange={(val) =>
-                    updateItemValue(item.id, String(val))
-                  }
+                  onChange={(val) => updateItemValue(item.id, String(val))}
                   placeholder={`Enter ${itemType} value or {{NodeName.value}}`}
                   value={typeof item.value === "string" ? item.value : ""}
                 />

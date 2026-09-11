@@ -22,6 +22,11 @@ import "@xyflow/react/dist/style.css";
 import { PlayCircle, Zap } from "lucide-react";
 import { nanoid } from "nanoid";
 import {
+  STICKY_NOTE_DRAG_HANDLE,
+  STICKY_NOTE_HEIGHT,
+  STICKY_NOTE_WIDTH,
+} from "@/lib/workflow/sticky-note";
+import {
   addNodeAtom,
   autosaveAtom,
   currentWorkflowIdAtom,
@@ -47,11 +52,6 @@ import { ActionNode } from "./nodes/action-node";
 import { AddNode } from "./nodes/add-node";
 import { StickyNoteNode } from "./nodes/sticky-note-node";
 import { TriggerNode } from "./nodes/trigger-node";
-import {
-  STICKY_NOTE_DRAG_HANDLE,
-  STICKY_NOTE_HEIGHT,
-  STICKY_NOTE_WIDTH,
-} from "@/lib/workflow/sticky-note";
 import {
   type ContextMenuState,
   useContextMenuHandlers,

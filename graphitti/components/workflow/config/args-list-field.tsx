@@ -7,11 +7,11 @@ import { TemplateBadgeInput } from "@/components/ui/template-badge-input";
 import { ArrayInputField } from "@/components/workflow/config/array-input-field";
 import { MalformedAbiArgsNotice } from "@/components/workflow/config/malformed-abi-notice";
 import { TupleInputField } from "@/components/workflow/config/tuple-input-field";
-import { coerceAbiArgValue } from "@/lib/abi/parse-args";
 import {
   type AbiFunctionInput,
   resolveFunctionInputs,
 } from "@/lib/abi/function-inputs";
+import { coerceAbiArgValue } from "@/lib/abi/parse-args";
 import type { ActionConfigFieldBase } from "@/plugins/registry";
 
 type ArgSetEntry = {
@@ -169,11 +169,11 @@ export function ArgsListField({
     <div className="space-y-3">
       {entries.map((entry, index) => (
         <div
-          className="rounded-md border border-border space-y-2 p-3"
+          className="space-y-2 rounded-md border border-border p-3"
           key={entry.id}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="font-medium text-muted-foreground text-xs">
               Call {index + 1}
             </span>
             {entries.length > 1 && (
@@ -203,7 +203,7 @@ export function ArgsListField({
                 key={`${field.key}-${entry.id}-arg-${argIndex}`}
               >
                 <label
-                  className="text-xs font-medium"
+                  className="font-medium text-xs"
                   htmlFor={`${field.key}-${entry.id}-${argIndex}`}
                 >
                   {input.name}{" "}
@@ -215,9 +215,7 @@ export function ArgsListField({
                     disabled={disabled}
                     fieldKey={`${field.key}-${entry.id}-${argIndex}`}
                     itemType={baseType}
-                    onChange={(val) =>
-                      updateArgValue(entry.id, argIndex, val)
-                    }
+                    onChange={(val) => updateArgValue(entry.id, argIndex, val)}
                     value={entry.values[argIndex]}
                   />
                 ) : isTuple ? (
@@ -225,9 +223,7 @@ export function ArgsListField({
                     components={input.components ?? []}
                     disabled={disabled}
                     fieldKey={`${field.key}-${entry.id}-${argIndex}`}
-                    onChange={(val) =>
-                      updateArgValue(entry.id, argIndex, val)
-                    }
+                    onChange={(val) => updateArgValue(entry.id, argIndex, val)}
                     value={entry.values[argIndex]}
                   />
                 ) : (

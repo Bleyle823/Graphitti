@@ -34,10 +34,11 @@
 // extension resolves identically in both contexts, so the data lives in
 // `lib/ssrf-blocklist.json` and `lib/ssrf-blocklist.ts` is just a typed
 // re-export used by the keeperhub-side consumers.
-import blocklist from "../ssrf-blocklist.json" with { type: "json" };
+
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import blocklist from "../ssrf-blocklist.json" with { type: "json" };
 
 /**
  * F-010: the grandchild returns its result as TAGGED JSON on a DEDICATED pipe
@@ -282,7 +283,7 @@ function decodeSandboxNode(node: unknown, depth = 0): unknown {
   }
   switch (obj[SANDBOX_RESULT_TAG]) {
     case "undef":
-      return undefined;
+      return;
     case "bigint":
       return BigInt(obj.v as string);
     case "num":

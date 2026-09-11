@@ -12,9 +12,10 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ executionId: string }> }
 ) {
-  const authResult = await requireB2bAuth(request.headers.get("Authorization"), [
-    "workflows:read",
-  ]);
+  const authResult = await requireB2bAuth(
+    request.headers.get("Authorization"),
+    ["workflows:read"]
+  );
   if (!authResult.success) {
     return b2bError(authResult.error, authResult.status);
   }
