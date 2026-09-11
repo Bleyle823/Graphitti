@@ -31,7 +31,7 @@ type RunCodeResult =
 
 export type RunCodeCoreInput = {
   code: string;
-  timeout?: number;
+  timeout?: number | string;
 };
 
 export type RunCodeInput = StepInput & RunCodeCoreInput;
@@ -432,6 +432,19 @@ function normalizeRemoteError(
   return { ...outcome, error: rewritten };
 }
 
+function normalizeTimeoutSeconds(raw: number | string | undefined): number {
+  if (typeof raw === "string") {
+    const parsed = Number.parseInt(raw.trim(), 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return raw;
+  }
+  return DEFAULT_TIMEOUT_SECONDS;
+}
+
 async function stepHandler(input: RunCodeCoreInput): Promise<RunCodeResult> {
   const validationError = validateInput(input);
   if (validationError) {
@@ -441,9 +454,8 @@ async function stepHandler(input: RunCodeCoreInput): Promise<RunCodeResult> {
   if (productionSandboxError) {
     return productionSandboxError;
   }
-  const rawTimeout = input.timeout ?? DEFAULT_TIMEOUT_SECONDS;
   const clampedSeconds = Math.min(
-    Math.max(1, rawTimeout),
+    Math.max(1, normalizeTimeoutSeconds(input.timeout)),
     MAX_TIMEOUT_SECONDS,
   );
   if (SANDBOX_BACKEND === "remote") {

@@ -587,6 +587,39 @@ function analyzeStepFile(filePath: string): StepFileAnalysis {
 }
 
 /**
+ * Full export template for code/run-code (auto-extraction drops helpers).
+ */
+async function generateRunCodeCodegenTemplate(
+  stepFilePath: string,
+  stepFunctionName: string
+): Promise<string | null> {
+  if (!existsSync(stepFilePath)) {
+    return null;
+  }
+
+  let source = readFileSync(stepFilePath, "utf8");
+  source = source
+    .replace(/^import "server-only";\n/m, "")
+    .replace(
+      /^import { type StepInput, withStepLogging } from "@\/lib\/steps\/step-handler";\n/m,
+      ""
+    )
+    .replace(
+      /^import { withPluginMetrics } from "@\/lib\/metrics\/instrumentation\/plugin";\n/m,
+      ""
+    )
+    .replace(
+      /\/\/ biome-ignore lint\/suspicious\/useAwait: "use step" directive requires async\nexport async function runCodeStep[\s\S]*?export const _integrationType = "code";\n?$/,
+      `export async function ${stepFunctionName}(input: RunCodeCoreInput): Promise<RunCodeResult> {
+  "use step";
+  return stepHandler(input);
+}`
+    );
+
+  return await formatCode(source);
+}
+
+/**
  * Generate a codegen template from a step file's core function
  */
 async function generateCodegenTemplate(
@@ -657,6 +690,22 @@ async function processStepFilesForCodegen(): Promise<void> {
         "steps",
         `${action.stepImportPath}.ts`
       );
+
+      if (integration.type === "code" && action.slug === "run-code") {
+        const template = await generateRunCodeCodegenTemplate(
+          stepFilePath,
+          action.stepFunction
+        );
+        if (template) {
+          const actionId = computeActionId(integration.type, action.slug);
+          generatedCodegenTemplates.set(actionId, {
+            template,
+            integrationType: integration.type,
+          });
+          console.log(`   Generated codegen template for ${actionId} (manual)`);
+        }
+        continue;
+      }
 
       const template = await generateCodegenTemplate(
         stepFilePath,
