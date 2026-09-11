@@ -38,6 +38,7 @@ import "./safe";
 import "./sendgrid";
 import "./slack";
 import "./stripe";
+import "./supabase";
 import "./superagent";
 import "./telegram";
 import "./the-graph";

@@ -1,0 +1,69 @@
+---
+title: Supabase
+description: Query Supabase tables through PostgREST in workflows.
+---
+
+Use `SUPABASE_URL` and `SUPABASE_ANON_KEY` from Project Integrations. The anon key is safe for read-only tables protected by Row Level Security.
+
+| Action | Purpose |
+|---|---|
+| Query table | Read rows with select, order, filter, and limit |
+
+## Credentials
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | Yes | Project URL from Supabase dashboard |
+| `SUPABASE_ANON_KEY` | Yes | Publishable anon key for PostgREST reads |
+
+Get both from [Supabase Project Settings → API](https://supabase.com/dashboard/project/_/settings/api).
+
+Do not use the service role key in workflow steps unless you add write actions with strict RLS review.
+
+## Query table
+
+Reads rows from a table via PostgREST:
+
+```
+GET {SUPABASE_URL}/rest/v1/{table}?select=...&order=...&limit=...
+```
+
+### Config fields
+
+| Field | Description |
+|---|---|
+| Table | Required. e.g. `backing_snapshots` |
+| Select columns | Comma-separated list or `*` |
+| Order by | Column name, e.g. `block_number` |
+| Order direction | `desc` or `asc` |
+| Row limit | Max rows (default 1) |
+| PostgREST filters | e.g. `should_alert=eq.true` |
+| Schema profile | Optional. Sets `Accept-Profile` for non-public schemas (e.g. `arbitrum`) |
+
+### Outputs
+
+| Field | Description |
+|---|---|
+| `rows` | Matching rows |
+| `count` | Row count |
+| `latest` | First row |
+| `has_match` | True when count > 0 |
+
+When querying Kelp `backing_snapshots`, flattened aliases are also exposed: `should_alert`, `deviation_bps`, `bridge_deviation_bps`, `block_number`, `mainnet_supply`, `arb_supply`, `total_backing`, `excess`, `effective_supply`.
+
+## Kelp rsETH backing monitor
+
+Use the **Kelp rsETH Backing Monitor (Supabase)** workflow template:
+
+1. Add **Project Integrations → Supabase** credentials.
+2. Keep local Docker SQL sinks running (mainnet + Arbitrum) so `backing_snapshots` stays current.
+3. Deploy the workflow with a KeeperHub block trigger on Ethereum mainnet.
+4. Replace the webhook URL placeholder.
+
+Workflow shape:
+
+```
+Block trigger → supabase/query-table → Condition (should_alert) → webhook/send-webhook
+```
+
+One Supabase node is enough: the SQL trigger merges Arbitrum supply into each `backing_snapshots` row before PostgREST serves it.

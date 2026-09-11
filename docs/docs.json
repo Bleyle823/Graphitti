@@ -59,6 +59,7 @@
           "plugins/agent-privy",
           "plugins/the-graph",
           "plugins/agent-the-graph",
+          "plugins/supabase",
           "plugins/circle",
           "plugins/arc",
           "plugins/fantasy-premier-league"
