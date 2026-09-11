@@ -5,7 +5,7 @@ import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { tokenApiGet } from "@/lib/the-graph/token-api";
 import type { TheGraphCredentials } from "../credentials";
 import { loadTheGraphCredentials } from "../load-credentials";
-import { aliasNetwork, requireGatewayKey } from "./shared";
+import { aliasNetwork, graphStepError, requireGatewayKey } from "./shared";
 
 type TokenApiInput = StepInput & {
   integrationId?: string;
@@ -60,7 +60,7 @@ async function balancesHandler(
   try {
     return await tokenGet(credentials, "/v1/evm/balances", { network, address });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Token balances request failed", error));
   }
 }
 
@@ -82,7 +82,7 @@ async function transfersHandler(
       age: input.age?.trim(),
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Token balances request failed", error));
   }
 }
 
@@ -98,7 +98,7 @@ async function holdersHandler(
   try {
     return await tokenGet(credentials, "/v1/evm/holders", { network, token });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Token balances request failed", error));
   }
 }
 
@@ -116,7 +116,7 @@ async function swapsHandler(
       pool: input.pool?.trim(),
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Token balances request failed", error));
   }
 }
 
@@ -135,7 +135,7 @@ async function nftHandler(
       address,
     });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(graphStepError("Token balances request failed", error));
   }
 }
 

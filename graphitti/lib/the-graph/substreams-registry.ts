@@ -1,4 +1,5 @@
 import { readJson } from "@/lib/http-json";
+import { getErrorMessage } from "@/lib/utils";
 
 const REGISTRY = "https://substreams.dev/v1/registry/packages";
 
@@ -38,12 +39,18 @@ export async function searchSubstreamsPackages(options: {
     headers.Authorization = `Bearer ${options.apiKey}`;
   }
 
-  const response = await fetch(url.toString(), { headers });
-  const body = await readJson<Record<string, unknown>>(response);
-  if (!("packages" in body)) {
-    return { ...body, packages: [] };
+  try {
+    const response = await fetch(url.toString(), { headers });
+    const body = await readJson<Record<string, unknown>>(response);
+    if (!("packages" in body)) {
+      return { ...body, packages: [] };
+    }
+    return body;
+  } catch (error) {
+    throw new Error(
+      `Substreams registry request failed (${url.toString()}): ${getErrorMessage(error)}`
+    );
   }
-  return body;
 }
 
 export function packageSpkgUrl(slug: string, version: string): string {
