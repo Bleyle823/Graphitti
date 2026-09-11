@@ -195,6 +195,13 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
+  "Kelp rsETH Backing Monitor (Substreams → Supabase)": {
+    slug: "kelp-rseth-backing-monitor-substreams-supabase",
+    category: "supabase",
+    chain: "mainnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
 };
 
 export function catalogMetaForTemplate(

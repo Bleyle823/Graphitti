@@ -10,7 +10,7 @@ Graph Studio rejected Substreams-powered subgraph deploys for this package. Use 
 |---|---|
 | Indexing | Substreams (`substreams.yaml` + `substreams.arbitrum.yaml`) |
 | Storage | Supabase Postgres (`backing_snapshots` + SQL trigger) |
-| Alerts | Graphitti **Kelp rsETH Backing Monitor (Supabase)** (`supabase/query-table`) |
+| Alerts | Graphitti **Kelp rsETH Backing Monitor (Substreams → Supabase)** (`supabase/get-latest-row`) |
 
 Single Rust crate with multiple YAML manifests. Includes LayerZero adapter accounting and bridge deviation alerts (> 50 bps).
 
@@ -92,7 +92,7 @@ Supabase should run `apply_kelp_invariants()` on `backing_snapshots` so the late
 ## Graphitti integration
 
 1. **Project Integrations → Supabase** — `SUPABASE_URL` + `SUPABASE_ANON_KEY`
-2. Create workflow from template **Kelp rsETH Backing Monitor (Supabase)**
+2. Create workflow from template **Kelp rsETH Backing Monitor (Substreams → Supabase)**
 3. Replace the webhook URL placeholder
 4. Deploy workflow; block trigger requires **KeeperHub**
 5. Keep both SQL sink containers running on your machine for live data
@@ -100,7 +100,7 @@ Supabase should run `apply_kelp_invariants()` on `backing_snapshots` so the late
 Workflow shape:
 
 ```
-Block trigger → supabase/query-table (backing_snapshots) → Condition → webhook
+Block trigger → supabase/get-latest-row (backing_snapshots) → Condition → webhook
 ```
 
 See `docs/plugins/supabase.mdx` in the Graphitti repo.

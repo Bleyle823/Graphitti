@@ -40,8 +40,11 @@ export const PLUGIN_BRAND_ASSETS: Record<string, BrandLogoAsset> = {
     light: "/brand/Arc_Icon_Navy.png",
     dark: "/brand/Arc_Icon_White.png",
   },
+  supabase: { light: "/protocols/supabase-logo-icon.png" },
 };
 
-export function getPluginBrandAsset(integration: string): BrandLogoAsset | undefined {
+export function getPluginBrandAsset(
+  integration: string
+): BrandLogoAsset | undefined {
   return PLUGIN_BRAND_ASSETS[integration];
 }
