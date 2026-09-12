@@ -375,7 +375,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     name: "Privy Gasless Payroll",
     description:
-      "Monthly gasless native transfers from a Privy server wallet to three contractors, with Discord confirmation.",
+      "Monthly gasless native transfers from a Privy server wallet to three contractors, with Telegram confirmation.",
     nodes: [
       {
         id: "trigger-privy-payroll",
@@ -403,7 +403,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect Privy and Discord. Set wallet ID on transfer nodes after creating a Privy wallet.",
+            text: "Connect Privy and Telegram. Set wallet ID on transfer nodes after creating a Privy wallet. Set chat ID on Send Telegram confirmation.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -474,16 +474,18 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
-        id: "privy-discord",
+        id: "privy-telegram",
         type: "action",
         position: { x: 900, y: 200 },
         data: {
-          label: "Payroll Complete",
+          label: "Send Telegram confirmation",
           type: "action",
           config: {
-            actionType: "discord/send-message",
-            discordMessage:
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
               "Privy gasless payroll sent\nC1: {{@privy-pay-1:Pay Contractor 1.hash}}\nC2: {{@privy-pay-2:Pay Contractor 2.hash}}\nC3: {{@privy-pay-3:Pay Contractor 3.hash}}",
+            parseMode: "none",
           },
           status: "idle",
         },
@@ -513,17 +515,140 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "e-privy-5",
         source: "privy-pay-1",
-        target: "privy-discord",
+        target: "privy-telegram",
       },
       {
         id: "e-privy-6",
         source: "privy-pay-2",
-        target: "privy-discord",
+        target: "privy-telegram",
       },
       {
         id: "e-privy-7",
         source: "privy-pay-3",
-        target: "privy-discord",
+        target: "privy-telegram",
+      },
+    ],
+  },
+  {
+    name: "Uniswap V3 large swap alert (subgraph)",
+    description:
+      "Every 15 minutes, query the public Uniswap V3 Ethereum subgraph for recent swaps above a USD threshold and Telegram-alert treasury or ops.",
+    nodes: [
+      {
+        id: "uni-v3-schedule",
+        type: "trigger",
+        position: { x: 0, y: 200 },
+        data: {
+          label: "Every 15 minutes",
+          type: "trigger",
+          config: {
+            triggerType: "Schedule",
+            scheduleCron: "*/15 * * * *",
+            scheduleTimezone: "UTC",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "uni-v3-note",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 320,
+        height: 260,
+        position: { x: -360, y: 80 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Connect The Graph (gateway API key) and Telegram. Paste the public Uniswap V3 Ethereum subgraph id from thegraph.com/explorer on Query Uniswap V3 (default is a common mainnet deployment). Tune amountUSD_gt in the GraphQL query and the Large swap found? condition. Polls every 15 minutes — no custom indexer required.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "uni-v3-query",
+        type: "action",
+        position: { x: 320, y: 200 },
+        data: {
+          label: "Query Uniswap V3",
+          type: "action",
+          config: {
+            actionType: "the-graph/query-subgraph",
+            id: "DZz4kDTdmzWLWsV373w2bSmoar3umKKH9y82SUKr5qmp",
+            query: `query RecentLargeSwaps {
+  swaps(
+    first: 5
+    orderBy: timestamp
+    orderDirection: desc
+    where: { amountUSD_gt: "100000" }
+  ) {
+    id
+    timestamp
+    amountUSD
+    token0 { symbol }
+    token1 { symbol }
+    transaction { id }
+  }
+}`,
+          },
+          status: "idle",
+          description:
+            "Recent swaps with amountUSD > 100k (adjust where clause in GraphQL)",
+        },
+      },
+      {
+        id: "uni-v3-condition",
+        type: "action",
+        position: { x: 640, y: 200 },
+        data: {
+          label: "Large swap found?",
+          type: "action",
+          config: {
+            actionType: "Condition",
+            condition:
+              'String({{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}} || "").length > 0',
+          },
+          status: "idle",
+          description: "True when the query returned at least one large swap",
+        },
+      },
+      {
+        id: "uni-v3-telegram",
+        type: "action",
+        position: { x: 960, y: 200 },
+        data: {
+          label: "Send Telegram alert",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Uniswap V3 large swap\n\nSwap: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}}\nUSD: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.amountUSD}}\nPair: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.token0.symbol}}/{{@uni-v3-query:Query Uniswap V3.data.swaps.0.token1.symbol}}\nTx: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.transaction.id}}",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+    ],
+    edges: [
+      {
+        id: "e-uni-v3-1",
+        source: "uni-v3-schedule",
+        target: "uni-v3-query",
+      },
+      {
+        id: "e-uni-v3-2",
+        source: "uni-v3-query",
+        target: "uni-v3-condition",
+      },
+      {
+        id: "e-uni-v3-3",
+        source: "uni-v3-condition",
+        target: "uni-v3-telegram",
+        sourceHandle: "true",
       },
     ],
   },

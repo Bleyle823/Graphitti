@@ -48,6 +48,32 @@ async function main(): Promise<void> {
 
   const listOnly = process.env.SEED_LIST === "1";
   const email = process.env.SEED_USER_EMAIL?.trim();
+
+  const RETIRED_WORKFLOW_NAMES = ["Kelp rsETH Backing Monitor"] as const;
+  const RETIRED_WORKFLOW_IDS = ["b6lclpb0fmtmaa5t4cfi4"] as const;
+  if (listOnly) {
+    const { inArray, or } = await import("drizzle-orm");
+    const retired = await db
+      .update(workflows)
+      .set({
+        isListed: false,
+        listedSlug: null,
+        visibility: "private",
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        or(
+          inArray(workflows.name, [...RETIRED_WORKFLOW_NAMES]),
+          inArray(workflows.id, [...RETIRED_WORKFLOW_IDS])
+        )
+      )
+      .returning({ id: workflows.id, name: workflows.name });
+    for (const row of retired) {
+      console.log(`Retired  ${row.name ?? row.id}`);
+    }
+  }
+
   let user = email
     ? await db.query.users.findFirst({ where: eq(users.email, email) })
     : await db.query.users.findFirst();

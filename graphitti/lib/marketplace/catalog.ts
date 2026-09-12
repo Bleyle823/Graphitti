@@ -195,16 +195,16 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
-  "Kelp rsETH Backing Monitor": {
-    slug: "kelp-rseth-backing-monitor",
-    category: "the-graph",
+  "Kelp rsETH Backing Monitor (Substreams → Supabase)": {
+    slug: "kelp-rseth-backing-monitor-substreams-supabase",
+    category: "supabase",
     chain: "mainnet",
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
-  "Kelp rsETH Backing Monitor (Substreams → Supabase)": {
-    slug: "kelp-rseth-backing-monitor-substreams-supabase",
-    category: "supabase",
+  "Uniswap V3 large swap alert (subgraph)": {
+    slug: "uniswap-v3-large-swap-alert-subgraph",
+    category: "the-graph",
     chain: "mainnet",
     workflowType: "read",
     priceUsdcPerCall: "0",
@@ -214,9 +214,10 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
 /** Hackathon demo workflows shown with a star in Examples and Hub. */
 export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
   "FPL League Top Two USDC Payouts",
-  "Kelp rsETH Backing Monitor",
+  "Kelp rsETH Backing Monitor (Substreams → Supabase)",
   "Stripe invoice to Privy USDC settlement",
   "Privy Gasless Payroll",
+  "Uniswap V3 large swap alert (subgraph)",
 ] as const;
 
 export function isHackathonFeaturedWorkflow(name: string): boolean {
