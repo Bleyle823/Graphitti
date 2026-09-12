@@ -1044,4 +1044,226 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       },
     ],
   },
+  {
+    name: "Arc DeFi treasury readiness",
+    description:
+      "Preflight before bridging USDC to Arc for swaps or gas: snapshot org USDC on Base Sepolia, read CCTP domains, estimate CCTP fees, check Arc USDC, then Telegram whether the treasury is ready for DeFi or needs funding.",
+    nodes: [
+      {
+        id: "arcdefi-trigger",
+        type: "trigger",
+        position: { x: 0, y: 200 },
+        data: {
+          label: "DeFi readiness run",
+          type: "trigger",
+          config: { triggerType: "Manual" },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-note",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 320,
+        height: 200,
+        position: { x: -360, y: 120 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Connect Circle, Arc, and Telegram. Uses org treasury address only—no onchain writes. Ready? true fetches a USDC→EURC swap estimate and sends a go report. false sends a fund Base Sepolia report so the run always completes.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-org-wallet",
+        type: "action",
+        position: { x: 260, y: 200 },
+        data: {
+          label: "Get org wallet",
+          type: "action",
+          config: { actionType: "treasury/get-org-wallet" },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-base-usdc",
+        type: "action",
+        position: { x: 520, y: 200 },
+        data: {
+          label: "Base Sepolia USDC",
+          type: "action",
+          config: {
+            actionType: "circle/get-usdc-balance",
+            network: "base-sepolia",
+            address: "{{@arcdefi-org-wallet:Get org wallet.address}}",
+            tokenAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+          },
+          status: "idle",
+          description: "Source-chain USDC before CCTP to Arc",
+        },
+      },
+      {
+        id: "arcdefi-cctp-domains",
+        type: "action",
+        position: { x: 780, y: 200 },
+        data: {
+          label: "CCTP domains",
+          type: "action",
+          config: { actionType: "circle/get-domains" },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-bridge-estimate",
+        type: "action",
+        position: { x: 1040, y: 200 },
+        data: {
+          label: "Estimate bridge to Arc",
+          type: "action",
+          config: {
+            actionType: "arc/estimate-bridge",
+            fromNetwork: "base-sepolia",
+            toNetwork: "arc-testnet",
+            amount: "5",
+            transferSpeed: "fast",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-arc-usdc",
+        type: "action",
+        position: { x: 1300, y: 200 },
+        data: {
+          label: "Arc ERC-20 USDC",
+          type: "action",
+          config: {
+            actionType: "arc/get-usdc-erc20-balance",
+            address: "{{@arcdefi-org-wallet:Get org wallet.address}}",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-ready",
+        type: "action",
+        position: { x: 1560, y: 200 },
+        data: {
+          label: "Source USDC funded?",
+          type: "action",
+          config: {
+            actionType: "Condition",
+            condition: "{{@arcdefi-base-usdc:Base Sepolia USDC.balance}} > 0",
+          },
+          status: "idle",
+          description:
+            "True continues with swap estimate + ready Telegram. False still reports and completes.",
+        },
+      },
+      {
+        id: "arcdefi-swap-estimate",
+        type: "action",
+        position: { x: 1840, y: 80 },
+        data: {
+          label: "Estimate USDC to EURC",
+          type: "action",
+          config: {
+            actionType: "arc/estimate-swap",
+            fromToken: "USDC",
+            toToken: "EURC",
+            amount: "1",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-telegram-ready",
+        type: "action",
+        position: { x: 2120, y: 80 },
+        data: {
+          label: "Send ready report",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Arc DeFi readiness — GO\n\nBase Sepolia USDC: {{@arcdefi-base-usdc:Base Sepolia USDC.balance}}\nArc ERC-20 USDC: {{@arcdefi-arc-usdc:Arc ERC-20 USDC.balance}}\nBridge finality threshold: {{@arcdefi-bridge-estimate:Estimate bridge to Arc.minFinalityThreshold}}\nNext: run Circle CCTP USDC to Arc or Arc USDC Inbound then Swap when funded.",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "arcdefi-telegram-fund",
+        type: "action",
+        position: { x: 1840, y: 320 },
+        data: {
+          label: "Send fund report",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Arc DeFi readiness — fund source chain\n\nBase Sepolia USDC: {{@arcdefi-base-usdc:Base Sepolia USDC.balance}}\nArc ERC-20 USDC: {{@arcdefi-arc-usdc:Arc ERC-20 USDC.balance}}\nTop up Base Sepolia USDC before bridging to Arc for swaps. Run completed.",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+    ],
+    edges: [
+      {
+        id: "e-arcdefi-1",
+        source: "arcdefi-trigger",
+        target: "arcdefi-org-wallet",
+      },
+      {
+        id: "e-arcdefi-2",
+        source: "arcdefi-org-wallet",
+        target: "arcdefi-base-usdc",
+      },
+      {
+        id: "e-arcdefi-3",
+        source: "arcdefi-base-usdc",
+        target: "arcdefi-cctp-domains",
+      },
+      {
+        id: "e-arcdefi-4",
+        source: "arcdefi-cctp-domains",
+        target: "arcdefi-bridge-estimate",
+      },
+      {
+        id: "e-arcdefi-5",
+        source: "arcdefi-bridge-estimate",
+        target: "arcdefi-arc-usdc",
+      },
+      {
+        id: "e-arcdefi-6",
+        source: "arcdefi-arc-usdc",
+        target: "arcdefi-ready",
+      },
+      {
+        id: "e-arcdefi-7",
+        source: "arcdefi-ready",
+        target: "arcdefi-swap-estimate",
+        sourceHandle: "true",
+      },
+      {
+        id: "e-arcdefi-8",
+        source: "arcdefi-swap-estimate",
+        target: "arcdefi-telegram-ready",
+      },
+      {
+        id: "e-arcdefi-9",
+        source: "arcdefi-ready",
+        target: "arcdefi-telegram-fund",
+        sourceHandle: "false",
+      },
+    ],
+  },
 ];
