@@ -3,6 +3,13 @@ import type { WorkflowTemplate } from "./normalize-export";
 const PLACEHOLDER = "0x0000000000000000000000000000000000000001";
 const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
+const STRIPE_DEMO_CLIENT_EMAIL = "bleyleosewe19@gmail.com";
+const STRIPE_DEMO_CLIENT_NAME = "Client Co";
+const STRIPE_DEMO_LINE_ITEMS =
+  '[{"description": "Contractor deliverable", "amount": 25000, "quantity": 1}]';
+const STRIPE_DEMO_CONTRACTOR_ADDRESS =
+  "0xe53c55806328d94A345f2784c7387495505B1CF1";
+
 function trigger(
   id: string,
   label: string,
@@ -61,29 +68,24 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       trigger("trigger-stripe-payout", "Invoice paid", {
         triggerType: "Manual",
       }),
-      action("stripe-customer", { x: 260, y: 200 }, "Create Stripe customer", {
-        actionType: "stripe/create-customer",
+      action("stripe-invoice", { x: 260, y: 200 }, "Create Stripe invoice", {
+        actionType: "stripe/create-invoice",
         email: "ap@example.com",
         name: "Vendor Co",
-      }),
-      action("stripe-invoice", { x: 520, y: 200 }, "Create Stripe invoice", {
-        actionType: "stripe/create-invoice",
-        customerId: "{{@stripe-customer:Create Stripe customer.id}}",
         description: "Vendor invoice",
         lineItems:
           '[{"description": "Services", "amount": 25000, "quantity": 1}]',
+        daysUntilDue: "30",
+        autoAdvance: "true",
+        collectionMethod: "send_invoice",
       }),
-      action("get-wallet-stripe", { x: 780, y: 120 }, "Get org wallet", {
+      action("get-wallet-stripe", { x: 520, y: 120 }, "Get org wallet", {
         actionType: "treasury/get-org-wallet",
       }),
-      action("list-payees-stripe", { x: 780, y: 280 }, "List payees", {
+      action("list-payees-stripe", { x: 520, y: 280 }, "List payees", {
         actionType: "treasury/list-payees",
       }),
-      action("privy-wallet-stripe", { x: 1040, y: 120 }, "Get Privy wallet", {
-        actionType: "privy/get-wallet",
-        walletId: "{{@get-wallet-stripe:Get org wallet.walletId}}",
-      }),
-      action("pay-vendor-stripe", { x: 1040, y: 280 }, "Pay vendor", {
+      action("pay-vendor-stripe", { x: 780, y: 280 }, "Pay vendor", {
         actionType: "privy/wallet-transfer",
         walletId: "{{@get-wallet-stripe:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
@@ -92,7 +94,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         destinationAddress: PLACEHOLDER,
         useIntent: "false",
       }),
-      action("notify-stripe", { x: 1300, y: 200 }, "Notify AP", {
+      action("notify-stripe", { x: 1040, y: 200 }, "Notify AP", {
         actionType: "slack/send-message",
         slackChannel: "#ap",
         slackMessage:
@@ -100,14 +102,12 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       }),
     ],
     edges: [
-      edge("es1", "trigger-stripe-payout", "stripe-customer"),
-      edge("es2", "stripe-customer", "stripe-invoice"),
-      edge("es3", "stripe-invoice", "get-wallet-stripe"),
-      edge("es4", "stripe-invoice", "list-payees-stripe"),
-      edge("es5", "get-wallet-stripe", "privy-wallet-stripe"),
-      edge("es6", "get-wallet-stripe", "pay-vendor-stripe"),
-      edge("es7", "list-payees-stripe", "pay-vendor-stripe"),
-      edge("es8", "pay-vendor-stripe", "notify-stripe"),
+      edge("es1", "trigger-stripe-payout", "stripe-invoice"),
+      edge("es2", "stripe-invoice", "get-wallet-stripe"),
+      edge("es3", "stripe-invoice", "list-payees-stripe"),
+      edge("es4", "get-wallet-stripe", "pay-vendor-stripe"),
+      edge("es5", "list-payees-stripe", "pay-vendor-stripe"),
+      edge("es6", "pay-vendor-stripe", "notify-stripe"),
     ],
   },
   {
@@ -493,7 +493,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect Stripe, Privy, and Telegram integration keys only. Customer, invoice line items, contractor address, and USDC amount are preset for the demo. Set Telegram chat ID on both Telegram nodes. Create an org treasury before running.",
+            text: "Connect Stripe, Privy, and Telegram integration keys only. Invoice uses client email (no separate customer step). Line items, contractor address, and USDC amount are preset. Set Telegram chat ID on both Telegram nodes. Create an org treasury before running.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -519,47 +519,26 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       action(
-        "stripe-settle-customer",
-        { x: 260, y: 200 },
-        "Create Stripe customer",
-        {
-          actionType: "stripe/create-customer",
-          email: "bleyleosewe19@gmail.com",
-          name: "Client Co",
-        }
-      ),
-      action(
         "stripe-settle-invoice",
-        { x: 520, y: 200 },
+        { x: 260, y: 200 },
         "Create Stripe invoice",
         {
           actionType: "stripe/create-invoice",
-          customerId: "{{@stripe-settle-customer:Create Stripe customer.id}}",
-          email: "bleyleosewe19@gmail.com",
-          name: "Client Co",
+          email: STRIPE_DEMO_CLIENT_EMAIL,
+          name: STRIPE_DEMO_CLIENT_NAME,
           description: "Agency services",
-          lineItems:
-            '[{"description": "Contractor deliverable", "amount": 25000, "quantity": 1}]',
+          lineItems: STRIPE_DEMO_LINE_ITEMS,
           daysUntilDue: "30",
           autoAdvance: "true",
           collectionMethod: "send_invoice",
         }
       ),
-      action("get-wallet-stripe-settle", { x: 780, y: 200 }, "Get org wallet", {
+      action("get-wallet-stripe-settle", { x: 520, y: 200 }, "Get org wallet", {
         actionType: "treasury/get-org-wallet",
       }),
       action(
-        "privy-wallet-stripe-settle",
-        { x: 1040, y: 200 },
-        "Get Privy wallet",
-        {
-          actionType: "privy/get-wallet",
-          walletId: "{{@get-wallet-stripe-settle:Get org wallet.walletId}}",
-        }
-      ),
-      action(
         "payout-valid-stripe-settle",
-        { x: 1300, y: 200 },
+        { x: 780, y: 200 },
         "Payout valid?",
         {
           actionType: "Condition",
@@ -567,18 +546,18 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             'String("{{@stripe-settle-invoice:Create Stripe invoice.id}}" || "").length > 0',
         }
       ),
-      action("pay-stripe-settle", { x: 1560, y: 200 }, "Pay contractor USDC", {
+      action("pay-stripe-settle", { x: 1040, y: 200 }, "Pay contractor USDC", {
         actionType: "privy/wallet-transfer",
         walletId: "{{@get-wallet-stripe-settle:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
         sourceAsset: "usdc",
         amount: "1",
-        destinationAddress: "0xe53c55806328d94A345f2784c7387495505B1CF1",
+        destinationAddress: STRIPE_DEMO_CONTRACTOR_ADDRESS,
         useIntent: "false",
       }),
       action(
         "telegram-stripe-settle",
-        { x: 1820, y: 80 },
+        { x: 1300, y: 80 },
         "Send Telegram confirmation",
         {
           actionType: "telegram/send-message",
@@ -590,31 +569,95 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       ),
       action(
         "telegram-stripe-held",
-        { x: 1820, y: 320 },
+        { x: 1300, y: 320 },
         "Send payout held notice",
         {
           actionType: "telegram/send-message",
           chatId: "YOUR_TELEGRAM_CHAT_ID",
           message:
-            "Stripe invoice payout held\n\nInvoice was not ready for onchain settlement (missing or invalid invoice id). No USDC transfer sent.\nCustomer: bleyleosewe19@gmail.com",
+            `Stripe invoice payout held\n\nInvoice was not ready for onchain settlement (missing or invalid invoice id). No USDC transfer sent.\nCustomer: ${STRIPE_DEMO_CLIENT_EMAIL}`,
           parseMode: "none",
         }
       ),
     ],
     edges: [
-      edge("ess1", "trigger-stripe-settle", "stripe-settle-customer"),
-      edge("ess2", "stripe-settle-customer", "stripe-settle-invoice"),
-      edge("ess3", "stripe-settle-invoice", "get-wallet-stripe-settle"),
-      edge("ess4", "get-wallet-stripe-settle", "privy-wallet-stripe-settle"),
-      edge("ess5", "privy-wallet-stripe-settle", "payout-valid-stripe-settle"),
-      edge("ess6", "payout-valid-stripe-settle", "pay-stripe-settle", "true"),
-      edge("ess7", "pay-stripe-settle", "telegram-stripe-settle"),
+      edge("ess1", "trigger-stripe-settle", "stripe-settle-invoice"),
+      edge("ess2", "stripe-settle-invoice", "get-wallet-stripe-settle"),
+      edge("ess3", "get-wallet-stripe-settle", "payout-valid-stripe-settle"),
+      edge("ess4", "payout-valid-stripe-settle", "pay-stripe-settle", "true"),
+      edge("ess5", "pay-stripe-settle", "telegram-stripe-settle"),
       edge(
-        "ess8",
+        "ess6",
         "payout-valid-stripe-settle",
         "telegram-stripe-held",
         "false"
       ),
+    ],
+  },
+  {
+    name: "Stripe invoice by email (Privy USDC)",
+    description:
+      "Single-step Stripe invoicing from a preset client email, then settle a demo USDC payout from the org Privy treasury—no customer node or code sandbox.",
+    nodes: [
+      trigger("trigger-stripe-email", "Run invoice + payout", {
+        triggerType: "Manual",
+      }),
+      action(
+        "stripe-email-invoice",
+        { x: 260, y: 200 },
+        "Create Stripe invoice",
+        {
+          actionType: "stripe/create-invoice",
+          email: STRIPE_DEMO_CLIENT_EMAIL,
+          name: STRIPE_DEMO_CLIENT_NAME,
+          description: "Demo services",
+          lineItems: STRIPE_DEMO_LINE_ITEMS,
+          daysUntilDue: "30",
+          autoAdvance: "true",
+          collectionMethod: "send_invoice",
+        }
+      ),
+      action("stripe-email-org-wallet", { x: 520, y: 200 }, "Get org wallet", {
+        actionType: "treasury/get-org-wallet",
+      }),
+      action(
+        "stripe-email-invoice-ready",
+        { x: 780, y: 200 },
+        "Invoice created?",
+        {
+          actionType: "Condition",
+          condition:
+            'String("{{@stripe-email-invoice:Create Stripe invoice.id}}" || "").length > 0',
+        }
+      ),
+      action("stripe-email-pay", { x: 1040, y: 200 }, "Pay contractor USDC", {
+        actionType: "privy/wallet-transfer",
+        walletId: "{{@stripe-email-org-wallet:Get org wallet.walletId}}",
+        sourceChain: "base_sepolia",
+        sourceAsset: "usdc",
+        amount: "1",
+        destinationAddress: STRIPE_DEMO_CONTRACTOR_ADDRESS,
+        useIntent: "false",
+      }),
+      action(
+        "stripe-email-telegram",
+        { x: 1300, y: 200 },
+        "Send Telegram confirmation",
+        {
+          actionType: "telegram/send-message",
+          chatId: "YOUR_TELEGRAM_CHAT_ID",
+          message:
+            "Invoice {{@stripe-email-invoice:Create Stripe invoice.number}} ({{@stripe-email-invoice:Create Stripe invoice.id}})\nUSDC payout: {{@stripe-email-pay:Pay contractor USDC.status}}",
+          parseMode: "none",
+        }
+      ),
+    ],
+    edges: [
+      edge("see1", "trigger-stripe-email", "stripe-email-invoice"),
+      edge("see2", "stripe-email-invoice", "stripe-email-org-wallet"),
+      edge("see3", "stripe-email-org-wallet", "stripe-email-invoice-ready"),
+      edge("see4", "stripe-email-invoice-ready", "stripe-email-pay", "true"),
+      edge("see5", "stripe-email-pay", "stripe-email-telegram"),
     ],
   },
 ];

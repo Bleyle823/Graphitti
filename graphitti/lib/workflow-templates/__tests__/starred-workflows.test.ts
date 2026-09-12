@@ -162,29 +162,26 @@ describe("starred workflow templates", () => {
     expect(hasEdge(fpl, "arc-pay-second", "fpl-telegram")).toBe(true);
   });
 
-  it("keeper resolves wallets before Markets live and parks on false", () => {
+  it("keeper resolves wallets before Markets live and telegrams on both branches", () => {
     const keeper = requireTemplate("Aave Uniswap USDC keeper");
     const types = actionTypes(keeper);
     expect(types).toContain("the-graph/query-subgraph");
     expect(types).toContain("privy/wallet-transfer");
     expect(types).toContain("telegram/send-message");
+    expect(types).not.toContain("privy/get-wallet");
     expect(hasEdge(keeper, "keeper-trigger", "aave-usdc")).toBe(true);
     expect(hasEdge(keeper, "aave-usdc", "uni-usdc-weth")).toBe(true);
     expect(hasEdge(keeper, "uni-usdc-weth", "keeper-org-wallet")).toBe(true);
-    expect(hasEdge(keeper, "keeper-org-wallet", "keeper-privy-wallet")).toBe(
-      true
-    );
-    expect(hasEdge(keeper, "keeper-privy-wallet", "keeper-markets-live")).toBe(
+    expect(hasEdge(keeper, "keeper-org-wallet", "keeper-markets-live")).toBe(
       true
     );
     expect(hasEdge(keeper, "keeper-markets-live", "keeper-pay", "true")).toBe(
       true
     );
-    expect(hasEdge(keeper, "keeper-markets-live", "keeper-park", "false")).toBe(
-      true
-    );
+    expect(
+      hasEdge(keeper, "keeper-markets-live", "keeper-telegram-hold", "false")
+    ).toBe(true);
     expect(hasEdge(keeper, "keeper-pay", "keeper-telegram")).toBe(true);
-    expect(hasEdge(keeper, "keeper-park", "keeper-telegram-hold")).toBe(true);
 
     const configs = keeper.nodes.map((node) => node.data.config ?? {});
     const subgraphIds = configs
@@ -196,6 +193,19 @@ describe("starred workflow templates", () => {
     expect(subgraphIds).toContain(
       "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"
     );
+  });
+
+  it("stripe settlement invoices by email without a separate customer step", () => {
+    const stripe = requireTemplate("Stripe invoice to Privy USDC settlement");
+    expect(actionTypes(stripe)).not.toContain("stripe/create-customer");
+    expect(actionTypes(stripe)).not.toContain("code/run-code");
+    expect(actionTypes(stripe)).not.toContain("privy/get-wallet");
+
+    const invoice = stripe.nodes.find(
+      (node) => node.data.config?.actionType === "stripe/create-invoice"
+    );
+    expect(invoice?.data.config?.email).toBeTruthy();
+    expect(invoice?.data.config?.customerId).toBeFalsy();
   });
 
   it("demo conditions expose false branches with Telegram or transfer follow-ups", () => {
@@ -240,6 +250,26 @@ describe("starred workflow templates", () => {
     ).toBe(true);
   });
 
+  it("org USDC waterline keeper telegrams on both funded branches", () => {
+    const waterline = requireTemplate("Org USDC waterline keeper");
+    expect(actionTypes(waterline)).not.toContain("code/run-code");
+    expect(actionTypes(waterline)).not.toContain("privy/get-wallet");
+    expect(
+      hasEdge(waterline, "waterline-funded", "waterline-pay", "true")
+    ).toBe(true);
+    expect(hasEdge(waterline, "waterline-pay", "waterline-telegram")).toBe(
+      true
+    );
+    expect(
+      hasEdge(
+        waterline,
+        "waterline-funded",
+        "waterline-telegram-hold",
+        "false"
+      )
+    ).toBe(true);
+  });
+
   it("key demo conditions each have a false outgoing edge", () => {
     const checks: Array<{ name: string; conditionId: string }> = [
       {
@@ -265,6 +295,10 @@ describe("starred workflow templates", () => {
       {
         name: "Kelp rsETH Backing Monitor (Substreams → Supabase)",
         conditionId: "rseth-sb-deviation-condition",
+      },
+      {
+        name: "Org USDC waterline keeper",
+        conditionId: "waterline-funded",
       },
     ];
 

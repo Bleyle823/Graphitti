@@ -54,9 +54,20 @@ export function findRosterAddress(
   return "";
 }
 
+export function standingsInputNeedsFetch(raw: string | undefined): boolean {
+  const trimmed = raw?.trim() ?? "";
+  if (!trimmed) {
+    return true;
+  }
+  return trimmed.includes("{{@") || trimmed.includes("{{");
+}
+
 function parseJsonArray<T>(raw: string | undefined): T[] | null {
   if (!raw?.trim()) {
     return [];
+  }
+  if (standingsInputNeedsFetch(raw)) {
+    return null;
   }
   try {
     const parsed = JSON.parse(raw) as unknown;

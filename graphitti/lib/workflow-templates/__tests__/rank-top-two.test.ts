@@ -3,6 +3,7 @@ import {
   findRosterAddress,
   normalizeKey,
   rankTopTwoHandler,
+  standingsInputNeedsFetch,
 } from "@/plugins/fantasy-premier-league/steps/rank-top-two-core";
 
 describe("rankTopTwoHandler", () => {
@@ -46,6 +47,16 @@ describe("rankTopTwoHandler", () => {
     expect(result.data.first.prizeUsdc).toBe("5");
     expect(result.data.second.address).toBe("0xSecond");
     expect(result.data.second.points).toBe(70);
+  });
+
+  it("detects unresolved template standings input", () => {
+    expect(standingsInputNeedsFetch("")).toBe(true);
+    expect(
+      standingsInputNeedsFetch(
+        "{{@fpl-standings:Get League Standings.standings.results}}"
+      )
+    ).toBe(true);
+    expect(standingsInputNeedsFetch("[]")).toBe(false);
   });
 
   it("matches team name when emoji-stripped keys align", () => {

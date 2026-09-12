@@ -560,7 +560,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect The Graph (gateway API key) and Telegram. Paste the public Uniswap V3 Ethereum subgraph id from thegraph.com/explorer on Query Uniswap V3 (default is a common mainnet deployment). Tune amountUSD_gt in the GraphQL query and the Large swap found? condition. Polls every 15 minutes — no custom indexer required.",
+            text: "Connect The Graph (gateway API key) and Telegram. Set chat ID on both Telegram nodes. Query uses the public Uniswap V3 Ethereum subgraph. Tune amountUSD_gt in the GraphQL query. Every run sends a Telegram report: large-swap alert when a match exists, all-clear when none do.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -609,7 +609,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           config: {
             actionType: "Condition",
             condition:
-              'String({{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}} || "").length > 0',
+              '{{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}} !== undefined && {{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}} !== null && {{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}} !== ""',
           },
           status: "idle",
           description: "True when the query returned at least one large swap",
@@ -626,7 +626,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "telegram/send-message",
             chatId: "YOUR_TELEGRAM_CHAT_ID",
             message:
-              "Uniswap V3 large swap\n\nSwap: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}}\nUSD: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.amountUSD}}\nPair: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.token0.symbol}}/{{@uni-v3-query:Query Uniswap V3.data.swaps.0.token1.symbol}}\nTx: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.transaction.id}}",
+              "Uniswap V3 large swap found\n\nSwap: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.id}}\nUSD: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.amountUSD}}\nPair: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.token0.symbol}}/{{@uni-v3-query:Query Uniswap V3.data.swaps.0.token1.symbol}}\nTx: {{@uni-v3-query:Query Uniswap V3.data.swaps.0.transaction.id}}\nAction: review treasury exposure on this pair.",
             parseMode: "none",
           },
           status: "idle",
@@ -643,7 +643,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "telegram/send-message",
             chatId: "YOUR_TELEGRAM_CHAT_ID",
             message:
-              "Uniswap V3 watch — all clear\n\nNo swaps above $10k USD in this poll. Treasury watch standing by.",
+              "Uniswap V3 watch — no large swap this poll\n\nNo swap above $10k USD in the latest Uniswap V3 query. Treasury watch standing by. This is the expected quiet outcome, not a failed run.",
             parseMode: "none",
           },
           status: "idle",
@@ -703,7 +703,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect The Graph, Privy, and Telegram. Create an org treasury before running. Subgraph reads are Ethereum mainnet; USDC payout uses Base Sepolia.",
+            text: "Connect The Graph, Privy, and Telegram. Create an org treasury before running. Subgraph reads are Ethereum mainnet; USDC payout uses Base Sepolia. Markets live? always Telegram-reports: 1 USDC keeper buffer when TVL is positive, hold notice and no transfer when it is not.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -774,40 +774,26 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
-        id: "keeper-privy-wallet",
-        type: "action",
-        position: { x: 1120, y: 200 },
-        data: {
-          label: "Get Privy wallet",
-          type: "action",
-          config: {
-            actionType: "privy/get-wallet",
-            walletId: "{{@keeper-org-wallet:Get org wallet.walletId}}",
-          },
-          status: "idle",
-        },
-      },
-      {
         id: "keeper-markets-live",
         type: "action",
-        position: { x: 1400, y: 200 },
+        position: { x: 1120, y: 200 },
         data: {
           label: "Markets live?",
           type: "action",
           config: {
             actionType: "Condition",
             condition:
-              'Number("{{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}") > 0',
+              "{{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}} > 0",
           },
           status: "idle",
           description:
-            "True when Aave USDC TVL is positive; false parks capital instead of full keeper refill",
+            "True when Aave USDC TVL is positive (1 USDC keeper buffer). False still finishes with a Telegram hold report — no transfer.",
         },
       },
       {
         id: "keeper-pay",
         type: "action",
-        position: { x: 1680, y: 80 },
+        position: { x: 1400, y: 80 },
         data: {
           label: "Pay keeper USDC",
           type: "action",
@@ -826,32 +812,9 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
-        id: "keeper-park",
-        type: "action",
-        position: { x: 1680, y: 320 },
-        data: {
-          label: "Park idle USDC",
-          type: "action",
-          config: {
-            actionType: "privy/wallet-transfer",
-            walletId: "{{@keeper-org-wallet:Get org wallet.walletId}}",
-            sourceChain: "base_sepolia",
-            sourceAsset: "usdc",
-            amount: "0.1",
-            destinationAddress: "{{@keeper-org-wallet:Get org wallet.address}}",
-            destinationChain: "base_sepolia",
-            destinationAsset: "usdc",
-            useIntent: "false",
-          },
-          status: "idle",
-          description:
-            "Small self-transfer to org treasury when markets look stale",
-        },
-      },
-      {
         id: "keeper-telegram",
         type: "action",
-        position: { x: 1960, y: 80 },
+        position: { x: 1400, y: 80 },
         data: {
           label: "Send Telegram report",
           type: "action",
@@ -868,7 +831,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-telegram-hold",
         type: "action",
-        position: { x: 1960, y: 320 },
+        position: { x: 1400, y: 320 },
         data: {
           label: "Send hold report",
           type: "action",
@@ -876,7 +839,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "telegram/send-message",
             chatId: "YOUR_TELEGRAM_CHAT_ID",
             message:
-              "Aave Uniswap USDC keeper — refill held\n\nMarkets did not pass the live TVL check. Full keeper buffer not sent.\nLast Aave USDC TVL: {{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}\nParked 0.1 USDC to org: {{@keeper-park:Park idle USDC.status}}\nTx: {{@keeper-park:Park idle USDC.transaction_hash}}",
+              "Aave Uniswap USDC keeper — refill held\n\nMarkets did not pass the live TVL check. No USDC transfer was sent.\nLast Aave USDC TVL: {{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}\nUniswap pool TVL: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.totalValueLockedUSD}}\nRun completed on the false branch.",
             parseMode: "none",
           },
           status: "idle",
@@ -894,11 +857,6 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "e-keeper-4",
         source: "keeper-org-wallet",
-        target: "keeper-privy-wallet",
-      },
-      {
-        id: "e-keeper-5",
-        source: "keeper-privy-wallet",
         target: "keeper-markets-live",
       },
       {
@@ -910,14 +868,179 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "e-keeper-7",
         source: "keeper-markets-live",
-        target: "keeper-park",
+        target: "keeper-telegram-hold",
         sourceHandle: "false",
       },
       { id: "e-keeper-8", source: "keeper-pay", target: "keeper-telegram" },
+    ],
+  },
+  {
+    name: "Org USDC waterline keeper",
+    description:
+      "Read the org treasury USDC balance on Base Sepolia. If at least 1 USDC is on hand, send a 1 USDC contractor buffer and Telegram the payout. If the waterline is missed, skip the transfer and Telegram a hold notice so the run always finishes.",
+    nodes: [
       {
-        id: "e-keeper-9",
-        source: "keeper-park",
-        target: "keeper-telegram-hold",
+        id: "waterline-trigger",
+        type: "trigger",
+        position: { x: 0, y: 200 },
+        data: {
+          label: "Treasury waterline run",
+          type: "trigger",
+          config: { triggerType: "Manual" },
+          status: "idle",
+        },
+      },
+      {
+        id: "waterline-note",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 300,
+        height: 200,
+        position: { x: -340, y: 120 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Connect Circle, Privy, and Telegram. Create an org treasury first. Set Telegram chat ID on both Telegram nodes. Funded? true sends 1 USDC then a payout report. false skips the transfer and sends a hold report so a low balance cannot stall the workflow.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "waterline-org-wallet",
+        type: "action",
+        position: { x: 280, y: 200 },
+        data: {
+          label: "Get org wallet",
+          type: "action",
+          config: { actionType: "treasury/get-org-wallet" },
+          status: "idle",
+        },
+      },
+      {
+        id: "waterline-balance",
+        type: "action",
+        position: { x: 560, y: 200 },
+        data: {
+          label: "Get org USDC",
+          type: "action",
+          config: {
+            actionType: "circle/get-usdc-balance",
+            network: "base-sepolia",
+            address: "{{@waterline-org-wallet:Get org wallet.address}}",
+          },
+          status: "idle",
+          description: "Base Sepolia USDC on the org treasury address",
+        },
+      },
+      {
+        id: "waterline-funded",
+        type: "action",
+        position: { x: 840, y: 200 },
+        data: {
+          label: "Funded above waterline?",
+          type: "action",
+          config: {
+            actionType: "Condition",
+            condition:
+              "{{@waterline-balance:Get org USDC.balance}} > 0",
+          },
+          status: "idle",
+          description:
+            "True pays a 1 USDC buffer. False still Telegram-reports and completes.",
+        },
+      },
+      {
+        id: "waterline-pay",
+        type: "action",
+        position: { x: 1120, y: 80 },
+        data: {
+          label: "Pay contractor USDC",
+          type: "action",
+          config: {
+            actionType: "privy/wallet-transfer",
+            walletId: "{{@waterline-org-wallet:Get org wallet.walletId}}",
+            sourceChain: "base_sepolia",
+            sourceAsset: "usdc",
+            amount: "1",
+            destinationAddress: "0xe53c55806328d94A345f2784c7387495505B1CF1",
+            destinationChain: "base_sepolia",
+            destinationAsset: "usdc",
+            useIntent: "false",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "waterline-telegram",
+        type: "action",
+        position: { x: 1400, y: 80 },
+        data: {
+          label: "Send payout report",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Org USDC waterline — buffer sent\n\nTreasury USDC: {{@waterline-balance:Get org USDC.balance}}\nPayout: {{@waterline-pay:Pay contractor USDC.status}}\nTx: {{@waterline-pay:Pay contractor USDC.transaction_hash}}",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "waterline-telegram-hold",
+        type: "action",
+        position: { x: 1120, y: 320 },
+        data: {
+          label: "Send hold report",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Org USDC waterline — payout held\n\nTreasury USDC: {{@waterline-balance:Get org USDC.balance}}\nBalance is at or below the waterline. No USDC transfer was sent. Run completed.",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+    ],
+    edges: [
+      {
+        id: "e-waterline-1",
+        source: "waterline-trigger",
+        target: "waterline-org-wallet",
+      },
+      {
+        id: "e-waterline-2",
+        source: "waterline-org-wallet",
+        target: "waterline-balance",
+      },
+      {
+        id: "e-waterline-3",
+        source: "waterline-balance",
+        target: "waterline-funded",
+      },
+      {
+        id: "e-waterline-4",
+        source: "waterline-funded",
+        target: "waterline-pay",
+        sourceHandle: "true",
+      },
+      {
+        id: "e-waterline-5",
+        source: "waterline-pay",
+        target: "waterline-telegram",
+      },
+      {
+        id: "e-waterline-6",
+        source: "waterline-funded",
+        target: "waterline-telegram-hold",
+        sourceHandle: "false",
       },
     ],
   },

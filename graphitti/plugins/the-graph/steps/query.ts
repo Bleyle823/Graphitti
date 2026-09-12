@@ -3,6 +3,7 @@ import "server-only";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { graphQlPost, resolveGatewayUrl } from "@/lib/the-graph/gateway";
+import { flattenGraphqlQueryPayload } from "@/lib/the-graph/query-payload";
 import type { TheGraphCredentials } from "../credentials";
 import { loadTheGraphCredentials } from "../load-credentials";
 import {
@@ -82,13 +83,15 @@ async function runGatewayQuery(
     operationName,
   });
 
-  return ok({
-    data: result.data ?? null,
-    errors: result.errors ?? [],
-    httpStatus: result.httpStatus,
-    query_url: resolved.queryUrl,
-    query_url_x402: resolved.x402Url,
-  });
+  return ok(
+    flattenGraphqlQueryPayload({
+      data: result.data ?? null,
+      errors: result.errors ?? [],
+      httpStatus: result.httpStatus,
+      query_url: resolved.queryUrl,
+      query_url_x402: resolved.x402Url,
+    })
+  );
 }
 
 async function queryHandler(input: QueryInput, credentials: TheGraphCredentials) {
