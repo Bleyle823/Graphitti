@@ -137,7 +137,22 @@ const stripePlugin: IntegrationPlugin = {
           type: "template-input",
           placeholder: "cus_... or {{NodeName.customerId}}",
           example: "cus_ABC123",
-          required: true,
+        },
+        {
+          key: "email",
+          label: "Customer email (fallback)",
+          type: "template-input",
+          placeholder: "client@example.com or {{Create Customer.email}}",
+          example: "client@example.com",
+          helpTip:
+            "Used to create a Stripe customer when Customer ID is empty or unresolved.",
+        },
+        {
+          key: "name",
+          label: "Customer name (fallback)",
+          type: "template-input",
+          placeholder: "Client Co",
+          example: "Client Co",
         },
         {
           key: "description",

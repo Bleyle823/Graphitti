@@ -431,10 +431,10 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "privy/transfer",
-            walletId: "wallet_YOUR_PAYROLL_WALLET",
-            network: "base",
-            to: "0xCONTRACTOR_1_ADDRESS",
-            amount: "0.01",
+            walletId: "zjwbaol9pyxy9llkly163dvn",
+            network: "sepolia",
+            to: "0xdEBC58A3CE140Ef84E5757013c1998FdAfDB44D6",
+            amount: "0.001",
           },
           status: "idle",
         },
@@ -448,10 +448,10 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "privy/transfer",
-            walletId: "wallet_YOUR_PAYROLL_WALLET",
-            network: "base",
-            to: "0xCONTRACTOR_2_ADDRESS",
-            amount: "0.01",
+            walletId: "zjwbaol9pyxy9llkly163dvn",
+            network: "sepolia",
+            to: "0xc67c0d1d4e12D838f3ed2fC6241D8e65Dfb3100B",
+            amount: "0.001",
           },
           status: "idle",
         },
@@ -465,10 +465,10 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "privy/transfer",
-            walletId: "wallet_YOUR_PAYROLL_WALLET",
-            network: "base",
-            to: "0xCONTRACTOR_3_ADDRESS",
-            amount: "0.01",
+            walletId: "zjwbaol9pyxy9llkly163dvn",
+            network: "sepolia",
+            to: "0xe62803A1A219Be5f0D437ed9F84F2e4CDc8A3Ca1",
+            amount: "0.001",
           },
           status: "idle",
         },
@@ -577,13 +577,13 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "the-graph/query-subgraph",
-            id: "DZz4kDTdmzWLWsV373w2bSmoar3umKKH9y82SUKr5qmp",
+            id: "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
             query: `query RecentLargeSwaps {
   swaps(
     first: 5
     orderBy: timestamp
     orderDirection: desc
-    where: { amountUSD_gt: "100000" }
+    where: { amountUSD_gt: "10000" }
   ) {
     id
     timestamp
@@ -650,6 +650,199 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         target: "uni-v3-telegram",
         sourceHandle: "true",
       },
+    ],
+  },
+  {
+    name: "Aave Uniswap USDC keeper",
+    description:
+      "Read Aave V3 USDC utilization and Uniswap V3 USDC/WETH liquidity from public Ethereum subgraphs, then send a keeper USDC buffer from the org Privy treasury and report on Telegram.",
+    nodes: [
+      {
+        id: "keeper-trigger",
+        type: "trigger",
+        position: { x: 0, y: 200 },
+        data: {
+          label: "Aave Uniswap keeper run",
+          type: "trigger",
+          config: { triggerType: "Manual" },
+          status: "idle",
+        },
+      },
+      {
+        id: "keeper-note",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 320,
+        height: 200,
+        position: { x: -360, y: 120 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Connect The Graph, Privy, and Telegram. Create an org treasury before running. Subgraph reads are Ethereum mainnet; USDC payout uses Base Sepolia.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "aave-usdc",
+        type: "action",
+        position: { x: 280, y: 80 },
+        data: {
+          label: "Query Aave USDC market",
+          type: "action",
+          config: {
+            actionType: "the-graph/query-subgraph",
+            id: "JCNWRypm7FYwV8fx5HhzZPSFaMxgkPuw4TnR3Gpi81zk",
+            query: `query AaveUsdc {
+  market(id: "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c") {
+    name
+    totalValueLockedUSD
+    totalDepositBalanceUSD
+    totalBorrowBalanceUSD
+    inputToken { symbol }
+  }
+}`,
+          },
+          status: "idle",
+          description: "Aave V3 Ethereum USDC market (Messari subgraph)",
+        },
+      },
+      {
+        id: "uni-usdc-weth",
+        type: "action",
+        position: { x: 280, y: 320 },
+        data: {
+          label: "Query Uniswap USDC/WETH",
+          type: "action",
+          config: {
+            actionType: "the-graph/query-subgraph",
+            id: "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
+            query: `query UniswapUsdcWeth {
+  pool(id: "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640") {
+    id
+    feeTier
+    liquidity
+    volumeUSD
+    totalValueLockedUSD
+    token0Price
+    token0 { symbol }
+    token1 { symbol }
+  }
+}`,
+          },
+          status: "idle",
+          description: "Uniswap V3 Ethereum USDC/WETH 0.05% pool",
+        },
+      },
+      {
+        id: "keeper-markets-live",
+        type: "action",
+        position: { x: 560, y: 200 },
+        data: {
+          label: "Markets live?",
+          type: "action",
+          config: {
+            actionType: "Condition",
+            condition:
+              'Number("{{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}") > 0',
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "keeper-org-wallet",
+        type: "action",
+        position: { x: 840, y: 200 },
+        data: {
+          label: "Get org wallet",
+          type: "action",
+          config: { actionType: "treasury/get-org-wallet" },
+          status: "idle",
+        },
+      },
+      {
+        id: "keeper-privy-wallet",
+        type: "action",
+        position: { x: 1100, y: 200 },
+        data: {
+          label: "Get Privy wallet",
+          type: "action",
+          config: {
+            actionType: "privy/get-wallet",
+            walletId: "{{@keeper-org-wallet:Get org wallet.walletId}}",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "keeper-pay",
+        type: "action",
+        position: { x: 1360, y: 200 },
+        data: {
+          label: "Pay keeper USDC",
+          type: "action",
+          config: {
+            actionType: "privy/wallet-transfer",
+            walletId: "{{@keeper-org-wallet:Get org wallet.walletId}}",
+            sourceChain: "base_sepolia",
+            sourceAsset: "usdc",
+            amount: "1",
+            destinationAddress: "0xe53c55806328d94A345f2784c7387495505B1CF1",
+            destinationChain: "base_sepolia",
+            destinationAsset: "usdc",
+            useIntent: "false",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "keeper-telegram",
+        type: "action",
+        position: { x: 1620, y: 200 },
+        data: {
+          label: "Send Telegram report",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Aave Uniswap USDC keeper\n\nAave USDC TVL: {{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}\nAave borrows: {{@aave-usdc:Query Aave USDC market.data.market.totalBorrowBalanceUSD}}\nUniswap pool TVL: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.totalValueLockedUSD}}\nUSDC per WETH: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.token0Price}}\nPayout: {{@keeper-pay:Pay keeper USDC.status}}\nTx: {{@keeper-pay:Pay keeper USDC.transaction_hash}}",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+    ],
+    edges: [
+      { id: "e-keeper-1", source: "keeper-trigger", target: "aave-usdc" },
+      { id: "e-keeper-2", source: "keeper-trigger", target: "uni-usdc-weth" },
+      { id: "e-keeper-3", source: "aave-usdc", target: "keeper-markets-live" },
+      {
+        id: "e-keeper-4",
+        source: "uni-usdc-weth",
+        target: "keeper-markets-live",
+      },
+      {
+        id: "e-keeper-5",
+        source: "keeper-markets-live",
+        target: "keeper-org-wallet",
+        sourceHandle: "true",
+      },
+      {
+        id: "e-keeper-6",
+        source: "keeper-org-wallet",
+        target: "keeper-privy-wallet",
+      },
+      {
+        id: "e-keeper-7",
+        source: "keeper-privy-wallet",
+        target: "keeper-pay",
+      },
+      { id: "e-keeper-8", source: "keeper-pay", target: "keeper-telegram" },
     ],
   },
 ];
