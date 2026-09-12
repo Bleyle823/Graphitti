@@ -86,11 +86,21 @@ export const CHAINS: Record<string, SupportedChain> = {
     id: "sepolia",
     label: "Ethereum Sepolia",
     chainId: 11_155_111,
-    rpcUrl: "https://rpc.sepolia.org",
+    rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
     explorerUrl: "https://sepolia.etherscan.io",
     nativeSymbol: "ETH",
     nativeDecimals: 18,
     cctpDomain: 0,
+  },
+  "base-sepolia": {
+    id: "base-sepolia",
+    label: "Base Sepolia",
+    chainId: 84_532,
+    rpcUrl: "https://sepolia.base.org",
+    explorerUrl: "https://sepolia.basescan.org",
+    nativeSymbol: "ETH",
+    nativeDecimals: 18,
+    cctpDomain: 6,
   },
 };
 
@@ -99,15 +109,23 @@ export const NETWORK_SELECT_OPTIONS = Object.values(CHAINS).map((chain) => ({
   label: chain.label,
 }));
 
+export function resolveNetworkId(network: string): string {
+  const normalized = network.trim().toLowerCase().replace(/_/g, "-");
+  if (normalized === "eth") {
+    return "ethereum";
+  }
+  return normalized;
+}
+
 export function getChain(network: string): SupportedChain | undefined {
-  return CHAINS[network];
+  return CHAINS[resolveNetworkId(network)];
 }
 
 export function requireChain(network: string): SupportedChain {
   const chain = getChain(network);
   if (!chain) {
     throw new Error(
-      `Unsupported network "${network}". Use ethereum, sepolia, base, arbitrum, optimism, polygon, or arc-testnet.`
+      `Unsupported network "${network}". Use ethereum, sepolia, base, base-sepolia, arbitrum, optimism, polygon, or arc-testnet.`
     );
   }
   return chain;
@@ -118,6 +136,9 @@ export function toCaip2(chain: SupportedChain): string {
 }
 
 export function formatUnits(valueHexOrDec: string, decimals: number): string {
+  if (!valueHexOrDec || valueHexOrDec === "0x") {
+    return "0";
+  }
   const raw = valueHexOrDec.startsWith("0x")
     ? BigInt(valueHexOrDec)
     : BigInt(valueHexOrDec);

@@ -233,7 +233,7 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
   "Arc DeFi treasury readiness": {
     slug: "arc-defi-treasury-readiness",
     category: "circle",
-    chain: "arc-testnet",
+    chain: "base-sepolia",
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
@@ -249,6 +249,7 @@ export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
   "Aave Uniswap USDC keeper",
   "Org USDC waterline keeper",
   "Arc DeFi treasury readiness",
+  "Payroll batch with intent fallback",
 ] as const;
 
 export function isHackathonFeaturedWorkflow(name: string): boolean {

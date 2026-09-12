@@ -68,17 +68,24 @@ async function usdcErc20(input: ReadInput) {
   if (!input.address) {
     return fail("address is required");
   }
+  const address = input.address.trim();
+  if (!address.startsWith("0x") || address.length < 42) {
+    return fail(
+      "address must be a 0x wallet address. Wire Get org wallet.address into this field."
+    );
+  }
   try {
     const raw = await ethCall({
       network: "arc-testnet",
       to: ARC_ADDRESSES.usdcErc20,
-      data: encodeBalanceOf(input.address),
+      data: encodeBalanceOf(address),
     });
+    const balanceRaw = decodeUint(raw).toString();
     return ok({
-      address: input.address,
+      address,
       tokenAddress: ARC_ADDRESSES.usdcErc20,
-      balanceRaw: decodeUint(raw).toString(),
-      balance: formatUnits(raw, 6),
+      balanceRaw,
+      balance: formatUnits(balanceRaw, 6),
       decimals: 6,
       symbol: "USDC",
       kind: "erc20",

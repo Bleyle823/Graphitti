@@ -1071,7 +1071,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect Circle, Arc, and Telegram. Uses org treasury address only—no onchain writes. Ready? true fetches a USDC→EURC swap estimate and sends a go report. false sends a fund Base Sepolia report so the run always completes.",
+            text: "Connect Circle, Arc, and Telegram. On Base Sepolia USDC set Network to base-sepolia (not Arc Testnet or Ethereum). Address must be {{@arcdefi-org-wallet:Get org wallet.address}}. No onchain writes.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
