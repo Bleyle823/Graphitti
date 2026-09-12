@@ -1,10 +1,12 @@
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
+import { PrivyIcon } from "../privy/icon";
 
 const treasuryPlugin: IntegrationPlugin = {
   type: "treasury",
   label: "Treasury",
   description: "Organization treasury helpers for payroll and funding workflows",
+  icon: PrivyIcon,
   formFields: [],
   actions: [
     {

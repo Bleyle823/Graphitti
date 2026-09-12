@@ -7,6 +7,10 @@ export const PLUGIN_BRAND_ASSETS: Record<string, BrandLogoAsset> = {
     light: "/brand/privy-symbol-black.png",
     dark: "/brand/privy-symbol-white.png",
   },
+  treasury: {
+    light: "/brand/privy-symbol-black.png",
+    dark: "/brand/privy-symbol-white.png",
+  },
   "the-graph": {
     light: "/brand/graph-logomark-dark.png",
     dark: "/brand/graph-logomark-light.png",
