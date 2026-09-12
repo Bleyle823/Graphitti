@@ -24,7 +24,7 @@ export const PLUGIN_BRAND_ASSETS: Record<string, BrandLogoAsset> = {
   v0: { light: "/brand/vercel.svg" },
   github: { light: "/brand/github.svg" },
   slack: { light: "/brand/slack.svg" },
-  stripe: { light: "/brand/stripe.svg" },
+  stripe: { light: "/protocols/stripe.png" },
   discord: { light: "/brand/discord.svg" },
   telegram: { light: "/brand/telegram.svg" },
   linear: { light: "/brand/linear.svg" },
