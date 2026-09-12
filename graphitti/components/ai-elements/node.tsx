@@ -13,17 +13,33 @@ import type { ComponentProps } from "react";
 import { AnimatedBorder } from "@/components/ui/animated-border";
 import { AddStepButton } from "@/components/workflow/add-step-button";
 
+export type SourceHandleMode = "default" | "condition" | "foreach";
+
+export function sourceHandleModeForAction(
+  actionType: string
+): SourceHandleMode {
+  if (actionType === "Condition") {
+    return "condition";
+  }
+  if (actionType === "For Each") {
+    return "foreach";
+  }
+  return "default";
+}
+
 export type NodeProps = ComponentProps<typeof Card> & {
   handles: {
     target: boolean;
     source: boolean;
   };
+  sourceHandleMode?: SourceHandleMode;
   status?: "idle" | "running" | "success" | "error";
   nodeId?: string;
 };
 
 export const Node = ({
   handles,
+  sourceHandleMode = "default",
   className,
   status,
   nodeId,
@@ -40,7 +56,36 @@ export const Node = ({
   >
     {status === "running" && <AnimatedBorder />}
     {handles.target && <Handle position={Position.Left} type="target" />}
-    {handles.source && <Handle position={Position.Right} type="source" />}
+    {handles.source && sourceHandleMode === "condition" && (
+      <>
+        <Handle
+          className="border-2! border-background! bg-emerald-500!"
+          id="true"
+          position={Position.Right}
+          style={{ top: "32%", width: 12, height: 12 }}
+          type="source"
+        />
+        <span className="pointer-events-none absolute top-[32%] right-2 -translate-y-1/2 font-medium text-[10px] text-emerald-600">
+          true
+        </span>
+        <Handle
+          className="border-2! border-background! bg-rose-500!"
+          id="false"
+          position={Position.Right}
+          style={{ top: "68%", width: 12, height: 12 }}
+          type="source"
+        />
+        <span className="pointer-events-none absolute top-[68%] right-2 -translate-y-1/2 font-medium text-[10px] text-rose-600">
+          false
+        </span>
+      </>
+    )}
+    {handles.source && sourceHandleMode === "foreach" && (
+      <Handle id="loop" position={Position.Right} type="source" />
+    )}
+    {handles.source && sourceHandleMode === "default" && (
+      <Handle position={Position.Right} type="source" />
+    )}
     {handles.source && nodeId && <AddStepButton sourceNodeId={nodeId} />}
     {props.children}
   </Card>
