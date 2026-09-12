@@ -4,7 +4,14 @@ import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import type { StripeCredentials } from "../credentials";
-import { normalizeStripeCustomerField } from "../resolve-customer-fields";
+import {
+  normalizeStripeCustomerField,
+  readStripeCustomerId,
+} from "../resolve-customer-fields";
+import {
+  resolveStripeSecretKey,
+  stripeCustomerExists,
+} from "../stripe-http";
 import { createStripeCustomer } from "./create-customer";
 
 const STRIPE_API_URL = "https://api.stripe.com/v1";
@@ -44,12 +51,13 @@ type CreateInvoiceResult =
 
 export type CreateInvoiceCoreInput = {
   customerId?: string;
+  customer?: string;
   email?: string;
   name?: string;
   description?: string;
   lineItems: string;
-  daysUntilDue?: number;
-  autoAdvance?: string;
+  daysUntilDue?: number | string;
+  autoAdvance?: string | boolean;
   collectionMethod?: "send_invoice" | "charge_automatically";
   metadata?: string;
 };
@@ -59,16 +67,27 @@ export type CreateInvoiceInput = StepInput &
     integrationId?: string;
   };
 
+type CustomerResolved =
+  | { ok: true; customerId: string }
+  | ReturnType<typeof fail>;
+
 async function resolveCustomerId(
   input: CreateInvoiceCoreInput,
   credentials: StripeCredentials
-): Promise<{ ok: true; customerId: string } | ReturnType<typeof fail>> {
-  const customerId = normalizeStripeCustomerField(input.customerId);
-  if (customerId) {
+): Promise<CustomerResolved> {
+  const apiKey = resolveStripeSecretKey(credentials);
+  const customerId = readStripeCustomerId(input);
+  const email = normalizeStripeCustomerField(input.email);
+
+  if (customerId && apiKey) {
+    const exists = await stripeCustomerExists(apiKey, customerId);
+    if (exists) {
+      return { ok: true, customerId };
+    }
+  } else if (customerId) {
     return { ok: true, customerId };
   }
 
-  const email = normalizeStripeCustomerField(input.email);
   if (!email) {
     return fail(
       "Customer ID is required, or provide email (and optional name) to create a Stripe customer before invoicing"
@@ -80,16 +99,40 @@ async function resolveCustomerId(
     credentials
   );
   if (!created.success) {
-    return created;
+    const message =
+      typeof created.error === "string"
+        ? created.error
+        : created.error?.message || "Failed to create Stripe customer";
+    return fail(message);
   }
   return { ok: true, customerId: created.data.id };
+}
+
+function coerceDaysUntilDue(value: number | string | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value.trim(), 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return 30;
+}
+
+function coerceAutoAdvance(value: string | boolean | undefined): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return value !== "false";
 }
 
 async function stepHandler(
   input: CreateInvoiceCoreInput,
   credentials: StripeCredentials
 ): Promise<CreateInvoiceResult> {
-  const apiKey = credentials.STRIPE_SECRET_KEY;
+  const apiKey = resolveStripeSecretKey(credentials);
 
   if (!apiKey) {
     return fail(
@@ -110,10 +153,15 @@ async function stepHandler(
   }
 
   const customerResolved = await resolveCustomerId(input, credentials);
-  if (!("customerId" in customerResolved)) {
+  if (!("ok" in customerResolved)) {
     return customerResolved;
   }
-  const customerId = customerResolved.customerId;
+  const customerId = customerResolved.customerId.trim();
+  if (!customerId.startsWith("cus_")) {
+    return fail(
+      `Invalid Stripe customer id "${customerId}". Use a value like cus_... from Stripe, or leave Customer ID empty and set email instead.`
+    );
+  }
 
   try {
     const invoiceParams = new URLSearchParams();
@@ -124,11 +172,11 @@ async function stepHandler(
     );
     invoiceParams.append(
       "days_until_due",
-      String(input.daysUntilDue || 30)
+      String(coerceDaysUntilDue(input.daysUntilDue))
     );
     invoiceParams.append(
       "auto_advance",
-      input.autoAdvance === "false" ? "false" : "true"
+      coerceAutoAdvance(input.autoAdvance) ? "true" : "false"
     );
 
     if (input.description) {
@@ -169,6 +217,7 @@ async function stepHandler(
 
     for (const item of lineItems) {
       const itemParams = new URLSearchParams();
+      itemParams.append("customer", customerId);
       itemParams.append("invoice", invoice.id);
       itemParams.append("description", item.description);
       itemParams.append("quantity", String(item.quantity || 1));
@@ -194,7 +243,7 @@ async function stepHandler(
     }
 
     let finalInvoice = invoice;
-    if (input.autoAdvance !== "false") {
+    if (coerceAutoAdvance(input.autoAdvance)) {
       const finalizeResponse = await fetch(
         `${STRIPE_API_URL}/invoices/${invoice.id}/finalize`,
         {

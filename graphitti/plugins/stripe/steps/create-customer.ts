@@ -4,6 +4,7 @@ import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import type { StripeCredentials } from "../credentials";
+import { resolveStripeSecretKey } from "../stripe-http";
 
 const STRIPE_API_URL = "https://api.stripe.com/v1";
 
@@ -44,7 +45,7 @@ export async function createStripeCustomer(
   input: CreateCustomerCoreInput,
   credentials: StripeCredentials
 ): Promise<CreateCustomerResult> {
-  const apiKey = credentials.STRIPE_SECRET_KEY;
+  const apiKey = resolveStripeSecretKey(credentials);
 
   if (!apiKey) {
     return fail(

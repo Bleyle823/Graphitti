@@ -261,12 +261,7 @@ describe("starred workflow templates", () => {
       true
     );
     expect(
-      hasEdge(
-        waterline,
-        "waterline-funded",
-        "waterline-telegram-hold",
-        "false"
-      )
+      hasEdge(waterline, "waterline-funded", "waterline-telegram-hold", "false")
     ).toBe(true);
   });
 
