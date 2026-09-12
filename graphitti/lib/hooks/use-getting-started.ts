@@ -75,12 +75,14 @@ export function useGettingStarted() {
       });
       return;
     }
-    const [workflows, integrations, analytics] = await Promise.all([
-      api.workflow.getAll().catch(() => []),
+    const [workflowList, integrations, analytics] = await Promise.all([
+      api.workflow
+        .getAll()
+        .catch(() => ({ personal: [], organization: [], workflows: [] })),
       api.integration.getAll().catch(() => []),
       api.analytics.summary().catch(() => null),
     ]);
-    const visible = workflows.filter(
+    const visible = workflowList.workflows.filter(
       (workflow) => workflow.name !== "__current__" && !workflow.deletedAt
     );
     setProgress({

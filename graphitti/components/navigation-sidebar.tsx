@@ -292,6 +292,9 @@ export function NavigationSidebar(): React.ReactElement | null {
   const params = useParams();
   const navState = usePersistedNavState();
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([]);
+  const [organizationWorkflows, setOrganizationWorkflows] = useState<
+    SavedWorkflow[]
+  >([]);
   const [catalogExamples, setCatalogExamples] = useState<SavedWorkflow[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -301,7 +304,8 @@ export function NavigationSidebar(): React.ReactElement | null {
   const fetchData = useCallback(async (): Promise<void> => {
     try {
       const result = await api.workflow.getAll();
-      setWorkflows(Array.isArray(result) ? visibleWorkflows(result) : []);
+      setWorkflows(visibleWorkflows(result.personal));
+      setOrganizationWorkflows(visibleWorkflows(result.organization));
     } catch (error) {
       console.error("Failed to load workflows:", error);
       setWorkflows([]);
@@ -514,6 +518,7 @@ export function NavigationSidebar(): React.ReactElement | null {
   }
 
   const picker = visibleWorkflows(workflows);
+  const orgPicker = visibleWorkflows(organizationWorkflows);
 
   if (sessionPending || !navState.hasMounted) {
     return (
@@ -556,7 +561,8 @@ export function NavigationSidebar(): React.ReactElement | null {
               catalogLoading={catalogLoading}
               hasWalletAccess={hasWalletAccess}
               loading={dataLoading}
-              workflows={picker}
+              organizationWorkflows={orgPicker}
+              personalWorkflows={picker}
             />
           </div>
         </SheetContent>
@@ -600,7 +606,8 @@ export function NavigationSidebar(): React.ReactElement | null {
           catalogLoading={catalogLoading}
           hasWalletAccess={hasWalletAccess}
           loading={dataLoading}
-          workflows={picker}
+          organizationWorkflows={orgPicker}
+          personalWorkflows={picker}
         />
       </FlyoutPanel>
 

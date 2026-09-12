@@ -24,9 +24,9 @@ import {
 import { cn } from "@/lib/utils";
 import { getRelativeTime } from "@/lib/utils/time";
 import {
+  canViewWorkflowRunsAtom,
   currentWorkflowIdAtom,
   executionLogsAtom,
-  isWorkflowOwnerAtom,
   selectedExecutionIdAtom,
 } from "@/lib/workflow-store";
 import { findActionById } from "@/plugins";
@@ -523,7 +523,7 @@ export function WorkflowRuns({
   onStartRun,
 }: WorkflowRunsProps) {
   const [currentWorkflowId] = useAtom(currentWorkflowIdAtom);
-  const isOwner = useAtomValue(isWorkflowOwnerAtom);
+  const canViewRuns = useAtomValue(canViewWorkflowRunsAtom);
   const { isPending: isSessionPending } = useSession();
   const [selectedExecutionId, setSelectedExecutionId] = useAtom(
     selectedExecutionIdAtom
@@ -540,7 +540,7 @@ export function WorkflowRuns({
 
   const loadExecutions = useCallback(
     async (showLoading = true) => {
-      if (!currentWorkflowId || isSessionPending || !isOwner) {
+      if (!currentWorkflowId || isSessionPending || !canViewRuns) {
         setExecutions([]);
         setLoading(false);
         return;
@@ -566,7 +566,7 @@ export function WorkflowRuns({
         }
       }
     },
-    [currentWorkflowId, isOwner, isSessionPending]
+    [currentWorkflowId, canViewRuns, isSessionPending]
   );
 
   // Expose refresh function via ref
@@ -723,7 +723,7 @@ export function WorkflowRuns({
 
   // Poll for new executions when tab is active
   useEffect(() => {
-    if (!(isActive && currentWorkflowId && isOwner && !isSessionPending)) {
+    if (!(isActive && currentWorkflowId && canViewRuns && !isSessionPending)) {
       return;
     }
 
@@ -752,7 +752,7 @@ export function WorkflowRuns({
     isActive,
     currentWorkflowId,
     expandedRuns,
-    isOwner,
+    canViewRuns,
     isSessionPending,
     refreshExecutionLogs,
   ]);

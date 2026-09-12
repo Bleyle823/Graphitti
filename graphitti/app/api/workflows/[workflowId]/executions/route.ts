@@ -1,9 +1,10 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflowExecutions, workflows } from "@/lib/db/schema";
 import { isPubliclyReadable } from "@/lib/marketplace/listing";
+import { resolveWorkflowAccess } from "@/lib/org/workflow-access";
 
 export async function GET(
   request: Request,
@@ -31,15 +32,24 @@ export async function GET(
     }
 
     const isOwner = session.user.id === workflow.userId;
-    if (!(isOwner || isPubliclyReadable(workflow))) {
+    let canViewExecutions = isOwner;
+    if (!isOwner) {
+      const access = await resolveWorkflowAccess(
+        session.user.id,
+        workflow,
+        "read"
+      );
+      canViewExecutions = access.allowed;
+    }
+
+    if (!(canViewExecutions || isPubliclyReadable(workflow))) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }
       );
     }
 
-    // Only owners can view execution history.
-    if (!isOwner) {
+    if (!canViewExecutions) {
       return NextResponse.json([]);
     }
 
@@ -77,18 +87,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify workflow ownership
     const workflow = await db.query.workflows.findFirst({
-      where: and(
-        eq(workflows.id, workflowId),
-        eq(workflows.userId, session.user.id)
-      ),
+      where: eq(workflows.id, workflowId),
     });
 
     if (!workflow) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }
+      );
+    }
+
+    const access = await resolveWorkflowAccess(
+      session.user.id,
+      workflow,
+      "delete"
+    );
+    if (!access.allowed) {
+      return NextResponse.json(
+        { error: access.reason ?? "Forbidden" },
+        { status: 403 }
       );
     }
 

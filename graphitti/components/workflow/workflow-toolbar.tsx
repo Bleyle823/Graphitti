@@ -751,10 +751,9 @@ function useWorkflowState() {
     }
     const loadAllWorkflows = async () => {
       try {
-        const workflows = await api.workflow.getAll();
-        const list = Array.isArray(workflows) ? workflows : [];
+        const result = await api.workflow.getAll();
         setAllWorkflows(
-          list.filter((workflow) => workflow.name !== "__current__")
+          result.workflows.filter((workflow) => workflow.name !== "__current__")
         );
       } catch (error) {
         console.error("Failed to load workflows:", error);
@@ -967,10 +966,9 @@ function useWorkflowActions(
 
   const loadWorkflows = async () => {
     try {
-      const workflows = await api.workflow.getAll();
-      const list = Array.isArray(workflows) ? workflows : [];
+      const result = await api.workflow.getAll();
       setAllWorkflows(
-        list.filter((workflow) => workflow.name !== "__current__")
+        result.workflows.filter((workflow) => workflow.name !== "__current__")
       );
     } catch (error) {
       console.error("Failed to load workflows:", error);

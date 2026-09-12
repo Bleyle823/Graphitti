@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
+import { refetchSidebar } from "@/lib/refetch-sidebar";
 
 type MemberRow = {
   id: string;
@@ -181,6 +182,7 @@ function ActiveOrgPanel({
   onEmailChange,
   onInviteRoleChange,
   onInvite,
+  onCancelInvitation,
 }: {
   loadingMembers: boolean;
   members: MemberRow[];
@@ -194,6 +196,7 @@ function ActiveOrgPanel({
   onEmailChange: (value: string) => void;
   onInviteRoleChange: (value: string) => void;
   onInvite: () => Promise<void>;
+  onCancelInvitation: (invitationId: string) => Promise<void>;
 }): React.ReactElement {
   if (loadingMembers) {
     return <Spinner />;
@@ -233,9 +236,23 @@ function ActiveOrgPanel({
         <div className="space-y-2">
           <h3 className="font-medium text-sm">Pending invitations</h3>
           {invitations.map((invitation) => (
-            <div className="rounded-md border p-3 text-sm" key={invitation.id}>
-              {invitation.email} · {invitation.role ?? "member"} ·{" "}
-              {invitation.status ?? "pending"}
+            <div
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm"
+              key={invitation.id}
+            >
+              <span>
+                {invitation.email} · {invitation.role ?? "member"} ·{" "}
+                {invitation.status ?? "pending"}
+              </span>
+              {canManage ? (
+                <Button
+                  onClick={() => start(onCancelInvitation(invitation.id))}
+                  size="sm"
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+              ) : null}
             </div>
           ))}
         </div>
@@ -245,8 +262,6 @@ function ActiveOrgPanel({
 }
 
 export function OrganizationSettings(): React.ReactElement {
-  const { data: organizations, isPending: orgsPending } =
-    authClient.useListOrganizations();
   const { data: activeOrganization, isPending: activePending } =
     authClient.useActiveOrganization();
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -282,18 +297,15 @@ export function OrganizationSettings(): React.ReactElement {
     start(loadMembers());
   }, [loadMembers]);
 
-  async function handleSetActive(organizationId: string): Promise<void> {
-    await authClient.organization.setActive({ organizationId });
-  }
-
   async function handleInvite(): Promise<void> {
     if (!(activeOrgId && inviteEmail.trim())) {
       return;
     }
     setInviting(true);
+    const email = inviteEmail.trim();
     try {
       const result = await authClient.organization.inviteMember({
-        email: inviteEmail.trim(),
+        email,
         role: inviteRole as "member" | "admin" | "owner",
         organizationId: activeOrgId,
       });
@@ -301,7 +313,7 @@ export function OrganizationSettings(): React.ReactElement {
         throw new Error(result.error.message ?? "Failed to invite member");
       }
       setInviteEmail("");
-      toast.success("Invitation sent");
+      toast.success(`Invitation sent to ${email}`);
       await loadMembers();
     } catch (error) {
       toast.error(
@@ -310,6 +322,48 @@ export function OrganizationSettings(): React.ReactElement {
     } finally {
       setInviting(false);
     }
+  }
+
+  async function handleCancelInvitation(invitationId: string): Promise<void> {
+    if (!activeOrgId) {
+      return;
+    }
+    const result = await authClient.organization.cancelInvitation({
+      invitationId,
+    });
+    if (result.error) {
+      toast.error(result.error.message ?? "Failed to cancel invitation");
+      return;
+    }
+    toast.success("Invitation canceled");
+    await loadMembers();
+  }
+
+  async function handleLeaveOrganization(): Promise<void> {
+    if (!activeOrgId) {
+      return;
+    }
+    if (selfMember?.role === "owner") {
+      toast.error(
+        "Organization owners cannot leave yet. Transfer ownership or delete the org from Treasury."
+      );
+      return;
+    }
+    const response = await fetch("/api/org/leave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organizationId: activeOrgId }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      toast.error(payload.error ?? "Failed to leave organization");
+      return;
+    }
+    refetchSidebar();
+    toast.success("You left the organization");
+    await loadMembers();
   }
 
   async function handleRemove(memberId: string): Promise<void> {
@@ -356,7 +410,7 @@ export function OrganizationSettings(): React.ReactElement {
   );
   const canManage = canManageMembers(selfMember?.role);
 
-  if (orgsPending || activePending) {
+  if (activePending) {
     return (
       <div className="flex justify-center py-6">
         <Spinner />
@@ -366,43 +420,59 @@ export function OrganizationSettings(): React.ReactElement {
 
   return (
     <div className="space-y-4" data-testid="org-settings">
-      <div className="space-y-2">
-        <Label htmlFor="active-org">Active organization</Label>
-        <Select
-          onValueChange={(value) => start(handleSetActive(value))}
-          value={activeOrgId ?? undefined}
-        >
-          <SelectTrigger data-testid="org-switcher" id="active-org">
-            <SelectValue placeholder="Select organization" />
-          </SelectTrigger>
-          <SelectContent>
-            {(organizations ?? []).map((org) => (
-              <SelectItem key={org.id} value={org.id}>
-                {org.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {activeOrgId ? (
-        <ActiveOrgPanel
-          canManage={canManage}
-          invitations={invitations}
-          inviteEmail={inviteEmail}
-          inviteRole={inviteRole}
-          inviting={inviting}
-          loadingMembers={loadingMembers}
-          members={members}
-          onEmailChange={setInviteEmail}
-          onInvite={handleInvite}
-          onInviteRoleChange={setInviteRole}
-          onRemove={handleRemove}
-          onRoleChange={handleRoleChange}
-        />
+        <Tabs defaultValue="general">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+          </TabsList>
+          <TabsContent className="space-y-4 pt-4" value="general">
+            <p className="text-muted-foreground text-sm">
+              Active org:{" "}
+              <span className="text-foreground">
+                {activeOrganization?.name}
+              </span>
+              . Use the header switcher to change organizations.
+            </p>
+            {selfMember?.role !== "owner" ? (
+              <Button
+                onClick={() => start(handleLeaveOrganization())}
+                variant="outline"
+              >
+                Leave organization
+              </Button>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                Owners manage membership from the Users tab. To remove the org,
+                use Treasury.
+              </p>
+            )}
+          </TabsContent>
+          <TabsContent className="space-y-4 pt-4" value="users">
+            <ActiveOrgPanel
+              canManage={canManage}
+              invitations={invitations}
+              inviteEmail={inviteEmail}
+              inviteRole={inviteRole}
+              inviting={inviting}
+              loadingMembers={loadingMembers}
+              members={members}
+              onCancelInvitation={handleCancelInvitation}
+              onEmailChange={setInviteEmail}
+              onInvite={handleInvite}
+              onInviteRoleChange={setInviteRole}
+              onRemove={handleRemove}
+              onRoleChange={handleRoleChange}
+            />
+          </TabsContent>
+        </Tabs>
       ) : (
         <p className="text-muted-foreground text-sm">
-          Create an organization from Treasury to invite teammates.
+          Switch to an organization in the header, or create one from{" "}
+          <a className="text-primary underline" href="/treasury">
+            Treasury
+          </a>
+          .
         </p>
       )}
     </div>

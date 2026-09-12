@@ -19,6 +19,8 @@ import {
   workflowExecutionsRelations,
   workflows,
 } from "./db/schema";
+import { sendOrganizationInvitationEmail } from "./email/send-organization-invitation";
+import { bindOrgWalletToMemberWorkflows } from "./privy/bind-org-wallet-workflows";
 import { ensureOrgTreasury } from "./privy/ensure-org-treasury";
 
 const statement = {
@@ -218,6 +220,15 @@ const plugins = [
       admin: adminRole,
       member: memberRole,
     },
+    async sendInvitationEmail(data) {
+      const base = process.env.NEXT_PUBLIC_APP_URL ?? getBaseURL();
+      await sendOrganizationInvitationEmail({
+        to: data.email,
+        inviterName: data.inviter.user.name,
+        orgName: data.organization.name,
+        acceptUrl: `${base}/accept-invitation?invitationId=${data.id}`,
+      });
+    },
     organizationHooks: {
       async afterCreateOrganization(data) {
         const creatorUserId = data.user?.id ?? data.member?.userId;
@@ -229,6 +240,9 @@ const plugins = [
           organizationName: data.organization.name,
           creatorUserId,
         });
+      },
+      async afterAddMember(data) {
+        await bindOrgWalletToMemberWorkflows(data.organization.id);
       },
     },
   }),

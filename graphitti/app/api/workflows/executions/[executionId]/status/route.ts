@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflowExecutionLogs, workflowExecutions } from "@/lib/db/schema";
+import { resolveWorkflowAccess } from "@/lib/org/workflow-access";
 
 type NodeStatus = {
   nodeId: string;
@@ -49,8 +50,12 @@ export async function GET(
       );
     }
 
-    // Verify the workflow belongs to the user
-    if (execution.workflow.userId !== session.user.id) {
+    const access = await resolveWorkflowAccess(
+      session.user.id,
+      execution.workflow,
+      "read"
+    );
+    if (!access.allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -10,6 +10,7 @@ import {
   workflows,
 } from "@/lib/db/schema";
 import { isPubliclyReadable } from "@/lib/marketplace/listing";
+import { resolveWorkflowAccess } from "@/lib/org/workflow-access";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +69,17 @@ export async function GET(
     }
 
     const isOwner = session?.user?.id === workflow.userId;
+    let canReadAsOrgMember = false;
+    if (session?.user && !isOwner) {
+      const access = await resolveWorkflowAccess(
+        session.user.id,
+        workflow,
+        "read"
+      );
+      canReadAsOrgMember = access.allowed;
+    }
 
-    if (!(isOwner || isPubliclyReadable(workflow))) {
+    if (!(isOwner || canReadAsOrgMember || isPubliclyReadable(workflow))) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }
@@ -77,16 +87,22 @@ export async function GET(
     }
 
     // For public or listed workflows viewed by non-owners, sanitize sensitive data
+    const accessForEdit = session?.user
+      ? await resolveWorkflowAccess(session.user.id, workflow, "update")
+      : { allowed: false as const };
+
     const responseData = {
       ...workflow,
-      nodes: isOwner
-        ? workflow.nodes
-        : sanitizeNodesForPublicView(
-            workflow.nodes as Record<string, unknown>[]
-          ),
+      nodes:
+        isOwner || canReadAsOrgMember
+          ? workflow.nodes
+          : sanitizeNodesForPublicView(
+              workflow.nodes as Record<string, unknown>[]
+            ),
       createdAt: workflow.createdAt.toISOString(),
       updatedAt: workflow.updatedAt.toISOString(),
       isOwner,
+      canEdit: accessForEdit.allowed,
     };
 
     return NextResponse.json(responseData, { headers: noStoreHeaders });
@@ -143,24 +159,32 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify ownership
     const existingWorkflow = await db.query.workflows.findFirst({
-      where: and(
-        eq(workflows.id, workflowId),
-        eq(workflows.userId, session.user.id)
-      ),
+      where: eq(workflows.id, workflowId),
     });
 
-    if (!existingWorkflow) {
+    if (!existingWorkflow || existingWorkflow.deletedAt) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }
       );
     }
 
+    const access = await resolveWorkflowAccess(
+      session.user.id,
+      existingWorkflow,
+      "update"
+    );
+    if (!access.allowed) {
+      return NextResponse.json(
+        { error: access.reason ?? "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
-    // Validate that all integrationIds in nodes belong to the current user
+    // Validate integrations for the editor (admin) or owner
     if (Array.isArray(body.nodes)) {
       const validation = await validateWorkflowIntegrations(
         body.nodes,
@@ -211,7 +235,8 @@ export async function PATCH(
       ...updatedWorkflow,
       createdAt: updatedWorkflow.createdAt.toISOString(),
       updatedAt: updatedWorkflow.updatedAt.toISOString(),
-      isOwner: true,
+      isOwner: existingWorkflow.userId === session.user.id,
+      canEdit: true,
     });
   } catch (error) {
     console.error("Failed to update workflow:", error);
@@ -242,18 +267,26 @@ export async function DELETE(
       );
     }
 
-    // Verify ownership
     const existingWorkflow = await db.query.workflows.findFirst({
-      where: and(
-        eq(workflows.id, workflowId),
-        eq(workflows.userId, session.user.id)
-      ),
+      where: eq(workflows.id, workflowId),
     });
 
     if (!existingWorkflow || existingWorkflow.deletedAt) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404, headers: noStoreHeaders }
+      );
+    }
+
+    const access = await resolveWorkflowAccess(
+      session.user.id,
+      existingWorkflow,
+      "delete"
+    );
+    if (!access.allowed) {
+      return NextResponse.json(
+        { error: access.reason ?? "Forbidden" },
+        { status: 403, headers: noStoreHeaders }
       );
     }
 

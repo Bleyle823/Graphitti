@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
 import { isPubliclyReadable } from "@/lib/marketplace/listing";
+import { resolveWorkflowAccess } from "@/lib/org/workflow-access";
 import { generateId } from "@/lib/utils/id";
 
 // Node type for type-safe node manipulation
@@ -94,8 +95,17 @@ export async function POST(
     }
 
     const isOwner = session.user.id === sourceWorkflow.userId;
+    let canDuplicate = isOwner || isPubliclyReadable(sourceWorkflow);
+    if (!canDuplicate) {
+      const access = await resolveWorkflowAccess(
+        session.user.id,
+        sourceWorkflow,
+        "duplicate"
+      );
+      canDuplicate = access.allowed;
+    }
 
-    if (!(isOwner || isPubliclyReadable(sourceWorkflow))) {
+    if (!canDuplicate) {
       return NextResponse.json(
         { error: "Workflow not found" },
         { status: 404 }
