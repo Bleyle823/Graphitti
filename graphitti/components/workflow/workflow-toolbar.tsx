@@ -8,6 +8,7 @@ import {
   Copy,
   Download,
   Globe,
+  ImageIcon,
   Loader2,
   Lock,
   Play,
@@ -41,6 +42,7 @@ import { integrationsAtom } from "@/lib/integrations-store";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import type { IntegrationType } from "@/lib/types/integration";
 import { authPromptOpenAtom } from "@/lib/ui-store";
+import { createCanvasImageNode } from "@/lib/workflow/canvas-image";
 import { workflowRequiresLinkedWallet } from "@/lib/workflow/requires-linked-wallet";
 import { evaluateShowWhen } from "@/lib/workflow/show-when";
 import {
@@ -1173,6 +1175,13 @@ function ToolbarActions({
     state.setSelectedNodeId(newNode.id);
   };
 
+  const handleAddImage = () => {
+    const position = getFlowViewportCenterPosition(screenToFlowPosition);
+    const newNode = createCanvasImageNode(position);
+    state.addNode(newNode);
+    state.setSelectedNodeId(newNode.id);
+  };
+
   return (
     <>
       {/* Add Step - Mobile Vertical */}
@@ -1196,6 +1205,16 @@ function ToolbarActions({
           variant="secondary"
         >
           <StickyNote className="size-4" />
+        </Button>
+        <Button
+          className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+          disabled={state.isGenerating}
+          onClick={handleAddImage}
+          size="icon"
+          title="Add Image"
+          variant="secondary"
+        >
+          <ImageIcon className="size-4" />
         </Button>
       </ButtonGroup>
 
@@ -1245,6 +1264,16 @@ function ToolbarActions({
           variant="secondary"
         >
           <StickyNote className="size-4" />
+        </Button>
+        <Button
+          className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+          disabled={state.isGenerating}
+          onClick={handleAddImage}
+          size="icon"
+          title="Add Image"
+          variant="secondary"
+        >
+          <ImageIcon className="size-4" />
         </Button>
       </ButtonGroup>
 
