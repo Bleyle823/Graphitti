@@ -27,6 +27,8 @@ type AuthDialogProps = {
   children?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** After sign-in, return here (defaults to current path + query). */
+  callbackURL?: string;
 };
 
 const VercelIcon = ({ className = "mr-2 h-3 w-3" }: { className?: string }) => (
@@ -304,6 +306,7 @@ type AuthHandlersOptions = {
   setLoading: (loading: boolean) => void;
   setLoadingProvider: (provider: "github" | "google" | "vercel" | null) => void;
   setOpen: (open: boolean) => void;
+  callbackURL?: string;
 };
 
 const useAuthHandlers = (options: AuthHandlersOptions): UseAuthHandlers => {
@@ -317,14 +320,28 @@ const useAuthHandlers = (options: AuthHandlersOptions): UseAuthHandlers => {
     setLoading,
     setLoadingProvider,
     setOpen,
+    callbackURL,
   } = options;
+
+  const resolveCallbackURL = (): string => {
+    if (callbackURL) {
+      return callbackURL;
+    }
+    if (typeof window === "undefined") {
+      return "/";
+    }
+    return `${window.location.pathname}${window.location.search}`;
+  };
 
   const handleSocialSignIn = async (
     provider: "github" | "google" | "vercel"
   ) => {
     try {
       setLoadingProvider(provider);
-      await signIn.social({ provider, callbackURL: window.location.pathname });
+      await signIn.social({
+        provider,
+        callbackURL: resolveCallbackURL(),
+      });
     } catch {
       toast.error(`Failed to sign in with ${getProviderLabel(provider)}`);
       setLoadingProvider(null);
@@ -350,6 +367,7 @@ const useAuthHandlers = (options: AuthHandlersOptions): UseAuthHandlers => {
     const signInResponse = await signIn.email({
       email,
       password,
+      callbackURL: resolveCallbackURL(),
     });
     if (signInResponse.error) {
       setError(signInResponse.error.message || "Sign in failed");
@@ -364,6 +382,7 @@ const useAuthHandlers = (options: AuthHandlersOptions): UseAuthHandlers => {
     const response = await signIn.email({
       email,
       password,
+      callbackURL: resolveCallbackURL(),
     });
     if (response.error) {
       setError(response.error.message || "Sign in failed");
@@ -621,6 +640,7 @@ export const AuthDialog = ({
   children,
   open: openProp,
   onOpenChange,
+  callbackURL,
 }: AuthDialogProps) => {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = openProp ?? uncontrolledOpen;
@@ -655,6 +675,7 @@ export const AuthDialog = ({
     setLoading,
     setLoadingProvider,
     setOpen,
+    callbackURL,
   });
 
   if (walletOnly) {

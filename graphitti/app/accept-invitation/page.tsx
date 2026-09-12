@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AuthDialog } from "@/components/auth/dialog";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { authClient } from "@/lib/auth-client";
 
 export default function AcceptInvitationPage(): React.ReactElement {
@@ -16,6 +15,14 @@ export default function AcceptInvitationPage(): React.ReactElement {
   const invitationId = searchParams.get("invitationId");
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const [accepting, setAccepting] = useState(false);
+  const [authOpen, setAuthOpen] = useState(true);
+
+  const callbackURL = useMemo(() => {
+    if (!invitationId) {
+      return "/accept-invitation";
+    }
+    return `/accept-invitation?invitationId=${encodeURIComponent(invitationId)}`;
+  }, [invitationId]);
 
   const accept = useCallback(async (): Promise<void> => {
     if (!invitationId) {
@@ -87,15 +94,18 @@ export default function AcceptInvitationPage(): React.ReactElement {
   if (!session?.user || session.user.isAnonymous) {
     return (
       <PageShell
-        description="Sign in with the email address that received the invitation, then accept."
+        description="Sign in or create an account with the same email that received the invitation."
         title="Accept invitation"
       >
-        <div className="flex flex-col gap-3">
-          <ConnectWalletButton />
-          <Button asChild variant="outline">
-            <Link href="/settings">Account settings</Link>
+        <AuthDialog
+          callbackURL={callbackURL}
+          onOpenChange={setAuthOpen}
+          open={authOpen}
+        >
+          <Button className="w-full max-w-sm" type="button">
+            Sign in to accept
           </Button>
-        </div>
+        </AuthDialog>
       </PageShell>
     );
   }

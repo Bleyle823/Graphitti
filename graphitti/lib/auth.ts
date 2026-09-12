@@ -222,12 +222,20 @@ const plugins = [
     },
     async sendInvitationEmail(data) {
       const base = process.env.NEXT_PUBLIC_APP_URL ?? getBaseURL();
-      await sendOrganizationInvitationEmail({
+      const result = await sendOrganizationInvitationEmail({
         to: data.email,
         inviterName: data.inviter.user.name,
         orgName: data.organization.name,
         acceptUrl: `${base}/accept-invitation?invitationId=${data.id}`,
       });
+      if (!result.sent) {
+        const message =
+          result.reason === "email_not_configured"
+            ? "Invitation email is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL on the server."
+            : `Invitation email failed: ${result.reason}`;
+        console.error("[invite]", message);
+        throw new Error(message);
+      }
     },
     organizationHooks: {
       async afterCreateOrganization(data) {
