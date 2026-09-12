@@ -1,8 +1,8 @@
 "use client";
 
-import { useCanvasImageFile } from "@/components/workflow/hooks/use-canvas-image-file";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useCanvasImageFile } from "@/components/workflow/hooks/use-canvas-image-file";
 import { cn } from "@/lib/utils";
 import { parseCanvasImageConfig } from "@/lib/workflow/canvas-image";
 
@@ -19,17 +19,22 @@ export function ImageConfig({
 }: ImageConfigProps) {
   const imageConfig = parseCanvasImageConfig(config);
 
-  const { dropZoneProps, fileInputRef, isDragOver, onFileInputChange, openFilePicker } =
-    useCanvasImageFile({
-      currentAlt: imageConfig.alt,
-      disabled,
-      onApply: ({ src, alt }) => {
-        onUpdateConfig("src", src);
-        if (alt !== undefined && !imageConfig.alt?.trim()) {
-          onUpdateConfig("alt", alt);
-        }
-      },
-    });
+  const {
+    dropZoneProps,
+    fileInputRef,
+    isDragOver,
+    onFileInputChange,
+    openFilePicker,
+  } = useCanvasImageFile({
+    currentAlt: imageConfig.alt,
+    disabled,
+    onApply: ({ src, alt }) => {
+      onUpdateConfig("src", src);
+      if (alt !== undefined && !imageConfig.alt?.trim()) {
+        onUpdateConfig("alt", alt);
+      }
+    },
+  });
 
   return (
     <div className="space-y-4">

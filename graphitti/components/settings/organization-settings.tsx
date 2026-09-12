@@ -249,9 +249,9 @@ function ActiveOrgPanel({
           <h3 className="font-medium text-sm">Pending invitations</h3>
           <p className="text-muted-foreground text-xs">
             Copy the link if email does not arrive. Resend&apos;s
-            onboarding@resend.dev address can only deliver to the Resend
-            account owner until you verify a domain. Teammates must open the
-            link and continue with the invited email.
+            onboarding@resend.dev address can only deliver to the Resend account
+            owner until you verify a domain. Teammates must open the link and
+            continue with the invited email.
           </p>
           {invitations.map((invitation) => (
             <div

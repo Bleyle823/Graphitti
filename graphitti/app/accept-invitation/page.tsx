@@ -74,7 +74,10 @@ function AcceptInvitationContent(): React.ReactElement {
   const isAnonymous = Boolean(sessionUser?.isAnonymous);
   const invitedEmail = invite?.email.toLowerCase() ?? null;
   const emailMatches = Boolean(
-    invitedEmail && sessionEmail && !isAnonymous && sessionEmail === invitedEmail
+    invitedEmail &&
+      sessionEmail &&
+      !isAnonymous &&
+      sessionEmail === invitedEmail
   );
   const joinable = invite?.status === "pending" && !invite.expired;
 
@@ -117,7 +120,10 @@ function AcceptInvitationContent(): React.ReactElement {
 
   if (!invitationId) {
     return (
-      <PageShell description="This invitation link is invalid." title="Invitation">
+      <PageShell
+        description="This invitation link is invalid."
+        title="Invitation"
+      >
         <Button onClick={() => router.push("/settings")} variant="outline">
           Go to settings
         </Button>
@@ -289,9 +295,7 @@ function InvitationAuthForm({
       <div className="space-y-2">
         <Label htmlFor="invite-password">Password</Label>
         <Input
-          autoComplete={
-            mode === "signup" ? "new-password" : "current-password"
-          }
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
           id="invite-password"
           minLength={8}
           onChange={(event) => setPassword(event.target.value)}
