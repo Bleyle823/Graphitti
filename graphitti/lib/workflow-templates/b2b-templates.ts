@@ -493,7 +493,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Connect Stripe, Privy, and Telegram. Set contractor address and USDC amount on Pay contractor USDC. Set chat ID on Send Telegram confirmation. For production, switch the trigger to Webhook on invoice.paid. Create an org treasury before running.",
+            text: "Connect Stripe, Privy, and Telegram integration keys only. Customer, invoice line items, contractor address, and USDC amount are preset for the demo. Set Telegram chat ID on both Telegram nodes. Create an org treasury before running.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -540,6 +540,9 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           description: "Agency services",
           lineItems:
             '[{"description": "Contractor deliverable", "amount": 25000, "quantity": 1}]',
+          daysUntilDue: "30",
+          autoAdvance: "true",
+          collectionMethod: "send_invoice",
         }
       ),
       action("get-wallet-stripe-settle", { x: 780, y: 200 }, "Get org wallet", {
@@ -575,13 +578,25 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       }),
       action(
         "telegram-stripe-settle",
-        { x: 1820, y: 200 },
+        { x: 1820, y: 80 },
         "Send Telegram confirmation",
         {
           actionType: "telegram/send-message",
           chatId: "YOUR_TELEGRAM_CHAT_ID",
           message:
             "Stripe invoice {{@stripe-settle-invoice:Create Stripe invoice.number}} settled onchain\nInvoice ID: {{@stripe-settle-invoice:Create Stripe invoice.id}}\nPayout status: {{@pay-stripe-settle:Pay contractor USDC.status}}",
+          parseMode: "none",
+        }
+      ),
+      action(
+        "telegram-stripe-held",
+        { x: 1820, y: 320 },
+        "Send payout held notice",
+        {
+          actionType: "telegram/send-message",
+          chatId: "YOUR_TELEGRAM_CHAT_ID",
+          message:
+            "Stripe invoice payout held\n\nInvoice was not ready for onchain settlement (missing or invalid invoice id). No USDC transfer sent.\nCustomer: bleyleosewe19@gmail.com",
           parseMode: "none",
         }
       ),
@@ -594,6 +609,12 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       edge("ess5", "privy-wallet-stripe-settle", "payout-valid-stripe-settle"),
       edge("ess6", "payout-valid-stripe-settle", "pay-stripe-settle", "true"),
       edge("ess7", "pay-stripe-settle", "telegram-stripe-settle"),
+      edge(
+        "ess8",
+        "payout-valid-stripe-settle",
+        "telegram-stripe-held",
+        "false"
+      ),
     ],
   },
 ];

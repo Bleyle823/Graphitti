@@ -571,7 +571,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "rseth-sb-telegram-alert",
         type: "action",
-        position: { x: 840, y: 200 },
+        position: { x: 840, y: 80 },
         data: {
           label: "Send Telegram Alert",
           type: "action",
@@ -585,6 +585,24 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           status: "idle",
           description:
             "Connect Telegram integration and set chat ID (numeric or @channel)",
+        },
+      },
+      {
+        id: "rseth-sb-telegram-ok",
+        type: "action",
+        position: { x: 840, y: 320 },
+        data: {
+          label: "Send backing OK",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Kelp rsETH backing within threshold\n\nBlock: {{@rseth-sb-query:Get latest row.block_number}}\nDeviation: {{@rseth-sb-query:Get latest row.deviation_bps}} bps (limit {{@rseth-sb-query:Get latest row.threshold_bps}} bps)\nTotal supply: {{@rseth-sb-query:Get latest row.total_supply}}\nTotal backing: {{@rseth-sb-query:Get latest row.total_backing}}\nNo alert required this block.",
+            parseMode: "none",
+          },
+          status: "idle",
+          description: "Heartbeat when should_alert is false",
         },
       },
     ],
@@ -604,6 +622,12 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         source: "rseth-sb-deviation-condition",
         target: "rseth-sb-telegram-alert",
         sourceHandle: "true",
+      },
+      {
+        id: "e-rseth-sb-4",
+        source: "rseth-sb-deviation-condition",
+        target: "rseth-sb-telegram-ok",
+        sourceHandle: "false",
       },
     ],
   },
