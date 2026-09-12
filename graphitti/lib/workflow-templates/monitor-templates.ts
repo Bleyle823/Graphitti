@@ -367,6 +367,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: "e-spull-3",
         source: "substreams-pull-condition",
         target: "substreams-pull-discord",
+        sourceHandle: "true",
       },
     ],
   },

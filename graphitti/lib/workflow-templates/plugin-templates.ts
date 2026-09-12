@@ -596,7 +596,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           },
           status: "idle",
           description:
-            "Recent swaps with amountUSD > 100k (adjust where clause in GraphQL)",
+            "Recent swaps with amountUSD > 10k (adjust where clause in GraphQL)",
         },
       },
       {
@@ -690,7 +690,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "aave-usdc",
         type: "action",
-        position: { x: 280, y: 80 },
+        position: { x: 280, y: 200 },
         data: {
           label: "Query Aave USDC market",
           type: "action",
@@ -714,7 +714,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "uni-usdc-weth",
         type: "action",
-        position: { x: 280, y: 320 },
+        position: { x: 560, y: 200 },
         data: {
           label: "Query Uniswap USDC/WETH",
           type: "action",
@@ -741,7 +741,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-markets-live",
         type: "action",
-        position: { x: 560, y: 200 },
+        position: { x: 840, y: 200 },
         data: {
           label: "Markets live?",
           type: "action",
@@ -756,7 +756,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-org-wallet",
         type: "action",
-        position: { x: 840, y: 200 },
+        position: { x: 1120, y: 200 },
         data: {
           label: "Get org wallet",
           type: "action",
@@ -767,7 +767,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-privy-wallet",
         type: "action",
-        position: { x: 1100, y: 200 },
+        position: { x: 1400, y: 200 },
         data: {
           label: "Get Privy wallet",
           type: "action",
@@ -781,7 +781,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-pay",
         type: "action",
-        position: { x: 1360, y: 200 },
+        position: { x: 1680, y: 200 },
         data: {
           label: "Pay keeper USDC",
           type: "action",
@@ -802,7 +802,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-telegram",
         type: "action",
-        position: { x: 1620, y: 200 },
+        position: { x: 1960, y: 200 },
         data: {
           label: "Send Telegram report",
           type: "action",
@@ -819,10 +819,9 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     ],
     edges: [
       { id: "e-keeper-1", source: "keeper-trigger", target: "aave-usdc" },
-      { id: "e-keeper-2", source: "keeper-trigger", target: "uni-usdc-weth" },
-      { id: "e-keeper-3", source: "aave-usdc", target: "keeper-markets-live" },
+      { id: "e-keeper-2", source: "aave-usdc", target: "uni-usdc-weth" },
       {
-        id: "e-keeper-4",
+        id: "e-keeper-3",
         source: "uni-usdc-weth",
         target: "keeper-markets-live",
       },

@@ -18,6 +18,7 @@ import {
   Node,
   NodeDescription,
   NodeTitle,
+  sourceHandleModeForAction,
 } from "@/components/ai-elements/node";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { IntegrationIcon } from "@/components/ui/integration-icon";
@@ -343,6 +344,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
 
   const aiModel = getAiModel();
   const isDisabled = data.enabled === false;
+  const sourceHandleMode = sourceHandleModeForAction(actionType);
 
   return (
     <Node
@@ -354,6 +356,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
       data-testid={`action-node-${id}`}
       handles={{ target: true, source: true }}
       nodeId={id}
+      sourceHandleMode={sourceHandleMode}
       status={status}
     >
       {/* Disabled badge in top left */}

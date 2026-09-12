@@ -50,6 +50,30 @@ export function generateWorkflowCode(
     edgesBySource.set(edge.source, targets);
   }
 
+  function getConditionBranchTargets(nodeId: string): {
+    trueTargets: string[];
+    falseTargets: string[];
+  } {
+    const outgoing = edges.filter((edge) => edge.source === nodeId);
+    const usesHandles = outgoing.some(
+      (edge) => edge.sourceHandle === "true" || edge.sourceHandle === "false"
+    );
+    if (!usesHandles) {
+      return {
+        trueTargets: outgoing.map((edge) => edge.target),
+        falseTargets: [],
+      };
+    }
+    return {
+      trueTargets: outgoing
+        .filter((edge) => edge.sourceHandle === "true")
+        .map((edge) => edge.target),
+      falseTargets: outgoing
+        .filter((edge) => edge.sourceHandle === "false")
+        .map((edge) => edge.target),
+    };
+  }
+
   // Find trigger nodes (nodes with no incoming edges)
   const nodesWithIncoming = new Set(edges.map((e) => e.target));
   const triggerNodes = nodes.filter(
@@ -848,31 +872,25 @@ export function generateWorkflowCode(
     }
 
     const condition = node.data.config?.condition as string;
-    const nextNodes = edgesBySource.get(nodeId) || [];
+    const { trueTargets, falseTargets } = getConditionBranchTargets(nodeId);
 
-    if (nextNodes.length > 0) {
-      const trueNode = nextNodes[0];
-      const falseNode = nextNodes[1];
-
-      // Convert template references in condition to JavaScript expressions (not template literal syntax)
-      const convertedCondition = condition
-        ? convertConditionToJS(condition)
-        : "true";
-
-      lines.push(`${indent}if (${convertedCondition}) {`);
-      if (trueNode) {
-        const trueNodeCode = generateNodeCode(trueNode, `${indent}  `);
-        lines.push(...trueNodeCode);
-      }
-
-      if (falseNode) {
-        lines.push(`${indent}} else {`);
-        const falseNodeCode = generateNodeCode(falseNode, `${indent}  `);
-        lines.push(...falseNodeCode);
-      }
-
-      lines.push(`${indent}}`);
+    if (trueTargets.length === 0 && falseTargets.length === 0) {
+      return lines;
     }
+
+    const convertedCondition = condition
+      ? convertConditionToJS(condition)
+      : "true";
+
+    lines.push(`${indent}if (${convertedCondition}) {`);
+    if (trueTargets.length > 0) {
+      lines.push(...generateParallelNodeCode(trueTargets, `${indent}  `));
+    }
+    if (falseTargets.length > 0) {
+      lines.push(`${indent}} else {`);
+      lines.push(...generateParallelNodeCode(falseTargets, `${indent}  `));
+    }
+    lines.push(`${indent}}`);
 
     return lines;
   }
@@ -962,27 +980,29 @@ export function generateWorkflowCode(
   ): string[] {
     const lines: string[] = [`${indent}// Condition: ${node.data.label}`];
     const condition = node.data.config?.condition as string;
-    const nextNodes = edgesBySource.get(nodeId) || [];
+    const { trueTargets, falseTargets } = getConditionBranchTargets(nodeId);
 
-    if (nextNodes.length > 0) {
-      const convertedCondition = condition
-        ? convertConditionToJS(condition)
-        : "true";
-
-      lines.push(`${indent}if (${convertedCondition}) {`);
-      if (nextNodes[0]) {
-        lines.push(
-          ...generateBranchCode(nextNodes[0], `${indent}  `, branchVisited)
-        );
-      }
-      if (nextNodes[1]) {
-        lines.push(`${indent}} else {`);
-        lines.push(
-          ...generateBranchCode(nextNodes[1], `${indent}  `, branchVisited)
-        );
-      }
-      lines.push(`${indent}}`);
+    if (trueTargets.length === 0 && falseTargets.length === 0) {
+      return lines;
     }
+
+    const convertedCondition = condition
+      ? convertConditionToJS(condition)
+      : "true";
+
+    lines.push(`${indent}if (${convertedCondition}) {`);
+    if (trueTargets.length > 0) {
+      lines.push(
+        ...generateChildrenCode(trueTargets, `${indent}  `, branchVisited)
+      );
+    }
+    if (falseTargets.length > 0) {
+      lines.push(`${indent}} else {`);
+      lines.push(
+        ...generateChildrenCode(falseTargets, `${indent}  `, branchVisited)
+      );
+    }
+    lines.push(`${indent}}`);
 
     return lines;
   }

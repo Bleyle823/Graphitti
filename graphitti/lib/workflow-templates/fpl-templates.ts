@@ -75,7 +75,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Set classic league ID on Get League Standings. Edit the roster JSON on Rank Top Two (team, manager, Arc wallet). Team names match FPL entry_name with emojis stripped. Set prize-pool address on Get Prize Pool USDC (same wallet that sends via Arc). Pays 5 / 3 native USDC to mapped 1st / 2nd only.",
+            text: "Set classic league ID on Get League Standings. Edit the roster JSON on Rank Top Two (team, manager, Arc wallet). Team names match FPL entry_name with emojis stripped. Set prize-pool address on Get Prize Pool USDC (same wallet that sends via Arc). Pays 5 / 3 native USDC to mapped 1st / 2nd only. Set Telegram chat ID for the payout notification.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -270,6 +270,24 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           description: "3 native USDC on Arc Testnet",
         },
       },
+      {
+        id: "fpl-telegram",
+        type: "action",
+        position: { x: 2600, y: 200 },
+        data: {
+          label: "Send payout notification",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "FPL gameweek payouts sent\n\nGameweek: {{@fpl-prev-gw:Get Previous Gameweek.events.0.name}}\n1st: {{@fpl-rank:Rank Top Two.first.entryName}} {{@fpl-rank:Rank Top Two.first.prizeUsdc}} USDC\n2nd: {{@fpl-rank:Rank Top Two.second.entryName}} {{@fpl-rank:Rank Top Two.second.prizeUsdc}} USDC",
+            parseMode: "none",
+          },
+          status: "idle",
+          description: "Telegram confirmation after Arc payouts",
+        },
+      },
     ],
     edges: [
       {
@@ -331,6 +349,16 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         source: "fpl-pay-second-condition",
         target: "arc-pay-second",
         sourceHandle: "true",
+      },
+      {
+        id: "e-fpl-first-telegram",
+        source: "arc-pay-first",
+        target: "fpl-telegram",
+      },
+      {
+        id: "e-fpl-second-telegram",
+        source: "arc-pay-second",
+        target: "fpl-telegram",
       },
     ],
   },

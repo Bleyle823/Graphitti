@@ -88,7 +88,39 @@ const edgeTypes = {
   temporary: Edge.Temporary,
 };
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: React Flow canvas requires complex setup
+function withCanvasNodeDefaults(node: WorkflowNode): WorkflowNode {
+  if (node.type === "note") {
+    return {
+      ...node,
+      dragHandle: STICKY_NOTE_DRAG_HANDLE,
+      width: node.width ?? STICKY_NOTE_WIDTH,
+      height: node.height ?? STICKY_NOTE_HEIGHT,
+    };
+  }
+  if (node.type === "image") {
+    return {
+      ...node,
+      dragHandle: CANVAS_IMAGE_DRAG_HANDLE,
+      width: node.width ?? CANVAS_IMAGE_WIDTH,
+      height: node.height ?? CANVAS_IMAGE_HEIGHT,
+    };
+  }
+  return node;
+}
+
+function handlesForConnection(
+  fromSource: boolean,
+  handleId: string | null
+): { sourceHandle: string | null; targetHandle: string | null } {
+  if (!handleId) {
+    return { sourceHandle: null, targetHandle: null };
+  }
+  if (fromSource) {
+    return { sourceHandle: handleId, targetHandle: null };
+  }
+  return { sourceHandle: null, targetHandle: handleId };
+}
+
 export function WorkflowCanvas() {
   const [nodes, setNodes] = useAtom(nodesAtom);
   const [edges, setEdges] = useAtom(edgesAtom);
@@ -113,6 +145,7 @@ export function WorkflowCanvas() {
 
   const connectingNodeId = useRef<string | null>(null);
   const connectingHandleType = useRef<"source" | "target" | null>(null);
+  const connectingHandleId = useRef<string | null>(null);
   const justCreatedNodeFromConnection = useRef(false);
   const viewportInitialized = useRef(false);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
@@ -242,24 +275,7 @@ export function WorkflowCanvas() {
   );
 
   const flowNodes = useMemo(
-    () =>
-      nodes.map((node) =>
-        node.type === "note"
-          ? {
-              ...node,
-              dragHandle: STICKY_NOTE_DRAG_HANDLE,
-              width: node.width ?? STICKY_NOTE_WIDTH,
-              height: node.height ?? STICKY_NOTE_HEIGHT,
-            }
-          : node.type === "image"
-            ? {
-                ...node,
-                dragHandle: CANVAS_IMAGE_DRAG_HANDLE,
-                width: node.width ?? CANVAS_IMAGE_WIDTH,
-                height: node.height ?? CANVAS_IMAGE_HEIGHT,
-              }
-            : node
-      ),
+    () => nodes.map((node) => withCanvasNodeDefaults(node)),
     [nodes]
   );
 
@@ -348,6 +364,7 @@ export function WorkflowCanvas() {
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
       connectingNodeId.current = params.nodeId;
       connectingHandleType.current = params.handleType;
+      connectingHandleId.current = params.handleId ?? null;
     },
     []
   );
@@ -400,8 +417,7 @@ export function WorkflowCanvas() {
         onConnect({
           source: sourceId,
           target: targetId,
-          sourceHandle: null,
-          targetHandle: null,
+          ...handlesForConnection(fromSource, connectingHandleId.current),
         });
       }
     },
@@ -470,11 +486,14 @@ export function WorkflowCanvas() {
       // Create connection from the source node to the new node
       const fromSource = connectingHandleType.current === "source";
 
+      const handleId = connectingHandleId.current;
       const newEdge = {
         id: nanoid(),
         source: fromSource ? sourceNodeId : newNode.id,
         target: fromSource ? newNode.id : sourceNodeId,
         type: "animated",
+        ...(fromSource && handleId ? { sourceHandle: handleId } : {}),
+        ...(!fromSource && handleId ? { targetHandle: handleId } : {}),
       };
       setEdges([...edges, newEdge]);
       setHasUnsavedChanges(true);

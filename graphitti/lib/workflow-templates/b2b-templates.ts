@@ -41,8 +41,15 @@ function action(
   };
 }
 
-function edge(id: string, source: string, target: string) {
-  return { id, source, target };
+function edge(
+  id: string,
+  source: string,
+  target: string,
+  sourceHandle?: string
+) {
+  return sourceHandle
+    ? { id, source, target, sourceHandle }
+    : { id, source, target };
 }
 
 export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
@@ -148,8 +155,8 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     edges: [
       edge("ec1", "trigger-cap-payroll", "get-wallet-cap"),
       edge("ec2", "get-wallet-cap", "under-cap"),
-      edge("ec3", "under-cap", "auto-pay"),
-      edge("ec4", "under-cap", "intent-pay"),
+      edge("ec3", "under-cap", "auto-pay", "true"),
+      edge("ec4", "under-cap", "intent-pay", "false"),
       edge("ec5", "auto-pay", "notify-cap"),
       edge("ec6", "intent-pay", "notify-cap"),
     ],
@@ -199,7 +206,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     edges: [
       edge("ew1", "trigger-whale", "graph-transfers"),
       edge("ew2", "graph-transfers", "whale-condition"),
-      edge("ew3", "whale-condition", "get-wallet-whale"),
+      edge("ew3", "whale-condition", "get-wallet-whale", "true"),
       edge("ew4", "get-wallet-whale", "privy-wallet-whale"),
       edge("ew5", "get-wallet-whale", "sweep-whale"),
       edge("ew6", "sweep-whale", "notify-whale"),
@@ -363,9 +370,9 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       edge("er1", "trigger-rebalance", "get-wallet-rebalance"),
       edge("er2", "get-wallet-rebalance", "check-usdc"),
       edge("er3", "check-usdc", "idle-condition"),
-      edge("er4", "idle-condition", "privy-wallet-rebalance"),
-      edge("er5", "idle-condition", "cow-quote"),
-      edge("er6", "idle-condition", "privy-swap"),
+      edge("er4", "idle-condition", "privy-wallet-rebalance", "true"),
+      edge("er5", "idle-condition", "cow-quote", "true"),
+      edge("er6", "idle-condition", "privy-swap", "true"),
       edge("er7", "privy-swap", "notify-rebalance"),
     ],
   },
@@ -411,7 +418,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     edges: [
       edge("esa1", "trigger-safe", "safe-pending"),
       edge("esa2", "safe-pending", "safe-condition"),
-      edge("esa3", "safe-condition", "get-wallet-safe"),
+      edge("esa3", "safe-condition", "get-wallet-safe", "true"),
       edge("esa4", "get-wallet-safe", "intent-safe"),
       edge("esa5", "intent-safe", "get-intent-safe"),
       edge("esa6", "get-intent-safe", "notify-safe"),
@@ -547,7 +554,17 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           walletId: "{{@get-wallet-stripe-settle:Get org wallet.walletId}}",
         }
       ),
-      action("pay-stripe-settle", { x: 1300, y: 200 }, "Pay contractor USDC", {
+      action(
+        "payout-valid-stripe-settle",
+        { x: 1300, y: 200 },
+        "Payout valid?",
+        {
+          actionType: "Condition",
+          condition:
+            'String("{{@stripe-settle-invoice:Create Stripe invoice.id}}" || "").length > 0',
+        }
+      ),
+      action("pay-stripe-settle", { x: 1560, y: 200 }, "Pay contractor USDC", {
         actionType: "privy/wallet-transfer",
         walletId: "{{@get-wallet-stripe-settle:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
@@ -558,7 +575,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       }),
       action(
         "telegram-stripe-settle",
-        { x: 1560, y: 200 },
+        { x: 1820, y: 200 },
         "Send Telegram confirmation",
         {
           actionType: "telegram/send-message",
@@ -574,8 +591,9 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       edge("ess2", "stripe-settle-customer", "stripe-settle-invoice"),
       edge("ess3", "stripe-settle-invoice", "get-wallet-stripe-settle"),
       edge("ess4", "get-wallet-stripe-settle", "privy-wallet-stripe-settle"),
-      edge("ess5", "privy-wallet-stripe-settle", "pay-stripe-settle"),
-      edge("ess6", "pay-stripe-settle", "telegram-stripe-settle"),
+      edge("ess5", "privy-wallet-stripe-settle", "payout-valid-stripe-settle"),
+      edge("ess6", "payout-valid-stripe-settle", "pay-stripe-settle", "true"),
+      edge("ess7", "pay-stripe-settle", "telegram-stripe-settle"),
     ],
   },
 ];

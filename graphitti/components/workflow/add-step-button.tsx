@@ -31,6 +31,18 @@ const BEZIER_FACTOR = 0.035;
 const EDGE_CLEARANCE = 20;
 const MAX_OFFSET = 25;
 
+function outgoingSourceHandle(
+  actionType: string | undefined
+): string | undefined {
+  if (actionType === "Condition") {
+    return "true";
+  }
+  if (actionType === "For Each") {
+    return "loop";
+  }
+  return;
+}
+
 type AddStepButtonProps = {
   sourceNodeId: string;
 };
@@ -137,11 +149,19 @@ export function AddStepButton({
         );
       }, 50);
 
+      const sourceActionType = (
+        sourceNode.data as {
+          config?: { actionType?: string };
+        }
+      )?.config?.actionType;
+      const sourceHandle = outgoingSourceHandle(sourceActionType);
+
       const newEdge: WorkflowEdge = {
         id: nanoid(),
         source: sourceNodeId,
         target: newNodeId,
         type: "animated",
+        ...(sourceHandle ? { sourceHandle } : {}),
       };
       requestAnimationFrame(() => {
         setEdges((currentEdges) => [...currentEdges, newEdge]);
