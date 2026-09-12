@@ -2,6 +2,7 @@
 
 import type { NodeProps } from "@xyflow/react";
 import { Plus } from "lucide-react";
+import { GraphittiLogo } from "@/components/graphitti-logo";
 import { Button } from "@/components/ui/button";
 
 type AddNodeData = {
@@ -12,10 +13,12 @@ export function AddNode({ data }: NodeProps & { data?: AddNodeData }) {
   return (
     <div className="flex flex-col items-center justify-center gap-8 rounded-lg border border-border border-dashed bg-background/50 p-8 backdrop-blur-sm">
       <div className="max-w-md text-center">
+        <GraphittiLogo className="mx-auto mb-4 size-16" size={64} />
         <h1 className="mb-2 font-bold text-3xl">Graphitti</h1>
         <p className="text-muted-foreground text-sm">
-          Connect a wallet, compose triggers and plugin actions, then run in the
-          browser or publish to the marketplace.
+          Visual workflows for on-chain reads, treasury and Privy sends, and
+          plugin integrations — then run in the browser or publish to the
+          marketplace.
         </p>
         <p className="mt-2 text-muted-foreground text-xs">
           Circle, Arc, Privy, The Graph, and Fantasy Premier League examples

@@ -22,6 +22,11 @@ import "@xyflow/react/dist/style.css";
 import { PlayCircle, Zap } from "lucide-react";
 import { nanoid } from "nanoid";
 import {
+  CANVAS_IMAGE_DRAG_HANDLE,
+  CANVAS_IMAGE_HEIGHT,
+  CANVAS_IMAGE_WIDTH,
+} from "@/lib/workflow/canvas-image";
+import {
   STICKY_NOTE_DRAG_HANDLE,
   STICKY_NOTE_HEIGHT,
   STICKY_NOTE_WIDTH,
@@ -50,6 +55,7 @@ import { Edge } from "../ai-elements/edge";
 import { Panel } from "../ai-elements/panel";
 import { ActionNode } from "./nodes/action-node";
 import { AddNode } from "./nodes/add-node";
+import { ImageNode } from "./nodes/image-node";
 import { StickyNoteNode } from "./nodes/sticky-note-node";
 import { TriggerNode } from "./nodes/trigger-node";
 import {
@@ -230,6 +236,7 @@ export function WorkflowCanvas() {
       action: ActionNode,
       add: AddNode,
       note: StickyNoteNode,
+      image: ImageNode,
     }),
     []
   );
@@ -244,7 +251,14 @@ export function WorkflowCanvas() {
               width: node.width ?? STICKY_NOTE_WIDTH,
               height: node.height ?? STICKY_NOTE_HEIGHT,
             }
-          : node
+          : node.type === "image"
+            ? {
+                ...node,
+                dragHandle: CANVAS_IMAGE_DRAG_HANDLE,
+                width: node.width ?? CANVAS_IMAGE_WIDTH,
+                height: node.height ?? CANVAS_IMAGE_HEIGHT,
+              }
+            : node
       ),
     [nodes]
   );
@@ -257,7 +271,11 @@ export function WorkflowCanvas() {
         return false;
       }
 
-      if (node.type === "add" || node.type === "note") {
+      if (
+        node.type === "add" ||
+        node.type === "note" ||
+        node.type === "image"
+      ) {
         return false;
       }
 
@@ -288,6 +306,8 @@ export function WorkflowCanvas() {
       if (
         sourceNode?.type === "note" ||
         targetNode?.type === "note" ||
+        sourceNode?.type === "image" ||
+        targetNode?.type === "image" ||
         sourceNode?.type === "add" ||
         targetNode?.type === "add"
       ) {

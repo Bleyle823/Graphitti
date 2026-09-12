@@ -788,7 +788,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             data: stepResult,
           };
         }
-      } else if (node.data.type === "note") {
+      } else if (node.data.type === "note" || node.data.type === "image") {
         result = { success: true, data: {} };
       } else {
         console.log("[Workflow Executor] Unknown node type:", node.data.type);

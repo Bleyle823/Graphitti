@@ -52,6 +52,7 @@ import { findActionById } from "@/plugins";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { ActionConfig } from "./config/action-config";
 import { ActionGrid } from "./config/action-grid";
+import { ImageConfig } from "./config/image-config";
 import { NoteConfig } from "./config/note-config";
 
 import { TriggerConfig } from "./config/trigger-config";
@@ -738,6 +739,57 @@ export const PanelInner = () => {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteAllRuns}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
+
+  if (selectedNode.data.type === "image") {
+    return (
+      <>
+        <div className="flex size-full flex-col">
+          <div className="flex h-14 shrink-0 items-center border-b px-4 font-medium text-sm">
+            Image
+          </div>
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            <ImageConfig
+              config={selectedNode.data.config || {}}
+              disabled={isGenerating || !isOwner}
+              onUpdateConfig={handleUpdateConfig}
+            />
+            {isOwner && (
+              <Button
+                className="text-muted-foreground"
+                onClick={() => setShowDeleteNodeAlert(true)}
+                size="sm"
+                variant="ghost"
+              >
+                <Trash2 className="mr-2 size-4" />
+                Delete
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <AlertDialog
+          onOpenChange={setShowDeleteNodeAlert}
+          open={showDeleteNodeAlert}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Image</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this image? This action cannot
+                be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useReactFlow } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, MapPin, MapPinXInside, StickyNote } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, MapPin, MapPinXInside, ImageIcon, StickyNote } from "lucide-react";
 import { useAtom, useSetAtom } from "jotai";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -10,6 +10,9 @@ import {
   selectedNodeAtom,
   showMinimapAtom,
 } from "@/lib/workflow-store";
+import {
+  createCanvasImageNode,
+} from "@/lib/workflow/canvas-image";
 import {
   createStickyNoteNode,
   getFlowViewportCenterPosition,
@@ -44,6 +47,13 @@ export const Controls = () => {
     setSelectedNode(newNode.id);
   };
 
+  const handleAddImage = () => {
+    const position = getFlowViewportCenterPosition(screenToFlowPosition);
+    const newNode = createCanvasImageNode(position);
+    addNode(newNode);
+    setSelectedNode(newNode.id);
+  };
+
   return (
     <ButtonGroup orientation="vertical">
       <Button
@@ -54,6 +64,15 @@ export const Controls = () => {
         variant="secondary"
       >
         <StickyNote className="size-4" />
+      </Button>
+      <Button
+        className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+        onClick={handleAddImage}
+        size="icon"
+        title="Add image"
+        variant="secondary"
+      >
+        <ImageIcon className="size-4" />
       </Button>
       <Button
         className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"

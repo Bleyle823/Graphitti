@@ -2,12 +2,13 @@
 
 import type { Edge, Node, XYPosition } from "@xyflow/react";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Link2Off, Plus, StickyNote, Trash2 } from "lucide-react";
+import { ImageIcon, Link2Off, Plus, StickyNote, Trash2 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback, useEffect, useRef } from "react";
 import { ConfirmOverlay } from "@/components/overlays/confirm-overlay";
 import { useOverlay } from "@/components/overlays/overlay-provider";
 import { cn } from "@/lib/utils";
+import { createCanvasImageNode } from "@/lib/workflow/canvas-image";
 import { createStickyNoteNode } from "@/lib/workflow/sticky-note";
 import {
   addNodeAtom,
@@ -116,6 +117,15 @@ export function WorkflowContextMenu({
     onClose();
   }, [menuState, addNode, setSelectedNode, onClose]);
 
+  const handleAddImage = useCallback(() => {
+    if (menuState?.flowPosition) {
+      const newNode = createCanvasImageNode(menuState.flowPosition);
+      addNode(newNode);
+      setSelectedNode(newNode.id);
+    }
+    onClose();
+  }, [menuState, addNode, setSelectedNode, onClose]);
+
   // Close menu when clicking outside
   useEffect(() => {
     if (!menuState) {
@@ -168,6 +178,9 @@ export function WorkflowContextMenu({
     if (node?.type === "note") {
       return "Sticky note";
     }
+    if (node?.type === "image") {
+      return "Image";
+    }
     return node?.data.label || "Step";
   };
 
@@ -210,6 +223,11 @@ export function WorkflowContextMenu({
             icon={<StickyNote className="size-4" />}
             label="Add Sticky Note"
             onClick={handleAddStickyNote}
+          />
+          <MenuItem
+            icon={<ImageIcon className="size-4" />}
+            label="Add Image"
+            onClick={handleAddImage}
           />
         </>
       )}
