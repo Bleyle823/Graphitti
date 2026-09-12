@@ -1,15 +1,20 @@
 import "server-only";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { validateApiKey } from "@/lib/auth/api-key";
 import { db } from "@/lib/db";
 import { userWallets, workflows } from "@/lib/db/schema";
 import {
+  normalizeListingSlug,
+  parseListingPriceUsdc,
+} from "@/lib/marketplace/constants";
+import {
   mapOutputs,
   startListedWorkflow,
   waitForExecution,
 } from "@/lib/marketplace/run-workflow";
+import { verifyMarketplacePayment } from "@/lib/marketplace/verify-payment";
 import {
   buildCircleNanopayRequired,
   encodeX402Header,
@@ -19,11 +24,10 @@ import {
   recordWorkflowPayment,
 } from "@/lib/marketplace/x402";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
-import { verifyMarketplacePayment } from "./verify-payment";
 
 export const listingCorsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, PAYMENT-SIGNATURE, PAYMENT-RESPONSE",
   "Access-Control-Expose-Headers": "PAYMENT-REQUIRED, PAYMENT-RESPONSE",
@@ -45,17 +49,45 @@ function paymentRequiredResponse(
   );
 }
 
+async function findListedWorkflow(slug: string) {
+  const normalized = normalizeListingSlug(slug);
+  const candidates = Array.from(
+    new Set([normalized, slug.trim(), decodeURIComponentSafe(slug)])
+  ).filter(Boolean);
+
+  return await db.query.workflows.findFirst({
+    where: and(
+      inArray(workflows.listedSlug, candidates),
+      eq(workflows.isListed, true),
+      isNull(workflows.deletedAt)
+    ),
+  });
+}
+
+function decodeURIComponentSafe(value: string): string {
+  try {
+    return decodeURIComponent(value.trim());
+  } catch {
+    return value.trim();
+  }
+}
+
+function callResourcePath(slug: string): string {
+  return `/api/mcp/workflows/${encodeURIComponent(slug)}/call`;
+}
+
 async function enforceListingPayment(options: {
   workflow: typeof workflows.$inferSelect;
   slug: string;
-  isOwner: boolean;
   request: Request;
 }): Promise<
   | { ok: true; paymentResponseHeader?: string }
   | { ok: false; response: NextResponse }
 > {
-  const price = Number(options.workflow.priceUsdcPerCall ?? 0);
-  if (price <= 0 || options.isOwner) {
+  const price = Number(
+    parseListingPriceUsdc(options.workflow.priceUsdcPerCall)
+  );
+  if (price <= 0) {
     return { ok: true };
   }
 
@@ -76,10 +108,11 @@ async function enforceListingPayment(options: {
     };
   }
 
+  const listedSlug = options.workflow.listedSlug || options.slug;
   const challenge = buildCircleNanopayRequired({
-    priceUsdc: String(options.workflow.priceUsdcPerCall),
+    priceUsdc: parseListingPriceUsdc(options.workflow.priceUsdcPerCall),
     payTo: creator.address,
-    resource: `/api/mcp/workflows/${options.slug}/call`,
+    resource: callResourcePath(listedSlug),
     description: options.workflow.name,
   });
 
@@ -119,7 +152,7 @@ async function enforceListingPayment(options: {
   await recordWorkflowPayment({
     workflowId: options.workflow.id,
     caller: verified.payer ?? extractPayer(verified.receipt),
-    amountUsdc: String(options.workflow.priceUsdcPerCall),
+    amountUsdc: parseListingPriceUsdc(options.workflow.priceUsdcPerCall),
     paymentHash: paymentHashFromReceipt(verified.receipt),
     txHash: verified.txHash ?? extractTxHash(verified.receipt),
   });
@@ -164,18 +197,32 @@ export async function executeListingCall(
   slug: string,
   request: Request
 ): Promise<NextResponse> {
-  const workflow = await db.query.workflows.findFirst({
-    where: and(
-      eq(workflows.listedSlug, slug),
-      eq(workflows.isListed, true),
-      isNull(workflows.deletedAt)
-    ),
-  });
+  const workflow = await findListedWorkflow(slug);
 
   if (!workflow) {
     return NextResponse.json(
       { error: "Listing not found" },
       { status: 404, headers: listingCorsHeaders }
+    );
+  }
+
+  const payment = await enforceListingPayment({
+    workflow,
+    slug: workflow.listedSlug || normalizeListingSlug(slug),
+    request,
+  });
+  if (!payment.ok) {
+    return payment.response;
+  }
+
+  if (request.method === "GET" || request.method === "HEAD") {
+    return NextResponse.json(
+      {
+        paymentRequired: false,
+        listedSlug: workflow.listedSlug,
+        priceUsdcPerCall: workflow.priceUsdcPerCall,
+      },
+      { headers: listingCorsHeaders }
     );
   }
 
@@ -198,15 +245,6 @@ export async function executeListingCall(
   const authHeader = request.headers.get("Authorization");
   const ownerKey = await validateApiKey(authHeader, workflow.userId);
   const isOwner = ownerKey.valid;
-  const payment = await enforceListingPayment({
-    workflow,
-    slug,
-    isOwner,
-    request,
-  });
-  if (!payment.ok) {
-    return payment.response;
-  }
 
   if (workflow.workflowType === "write" && !isOwner) {
     return NextResponse.json(
@@ -218,7 +256,14 @@ export async function executeListingCall(
         message:
           "Write listings return an unsigned instruction unless you are the owner calling with an API key.",
       },
-      { headers: listingCorsHeaders }
+      {
+        headers: {
+          ...listingCorsHeaders,
+          ...(payment.paymentResponseHeader
+            ? { "PAYMENT-RESPONSE": payment.paymentResponseHeader }
+            : {}),
+        },
+      }
     );
   }
 

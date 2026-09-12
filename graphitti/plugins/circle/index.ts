@@ -339,7 +339,7 @@ const circlePlugin: IntegrationPlugin = {
     {
       slug: "check-x402-support",
       label: "Check x402 support",
-      description: "GET a URL and parse 402 / PAYMENT-REQUIRED. Never Graph x402 URLs.",
+      description: "Probe a URL for 402 / PAYMENT-REQUIRED. Uses POST for listing /call URLs.",
       category: "Circle Nanopayments",
       stepFunction: "checkX402SupportStep",
       stepImportPath: "nanopayments",

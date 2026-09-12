@@ -50,6 +50,33 @@ function fieldsToJsonSchema(fields: SchemaField[]): Record<string, unknown> {
   };
 }
 
+function listingSchemaFields(
+  schema: SchemaField[],
+  existingSchema?: Record<string, unknown> | null
+): SchemaField[] {
+  if (schema.length) {
+    return schema;
+  }
+  if (existingSchema) {
+    return [];
+  }
+  return [{ name: "input", type: "string" }];
+}
+
+function listedToast(options: {
+  shouldList: boolean;
+  listedSlug?: string | null;
+  price: string;
+}): string {
+  if (!options.shouldList) {
+    return "Workflow unlisted";
+  }
+  if (options.listedSlug && Number(options.price) > 0) {
+    return `Listed. Agents POST /api/mcp/workflows/${options.listedSlug}/call and receive HTTP 402 until they pay.`;
+  }
+  return "Workflow listed";
+}
+
 export function ListingOverlay({
   overlayId,
   workflowId,
@@ -75,10 +102,10 @@ export function ListingOverlay({
   const [saving, setSaving] = useState(false);
   const slugLocked = Boolean(existingSlug);
 
-  const publish = async (listed: boolean) => {
+  const publish = async (shouldList: boolean) => {
     try {
       setSaving(true);
-      await api.marketplace.list({
+      const result = await api.marketplace.list({
         workflowId,
         slug: slug || undefined,
         priceUsdcPerCall: price,
@@ -86,18 +113,18 @@ export function ListingOverlay({
         chain,
         workflowType,
         inputSchema: fieldsToJsonSchema(
-          schema.length
-            ? schema
-            : [
-                ...(existingSchema
-                  ? []
-                  : [{ name: "input", type: "string" as const }]),
-              ]
+          listingSchemaFields(schema, existingSchema)
         ),
         outputMapping: outputField ? { field: outputField } : undefined,
-        listed,
+        listed: shouldList,
       });
-      toast.success(listed ? "Workflow listed" : "Workflow unlisted");
+      toast.success(
+        listedToast({
+          shouldList,
+          listedSlug: result.listedSlug,
+          price: result.priceUsdcPerCall ?? price,
+        })
+      );
       closeAll();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Listing failed");

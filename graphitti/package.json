@@ -27,6 +27,8 @@
     "substreams:deploy-kelp": "tsx scripts/deploy-kelp-substreams.ts",
     "fetch-brand-logos": "tsx scripts/fetch-brand-logos.ts",
     "create-plugin": "tsx scripts/create-plugin.ts",
+    "pay-listing": "tsx scripts/pay-listing.ts",
+    "deposit-gateway": "tsx scripts/deposit-gateway.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

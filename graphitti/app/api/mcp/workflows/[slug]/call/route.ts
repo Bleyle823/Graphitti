@@ -8,6 +8,22 @@ export function OPTIONS() {
   return NextResponse.json({}, { headers: listingCorsHeaders });
 }
 
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+  return executeListingCall(slug, request);
+}
+
+export async function HEAD(
+  request: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await context.params;
+  return executeListingCall(slug, request);
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ slug: string }> }

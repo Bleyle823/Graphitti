@@ -166,6 +166,19 @@ function parseJsonBody(text: string): unknown {
   }
 }
 
+function defaultX402Method(input: NanoInput): string {
+  if (input.httpMethod) {
+    return input.httpMethod.toUpperCase();
+  }
+  if (input.requestBody) {
+    return "POST";
+  }
+  if (input.url?.includes("/call")) {
+    return "POST";
+  }
+  return "GET";
+}
+
 async function checkX402Support(input: NanoInput) {
   if (!input.url) {
     return fail("url is required");
@@ -175,7 +188,7 @@ async function checkX402Support(input: NanoInput) {
     return blocked;
   }
   try {
-    const method = (input.httpMethod || "GET").toUpperCase();
+    const method = defaultX402Method(input);
     const response = await fetch(input.url, {
       method,
       headers:
@@ -228,7 +241,7 @@ async function payX402(input: NanoInput) {
   }
   try {
     const chain = requireChain(input.network);
-    const method = (input.httpMethod || (input.requestBody ? "POST" : "GET")).toUpperCase();
+    const method = defaultX402Method(input);
     const probeHeaders: Record<string, string> = {};
     if (method !== "GET") {
       probeHeaders["Content-Type"] = "application/json";
@@ -277,7 +290,7 @@ async function payX402(input: NanoInput) {
       `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex")}`;
     const validBefore =
       input.validBefore ||
-      String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5);
+      String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 8);
     const authorization = {
       from: wallet.wallet.address,
       to: payTo,
@@ -319,8 +332,17 @@ async function payX402(input: NanoInput) {
       typedData,
       chain,
     });
+    const resourceFromChallenge = challenge?.resource;
     const paymentPayload = {
       x402Version: 2,
+      resource:
+        resourceFromChallenge && typeof resourceFromChallenge === "object"
+          ? resourceFromChallenge
+          : {
+              url: input.url,
+              description: "x402 resource",
+              mimeType: "application/json",
+            },
       accepted: accept,
       payload: { signature, authorization },
     };

@@ -46,7 +46,20 @@ Paid listings respond `402` with a JSON body and a base64 `PAYMENT-REQUIRED` hea
 Retry with `PAYMENT-SIGNATURE` set to a base64 JSON payload:
 
 - EIP-3009 `TransferWithAuthorization` signed against the `GatewayWalletBatched` domain
-- `validBefore` at least 3 days in the future
+- `validBefore` at least 7 days in the future
 - Graphitti settles through Circle Gateway `POST /v1/x402/settle` on testnet, then runs the workflow
+
+The buyer address you load is **your EOA** (the wallet whose private key signs). Fund it with Arc Testnet USDC (`0x3600000000000000000000000000000000000000`) from [Circle's faucet](https://faucet.circle.com), then **approve and deposit** that USDC into Gateway Wallet `0x0077777d7EBA4688BDeF3E311b846F25870A19B9`. A raw transfer to the Gateway contract does not credit nanopayment balance. `insufficient_balance` means that signer has no Gateway deposit.
+
+Paid listings always return `402` on `GET` or `POST` `/api/mcp/workflows/{slug}/call` until a valid `PAYMENT-SIGNATURE` is sent. Catalog `GET /api/mcp/workflows` and `GET .../listing` stay `200` and are not payable.
+
+Pay any listing from the repo:
+
+```bash
+cd graphitti
+pnpm pay-listing -- https://graphitti-five.vercel.app/api/mcp/workflows/{slug}/call
+```
+
+Set `PRIVATE_KEY` in `.env.local`. The script prints `transaction` (Circle settlement id / hash when Gateway returns one), `paymentId`, `nonce`, and `executionId`.
 
 Agents do not send API keys or invoices. Graphitti records `workflow_payments` by SHA-256 hash so retries are idempotent.

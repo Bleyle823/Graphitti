@@ -72,6 +72,13 @@ export async function verifyMarketplacePayment(options: {
   if (!paymentPayload) {
     return { valid: false, receipt: decoded };
   }
+  if (!paymentPayload.resource) {
+    paymentPayload.resource = {
+      url: options.requirements.resource,
+      description: "Graphitti listed workflow",
+      mimeType: "application/json",
+    };
+  }
 
   const accepted = asRecord(paymentPayload.accepted);
   const requirements =

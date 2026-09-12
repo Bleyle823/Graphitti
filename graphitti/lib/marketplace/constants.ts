@@ -38,6 +38,36 @@ export function toKebabSlug(name: string): string {
     .slice(0, 60);
 }
 
+export function normalizeListingSlug(slug: string): string {
+  const trimmed = slug.trim();
+  try {
+    return decodeURIComponent(trimmed).trim().toLowerCase();
+  } catch {
+    return trimmed.toLowerCase();
+  }
+}
+
+/** Strip $ / USDC / extra dots so overlay values persist as a numeric price. */
+export function parseListingPriceUsdc(raw: unknown): string {
+  const text = String(raw ?? "0").trim();
+  const cleaned = text.replace(/[^0-9.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+  const normalized =
+    firstDot === -1
+      ? cleaned
+      : `${cleaned.slice(0, firstDot + 1)}${cleaned
+          .slice(firstDot + 1)
+          .replace(/\./g, "")}`;
+  if (!normalized) {
+    return "0";
+  }
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return "0";
+  }
+  return normalized;
+}
+
 export function priceToAtomicUsdc(priceUsdc: string): string {
   const [whole = "0", frac = ""] = priceUsdc.trim().split(".");
   const padded = `${whole}${frac.padEnd(ARC_MARKETPLACE_DECIMALS, "0")}`.slice(

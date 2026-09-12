@@ -71,6 +71,8 @@ export type MarketplaceListing = {
   listedSlug: string | null;
   listedAt: string | null;
   priceUsdcPerCall: string | null;
+  paymentRequired?: boolean;
+  callPath?: string | null;
   workflowType: "read" | "write";
   category: string | null;
   chain: string | null;

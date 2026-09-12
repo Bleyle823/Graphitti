@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { parseListingPriceUsdc } from "@/lib/marketplace/constants";
 import { ensureCatalogListings } from "@/lib/marketplace/ensure-catalog";
 import {
   LISTING_PUBLIC_COLUMNS,
@@ -73,7 +74,20 @@ export async function GET(request: Request) {
     .offset((page - 1) * limit);
 
   return NextResponse.json(
-    { items, page, limit, total: items.length, sort },
+    {
+      items: items.map((item) => ({
+        ...item,
+        paymentRequired:
+          Number(parseListingPriceUsdc(item.priceUsdcPerCall)) > 0,
+        callPath: item.listedSlug
+          ? `/api/mcp/workflows/${encodeURIComponent(item.listedSlug)}/call`
+          : null,
+      })),
+      page,
+      limit,
+      total: items.length,
+      sort,
+    },
     { headers: corsHeaders }
   );
 }
