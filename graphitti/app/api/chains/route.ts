@@ -32,7 +32,10 @@ export async function GET(request: Request) {
     explorerAddressPath: "/address/{address}",
     explorerApiUrl: null,
     explorerApiType: "etherscan",
-    isTestnet: chain.id.includes("testnet") || chain.id === "sepolia",
+    isTestnet:
+      chain.id.includes("testnet") ||
+      chain.id === "sepolia" ||
+      chain.id === "base-sepolia",
     isEnabled: true,
     usePrivateMempoolRpc: false,
   }));

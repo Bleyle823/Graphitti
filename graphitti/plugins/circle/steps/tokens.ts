@@ -13,7 +13,13 @@ import { formatUnits, parseUnits, requireChain } from "@/lib/web3/chains";
 import { sendSponsoredTransaction } from "@/lib/web3/privy-signer";
 import { ethCall, ethGetBalance } from "@/lib/web3/rpc";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
-import { explorerTx, faucetNote, lookupToken, usdcDecimals } from "../shared";
+import {
+  explorerTx,
+  faucetNote,
+  lookupToken,
+  normalizeCircleNetwork,
+  usdcDecimals,
+} from "../shared";
 
 export type TokenInput = StepInput & {
   network?: string;
@@ -55,21 +61,28 @@ async function balanceOf(input: TokenInput, symbol: "USDC" | "EURC") {
   if (!input.network || !input.address) {
     return fail("network and address are required");
   }
+  const network = normalizeCircleNetwork(input.network);
+  const address = input.address.trim();
+  if (!address.startsWith("0x") || address.length < 42) {
+    return fail(
+      "address must be a checksummed or lowercase 0x wallet address. Wire Get org wallet.address into this field."
+    );
+  }
   try {
-    if (symbol === "USDC" && input.network === "arc-testnet" && !input.tokenAddress) {
-      const wei = await ethGetBalance(input.network, input.address);
+    if (symbol === "USDC" && network === "arc-testnet" && !input.tokenAddress) {
+      const wei = await ethGetBalance(network, address);
       const erc20 = lookupToken("USDC", "arc-testnet");
       let erc20Raw = "0";
       if (erc20) {
         const raw = await ethCall({
-          network: input.network,
+          network,
           to: erc20.address,
-          data: encodeBalanceOf(input.address),
+          data: encodeBalanceOf(address),
         });
         erc20Raw = decodeUint(raw).toString();
       }
       return ok({
-        address: input.address,
+        address,
         nativeBalance: formatUnits(wei, 18),
         nativeBalanceWei: BigInt(wei).toString(),
         erc20Balance: formatUnits(erc20Raw, 6),
@@ -79,20 +92,21 @@ async function balanceOf(input: TokenInput, symbol: "USDC" | "EURC") {
         faucet: faucetNote(),
       });
     }
-    const token = input.tokenAddress || lookupToken(symbol, input.network)?.address;
+    const token = input.tokenAddress || lookupToken(symbol, network)?.address;
     if (!token) {
-      return fail(`No ${symbol} address for ${input.network}`);
+      return fail(`No ${symbol} address for ${network}`);
     }
     const raw = await ethCall({
-      network: input.network,
+      network,
       to: token,
-      data: encodeBalanceOf(input.address),
+      data: encodeBalanceOf(address),
     });
+    const balanceRaw = decodeUint(raw).toString();
     return ok({
-      address: input.address,
+      address,
       tokenAddress: token,
-      balanceRaw: decodeUint(raw).toString(),
-      balance: formatUnits(raw, 6),
+      balanceRaw,
+      balance: formatUnits(balanceRaw, 6),
       decimals: 6,
       faucet: faucetNote(),
     });

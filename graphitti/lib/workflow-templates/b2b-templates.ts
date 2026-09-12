@@ -428,12 +428,10 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     name: "Payroll batch with intent fallback",
     description:
-      "Pay allowlisted contractors under the auto cap, queue a large remainder as an intent, and file a Linear ticket.",
+      "Pay allowlisted contractors under the auto cap, queue a large remainder as a Privy transfer intent for owner approval, and Telegram a payroll summary.",
     nodes: [
-      trigger("trigger-batch", "Monthly payroll", {
-        triggerType: "Schedule",
-        scheduleCron: "0 12 1 * *",
-        scheduleTimezone: "UTC",
+      trigger("trigger-batch", "Run payroll batch", {
+        triggerType: "Manual",
       }),
       action("get-wallet-batch", { x: 280, y: 200 }, "Get org wallet", {
         actionType: "treasury/get-org-wallet",
@@ -458,12 +456,12 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         amount: "500",
         destinationAddress: PLACEHOLDER,
       }),
-      action("ticket-batch", { x: 1120, y: 200 }, "File payroll ticket", {
-        actionType: "linear/create-ticket",
-        ticketTitle: "Monthly payroll batch",
-        ticketDescription:
-          "Auto {{@small-pay:Small contractor payout.status}} intent {{@large-intent:Large payroll intent.intent_id}}",
-        ticketPriority: "2",
+      action("telegram-batch", { x: 1120, y: 200 }, "Send payroll report", {
+        actionType: "telegram/send-message",
+        chatId: "YOUR_TELEGRAM_CHAT_ID",
+        message:
+          "Payroll batch complete\n\nUnder-cap transfer: {{@small-pay:Small contractor payout.status}}\nTx: {{@small-pay:Small contractor payout.transaction_hash}}\nLarge intent: {{@large-intent:Large payroll intent.intent_id}} ({{@large-intent:Large payroll intent.status}})\nApprove the intent in Treasury if pending.",
+        parseMode: "none",
       }),
     ],
     edges: [
@@ -471,8 +469,8 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       edge("eb2", "get-wallet-batch", "list-payees-batch"),
       edge("eb3", "list-payees-batch", "small-pay"),
       edge("eb4", "list-payees-batch", "large-intent"),
-      edge("eb5", "small-pay", "ticket-batch"),
-      edge("eb6", "large-intent", "ticket-batch"),
+      edge("eb5", "small-pay", "telegram-batch"),
+      edge("eb6", "large-intent", "telegram-batch"),
     ],
   },
   {

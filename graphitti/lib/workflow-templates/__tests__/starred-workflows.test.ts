@@ -270,6 +270,15 @@ describe("starred workflow templates", () => {
     );
   });
 
+  it("payroll batch with intent fallback merges payouts into Telegram", () => {
+    const payroll = requireTemplate("Payroll batch with intent fallback");
+    expect(actionTypes(payroll)).toContain("privy/create-transfer-intent");
+    expect(actionTypes(payroll)).toContain("telegram/send-message");
+    expect(actionTypes(payroll)).not.toContain("linear/create-ticket");
+    expect(hasEdge(payroll, "small-pay", "telegram-batch")).toBe(true);
+    expect(hasEdge(payroll, "large-intent", "telegram-batch")).toBe(true);
+  });
+
   it("org USDC waterline keeper telegrams on both funded branches", () => {
     const waterline = requireTemplate("Org USDC waterline keeper");
     expect(actionTypes(waterline)).not.toContain("code/run-code");

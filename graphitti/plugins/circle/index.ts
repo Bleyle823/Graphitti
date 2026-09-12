@@ -627,7 +627,7 @@ const circlePlugin: IntegrationPlugin = {
       stepImportPath: "tokens",
       outputFields: [{ field: "balance", description: "USDC balance" }],
       configFields: [
-        network,
+        { ...network, defaultValue: "base-sepolia" },
         { key: "address", label: "Address", type: "template-input", required: true },
         { key: "tokenAddress", label: "Token override", type: "template-input" },
       ],
