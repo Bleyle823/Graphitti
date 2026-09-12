@@ -37,7 +37,6 @@ const PLUGIN_LOGOS: DownloadTarget[] = [
   { slug: "vercel", filename: "vercel.svg" },
   { slug: "github", filename: "github.svg" },
   { slug: "slack", filename: "slack.svg" },
-  { slug: "stripe", filename: "stripe.svg" },
   { slug: "discord", filename: "discord.svg" },
   { slug: "telegram", filename: "telegram.svg" },
   { slug: "linear", filename: "linear.svg" },

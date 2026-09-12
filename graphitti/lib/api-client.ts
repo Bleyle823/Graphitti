@@ -25,6 +25,8 @@ export type SavedWorkflow = WorkflowData & {
   createdAt: string;
   updatedAt: string;
   isOwner?: boolean;
+  canEdit?: boolean;
+  organizationId?: string | null;
   isListed?: boolean;
   deletedAt?: string | null;
   listedSlug?: string | null;
@@ -35,6 +37,21 @@ export type SavedWorkflow = WorkflowData & {
   inputSchema?: Record<string, unknown> | null;
   outputMapping?: Record<string, unknown> | null;
 };
+
+export type WorkflowListResponse = {
+  personal: SavedWorkflow[];
+  organization: SavedWorkflow[];
+  workflows: SavedWorkflow[];
+};
+
+export function normalizeWorkflowList(
+  data: WorkflowListResponse | SavedWorkflow[]
+): WorkflowListResponse {
+  if (Array.isArray(data)) {
+    return { personal: data, organization: [], workflows: data };
+  }
+  return data;
+}
 
 export type ActivityItem = {
   id: string;
@@ -54,6 +71,8 @@ export type MarketplaceListing = {
   listedSlug: string | null;
   listedAt: string | null;
   priceUsdcPerCall: string | null;
+  paymentRequired?: boolean;
+  callPath?: string | null;
   workflowType: "read" | "write";
   category: string | null;
   chain: string | null;
@@ -498,7 +517,10 @@ export const userApi = {
 // Workflow API
 export const workflowApi = {
   // Get all workflows
-  getAll: () => apiCall<SavedWorkflow[]>("/api/workflows"),
+  getAll: () =>
+    apiCall<WorkflowListResponse | SavedWorkflow[]>("/api/workflows").then(
+      normalizeWorkflowList
+    ),
 
   // Get a specific workflow
   getById: (id: string) => apiCall<SavedWorkflow>(`/api/workflows/${id}`),

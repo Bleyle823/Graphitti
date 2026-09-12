@@ -19,7 +19,7 @@ https://graphitti-five.vercel.app/mcp/w/{slug}
 
 Tools: `search_workflows` and `call_workflow`.
 
-`call_workflow` executes the listing (returns JSON including `executionId`, `status`, and `output`). Unpaid priced listings return `402` details inside the tool result. Optional `Authorization: Bearer wfb_...` for owner bypass.
+`call_workflow` executes the listing (returns JSON including `executionId`, `status`, and `output`). Unpaid priced listings return HTTP `402` with a `PAYMENT-REQUIRED` header (Circle nanopayments over x402 on Arc Testnet). Retry the same MCP POST with `PAYMENT-SIGNATURE`. Optional `Authorization: Bearer wfb_...` for owner bypass.
 
 Payment headers on the MCP POST are forwarded to the call API:
 

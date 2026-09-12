@@ -28,6 +28,7 @@ import { integrationsAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import { generateWorkflowCode } from "@/lib/workflow-codegen";
 import {
+  canViewWorkflowRunsAtom,
   clearNodeStatusesAtom,
   clearWorkflowAtom,
   currentWorkflowIdAtom,
@@ -98,6 +99,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
     currentWorkflowNameAtom
   );
   const isOwner = useAtomValue(isWorkflowOwnerAtom);
+  const canViewRuns = useAtomValue(canViewWorkflowRunsAtom);
   const updateNodeData = useSetAtom(updateNodeDataAtom);
   const deleteNode = useSetAtom(deleteNodeAtom);
   const deleteEdge = useSetAtom(deleteEdgeAtom);
@@ -259,7 +261,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
       const validTab =
         activeTab === "properties" ||
         activeTab === "code" ||
-        (activeTab === "runs" && isOwner)
+        (activeTab === "runs" && canViewRuns)
           ? activeTab
           : "properties";
       switch (validTab) {
@@ -414,7 +416,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
     const validWorkflowTab =
       activeTab === "properties" ||
       activeTab === "code" ||
-      (activeTab === "runs" && isOwner)
+      (activeTab === "runs" && canViewRuns)
         ? activeTab
         : "properties";
 
@@ -502,7 +504,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
             </div>
           )}
 
-          {validWorkflowTab === "runs" && isOwner && (
+          {validWorkflowTab === "runs" && canViewRuns && (
             <div className="flex h-full flex-col">
               <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
                 <Button
@@ -561,7 +563,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
             <Code className="size-5" />
             Code
           </button>
-          {isOwner && (
+          {canViewRuns && (
             <button
               className={`flex flex-1 flex-col items-center gap-1 py-3 font-medium text-xs transition-colors ${
                 validWorkflowTab === "runs"
@@ -736,7 +738,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
           </div>
         )}
 
-        {activeTab === "runs" && isOwner && (
+        {activeTab === "runs" && canViewRuns && (
           <div className="flex h-full flex-col">
             <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
               <Button
@@ -797,7 +799,7 @@ export function ConfigurationOverlay({ overlayId }: ConfigurationOverlayProps) {
             Code
           </button>
         )}
-        {isOwner && (
+        {canViewRuns && (
           <button
             className={`flex flex-1 flex-col items-center gap-1 py-3 font-medium text-xs transition-colors ${
               activeTab === "runs" ? "text-foreground" : "text-muted-foreground"

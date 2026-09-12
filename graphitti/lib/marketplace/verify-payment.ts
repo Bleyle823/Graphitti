@@ -1,183 +1,126 @@
 import "server-only";
 
 import { circleFetch } from "@/lib/circle/client";
-import {
-  ARC_MARKETPLACE_ASSET,
-  ARC_MARKETPLACE_CHAIN,
-  priceToAtomicUsdc,
-} from "./constants";
+import { CIRCLE_GATEWAY_X402_BASE } from "./constants";
+import type { X402Accepts } from "./x402";
+import { decodeX402Header } from "./x402";
 
-const TRANSFER_TOPIC =
-  "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4dddf850b";
+type SettleResponse = {
+  success?: boolean;
+  errorReason?: string;
+  payer?: string;
+  transaction?: string;
+  network?: string;
+};
 
-const ARC_RPC = ARC_MARKETPLACE_CHAIN.rpcUrl;
-
-function normalizeAddress(value: string): string {
-  return value.toLowerCase().replace(/^0x/, "");
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
 }
 
-function parsePaymentReceipt(raw: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (parsed && typeof parsed === "object") {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    // Plain signature or hash string
+function toPaymentPayload(decoded: unknown): Record<string, unknown> | null {
+  const record = asRecord(decoded);
+  if (!record) {
+    return null;
   }
-  if (raw.startsWith("0x") && raw.length === 66) {
-    return { txHash: raw };
+  if (record.payload || record.accepted || record.x402Version) {
+    return record;
   }
-  return { signature: raw };
+  if (record.authorization && typeof record.authorization === "object") {
+    return {
+      x402Version: 2,
+      payload: record,
+    };
+  }
+  if (record.from && record.to && record.value && record.signature) {
+    const { signature, ...authorization } = record;
+    return {
+      x402Version: 2,
+      payload: { signature, authorization },
+    };
+  }
+  return null;
 }
 
-async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
-  const response = await fetch(ARC_RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  const payload = (await response.json()) as {
-    result?: T;
-    error?: { message?: string };
+function requirementsForSettle(options: {
+  requirements: X402Accepts;
+}): Record<string, unknown> {
+  return {
+    scheme: options.requirements.scheme,
+    network: options.requirements.network,
+    asset: options.requirements.asset,
+    amount: options.requirements.amount,
+    payTo: options.requirements.payTo,
+    maxTimeoutSeconds: options.requirements.maxTimeoutSeconds,
+    extra: options.requirements.extra,
   };
-  if (payload.error) {
-    throw new Error(payload.error.message || "Arc RPC error");
-  }
-  return payload.result as T;
-}
-
-async function verifyArcUsdcTransfer(options: {
-  txHash: string;
-  payTo: string;
-  minAtomic: bigint;
-}): Promise<boolean> {
-  const receipt = await rpcCall<{
-    status?: string;
-    logs?: Array<{ address?: string; topics?: string[]; data?: string }>;
-  }>("eth_getTransactionReceipt", [options.txHash]);
-
-  if (!receipt || receipt.status !== "0x1") {
-    return false;
-  }
-
-  const payTo = normalizeAddress(options.payTo);
-  const token = normalizeAddress(ARC_MARKETPLACE_ASSET);
-
-  for (const log of receipt.logs ?? []) {
-    if (!log.topics?.[0] || log.topics[0].toLowerCase() !== TRANSFER_TOPIC) {
-      continue;
-    }
-    if (normalizeAddress(log.address ?? "") !== token) {
-      continue;
-    }
-    const toTopic = log.topics[2];
-    if (!toTopic) {
-      continue;
-    }
-    const to = normalizeAddress(toTopic.slice(-40));
-    if (to !== payTo) {
-      continue;
-    }
-    const value = BigInt(log.data ?? "0x0");
-    if (value >= options.minAtomic) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-async function settleCircleAuthorization(
-  authorization: Record<string, unknown>
-): Promise<{ ok: boolean; txHash?: string }> {
-  const apiKey = process.env.CIRCLE_API_KEY?.trim();
-  if (!apiKey) {
-    return { ok: false };
-  }
-
-  const result = await circleFetch<{
-    data?: { hash?: string; txHash?: string };
-  }>({
-    baseUrl: "https://gateway-api-testnet.circle.com",
-    path: "/v1/transfer",
-    method: "POST",
-    apiKey,
-    body: authorization,
-  });
-
-  if (result.error) {
-    return { ok: false };
-  }
-
-  const hash =
-    result.data?.data?.hash ||
-    result.data?.data?.txHash ||
-    (result.data as { hash?: string })?.hash;
-
-  return { ok: true, txHash: hash };
 }
 
 export async function verifyMarketplacePayment(options: {
   paymentHeader: string;
-  payTo: string;
-  priceUsdc: string;
-}): Promise<{ valid: boolean; txHash?: string; receipt: unknown }> {
-  const receipt = parsePaymentReceipt(options.paymentHeader);
-  const minAtomic = BigInt(priceToAtomicUsdc(options.priceUsdc));
-
-  const txHash =
-    (typeof receipt.txHash === "string" && receipt.txHash) ||
-    (typeof receipt.transactionHash === "string" && receipt.transactionHash) ||
-    (typeof receipt.hash === "string" && receipt.hash);
-
-  if (txHash) {
-    const valid = await verifyArcUsdcTransfer({
-      txHash,
-      payTo: options.payTo,
-      minAtomic,
-    });
-    return { valid, txHash, receipt };
+  requirements: X402Accepts;
+}): Promise<{
+  valid: boolean;
+  txHash?: string;
+  payer?: string;
+  receipt: unknown;
+}> {
+  const decoded = decodeX402Header(options.paymentHeader);
+  const paymentPayload = toPaymentPayload(decoded);
+  if (!paymentPayload) {
+    return { valid: false, receipt: decoded };
+  }
+  if (!paymentPayload.resource) {
+    paymentPayload.resource = {
+      url: options.requirements.resource,
+      description: "Graphitti listed workflow",
+      mimeType: "application/json",
+    };
   }
 
-  if (
-    receipt.from &&
-    receipt.to &&
-    receipt.value &&
-    (receipt.signature || receipt.v)
-  ) {
-    const settled = await settleCircleAuthorization(receipt);
-    if (settled.ok) {
-      return { valid: true, txHash: settled.txHash, receipt };
-    }
+  const accepted = asRecord(paymentPayload.accepted);
+  const requirements =
+    accepted && typeof accepted.network === "string"
+      ? {
+          ...requirementsForSettle(options),
+          network: accepted.network,
+          ...(typeof accepted.asset === "string"
+            ? { asset: accepted.asset }
+            : {}),
+          ...(typeof accepted.payTo === "string"
+            ? { payTo: accepted.payTo }
+            : {}),
+        }
+      : requirementsForSettle(options);
+
+  const apiKey = process.env.CIRCLE_API_KEY?.trim();
+  const result = await circleFetch<SettleResponse>({
+    baseUrl: CIRCLE_GATEWAY_X402_BASE,
+    path: "/v1/x402/settle",
+    method: "POST",
+    apiKey,
+    body: {
+      paymentPayload,
+      paymentRequirements: requirements,
+    },
+  });
+
+  const settled = result.data;
+  if (result.error || !settled?.success) {
+    return { valid: false, receipt: settled ?? decoded };
   }
 
-  if (receipt.authorization && typeof receipt.authorization === "object") {
-    const auth = receipt.authorization as Record<string, unknown>;
-    const settled = await settleCircleAuthorization({
-      ...auth,
-      signature: receipt.signature ?? auth.signature,
-    });
-    if (settled.ok) {
-      return { valid: true, txHash: settled.txHash, receipt };
-    }
-  }
-
-  // Accept pre-settled Circle transfer nonce lookup when present.
-  if (typeof receipt.nonce === "string") {
-    const apiKey = process.env.CIRCLE_API_KEY?.trim();
-    if (apiKey) {
-      const lookup = await circleFetch<{ data?: { state?: string } }>({
-        baseUrl: "https://gateway-api-testnet.circle.com",
-        path: `/v1/transfers?nonce=${encodeURIComponent(receipt.nonce)}`,
-        apiKey,
-      });
-      const state = (lookup.data as { data?: { state?: string } })?.data?.state;
-      if (state === "COMPLETE" || state === "complete") {
-        return { valid: true, receipt };
-      }
-    }
-  }
-
-  return { valid: false, receipt };
+  return {
+    valid: true,
+    txHash: settled.transaction,
+    payer: settled.payer,
+    receipt: {
+      ...paymentPayload,
+      payer: settled.payer,
+      transaction: settled.transaction,
+      network: settled.network,
+    },
+  };
 }

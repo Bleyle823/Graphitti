@@ -5,6 +5,7 @@ import { BookOpen, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraphittiLogo } from "@/components/graphitti-logo";
+import { OrgSwitcher } from "@/components/organization/org-switcher";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/workflows/user-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,6 +39,9 @@ export function AppHeader(): React.ReactElement {
             Graphitti
           </span>
         </Link>
+      </div>
+      <div className="-translate-x-1/2 absolute left-1/2 hidden md:flex">
+        <OrgSwitcher />
       </div>
       <div className="flex items-center gap-2">
         <Button asChild className="gap-1.5" size="sm" variant="ghost">

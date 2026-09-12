@@ -1,7 +1,11 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import {
+  normalizeListingSlug,
+  parseListingPriceUsdc,
+} from "@/lib/marketplace/constants";
 import { LISTING_PUBLIC_COLUMNS } from "@/lib/marketplace/listing";
 
 const corsHeaders = {
@@ -19,12 +23,16 @@ export async function GET(
   context: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await context.params;
+  const normalized = normalizeListingSlug(slug);
+  const candidates = Array.from(new Set([normalized, slug.trim()])).filter(
+    Boolean
+  );
   const listing = await db
     .select(LISTING_PUBLIC_COLUMNS)
     .from(workflows)
     .where(
       and(
-        eq(workflows.listedSlug, slug),
+        inArray(workflows.listedSlug, candidates),
         eq(workflows.isListed, true),
         isNull(workflows.deletedAt)
       )
@@ -38,5 +46,14 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(listing[0], { headers: corsHeaders });
+  const item = listing[0];
+  const price = Number(parseListingPriceUsdc(item.priceUsdcPerCall));
+  return NextResponse.json(
+    {
+      ...item,
+      paymentRequired: price > 0,
+      callPath: `/api/mcp/workflows/${encodeURIComponent(item.listedSlug ?? normalized)}/call`,
+    },
+    { headers: corsHeaders }
+  );
 }

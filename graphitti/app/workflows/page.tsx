@@ -10,9 +10,10 @@ export default function WorkflowsPage() {
   useEffect(() => {
     const redirectToWorkflow = async () => {
       try {
-        const workflows = await api.workflow.getAll();
-        // Filter out the auto-save workflow
-        const filtered = workflows.filter((w) => w.name !== "__current__");
+        const result = await api.workflow.getAll();
+        const filtered = result.workflows.filter(
+          (w) => w.name !== "__current__"
+        );
 
         if (filtered.length > 0) {
           // Sort by updatedAt descending to get most recent

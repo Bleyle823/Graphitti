@@ -33,7 +33,8 @@ export const currentWorkflowIdAtom = atom<string | null>(null);
 export const currentWorkflowNameAtom = atom<string>("");
 export const currentWorkflowVisibilityAtom =
   atom<WorkflowVisibility>("private");
-export const isWorkflowOwnerAtom = atom<boolean>(true); // Whether current user owns this workflow
+export const isWorkflowOwnerAtom = atom<boolean>(true); // Whether current user can edit this workflow
+export const canViewWorkflowRunsAtom = atom<boolean>(true);
 
 // UI state atoms
 export const propertiesPanelActiveTabAtom = atom<string>("properties");
@@ -525,6 +526,7 @@ export const resetEditorAtom = atom(null, (_get, set) => {
   set(currentWorkflowIdAtom, null);
   set(currentWorkflowNameAtom, "New Workflow");
   set(isWorkflowOwnerAtom, true);
+  set(canViewWorkflowRunsAtom, true);
   set(hasUnsavedChangesAtom, false);
   set(workflowNotFoundAtom, false);
   set(historyAtom, []);

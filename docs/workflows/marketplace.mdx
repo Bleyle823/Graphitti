@@ -1,6 +1,6 @@
 ---
 title: Marketplace
-description: List workflows for agents, set Arc USDC pricing, and accept x402 or Circle nanopayments.
+description: List workflows for agents, set Arc USDC pricing, and charge per request with Circle nanopayments over x402.
 ---
 
 Click **Marketplace** in the editor toolbar to list the current workflow.
@@ -32,11 +32,13 @@ Production ships read-mostly examples for Circle, Arc, Privy, The Graph, and Fan
 
 `GET /api/mcp/workflows` returns public listing fields only. `POST /api/mcp/workflows/{slug}/call` executes the graph.
 
-Paid listings return `402` with `PAYMENT-REQUIRED` offering:
+Paid listings return `402` with `PAYMENT-REQUIRED` for Circle Gateway nanopayments:
 
-- **Arc x402 exact** on `eip155:5042002` with asset `0x3600000000000000000000000000000000000000`
-- **Circle nanopay** via Gateway `/v1/transfer` (EIP-3009 authorization)
+- **exact** scheme on `eip155:5042002`
+- Asset Arc USDC `0x3600000000000000000000000000000000000000`
+- `extra.name` is `GatewayWalletBatched`
+- `extra.verifyingContract` is the Gateway Wallet `0x0077777d7EBA4688BDeF3E311b846F25870A19B9`
 
-Amounts use 6-decimal atomic USDC (`1.00` → `1000000`). `payTo` is the creator's linked Privy address. Owner API keys (`wfb_...`) skip payment.
+Amounts use 6-decimal atomic USDC (`1.00` → `1000000`). `payTo` is the creator's linked Privy address. Agents retry with a base64 `PAYMENT-SIGNATURE`. No API key and no invoice. Owner API keys (`wfb_...`) skip payment so you can test your own listing.
 
 Open **Earnings** to see Arc USDC invocations and the optional platform cut.

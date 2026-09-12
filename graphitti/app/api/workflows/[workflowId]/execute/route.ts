@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { validateWorkflowIntegrations } from "@/lib/db/integrations";
 import { workflows } from "@/lib/db/schema";
 import { startListedWorkflow } from "@/lib/marketplace/run-workflow";
+import { resolveWorkflowAccess } from "@/lib/org/workflow-access";
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-store";
 
 export async function POST(
@@ -27,8 +28,8 @@ export async function POST(
       );
     }
 
-    let userId = session?.user?.id;
-    if (!userId) {
+    let runnerUserId = session?.user?.id;
+    if (!runnerUserId) {
       const key = await validateApiKey(authHeader, workflow.userId);
       if (!key.valid) {
         return NextResponse.json(
@@ -36,16 +37,25 @@ export async function POST(
           { status: key.statusCode }
         );
       }
-      userId = key.userId;
+      runnerUserId = key.userId;
     }
 
-    if (workflow.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const access = await resolveWorkflowAccess(
+      runnerUserId,
+      workflow,
+      "execute"
+    );
+    if (!access.allowed) {
+      return NextResponse.json(
+        { error: access.reason ?? "Forbidden" },
+        { status: 403 }
+      );
     }
 
+    const integrationOwnerId = workflow.userId;
     const validation = await validateWorkflowIntegrations(
       workflow.nodes as WorkflowNode[],
-      userId
+      integrationOwnerId
     );
     if (!validation.valid) {
       return NextResponse.json(
@@ -59,7 +69,7 @@ export async function POST(
 
     const executionId = await startListedWorkflow({
       workflowId,
-      userId,
+      userId: runnerUserId,
       nodes: workflow.nodes as WorkflowNode[],
       edges: workflow.edges as WorkflowEdge[],
       input,

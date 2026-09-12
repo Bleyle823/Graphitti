@@ -56,7 +56,7 @@ export function pickCanvasImageFileFromDataTransfer(
   dataTransfer: DataTransfer | null
 ): File | undefined {
   if (!dataTransfer?.files?.length) {
-    return undefined;
+    return;
   }
   return Array.from(dataTransfer.files).find((file) =>
     file.type.startsWith("image/")

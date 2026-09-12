@@ -33,6 +33,8 @@ export type NanoInput = StepInput & {
   authorizationJson?: string;
   destinationNetwork?: string;
   mintRecipient?: string;
+  httpMethod?: string;
+  requestBody?: string;
 };
 
 async function depositToGateway(input: NanoInput) {
@@ -102,6 +104,81 @@ async function getNanopaymentBalance(input: NanoInput) {
   }
 }
 
+function decodePaymentHeader(raw: string | null): Record<string, unknown> | null {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const decoded = Buffer.from(raw, "base64").toString("utf8");
+    const parsed = JSON.parse(decoded) as unknown;
+    if (parsed && typeof parsed === "object") {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Not base64 JSON
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object") {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function asAccepts(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (entry): entry is Record<string, unknown> =>
+      Boolean(entry) && typeof entry === "object"
+  );
+}
+
+function pickGatewayAccept(
+  header: Record<string, unknown> | null,
+  body: unknown
+): Record<string, unknown> | null {
+  const fromHeader = asAccepts(header?.accepts);
+  const bodyRecord =
+    body && typeof body === "object" ? (body as Record<string, unknown>) : null;
+  const fromBody = asAccepts(bodyRecord?.accepts);
+  const accepts = fromHeader.length > 0 ? fromHeader : fromBody;
+  const gateway = accepts.find((entry) => {
+    const extra = entry.extra;
+    return (
+      extra &&
+      typeof extra === "object" &&
+      (extra as { name?: unknown }).name === "GatewayWalletBatched"
+    );
+  });
+  return gateway ?? accepts[0] ?? null;
+}
+
+function parseJsonBody(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+function defaultX402Method(input: NanoInput): string {
+  if (input.httpMethod) {
+    return input.httpMethod.toUpperCase();
+  }
+  if (input.requestBody) {
+    return "POST";
+  }
+  if (input.url?.includes("/call")) {
+    return "POST";
+  }
+  return "GET";
+}
+
 async function checkX402Support(input: NanoInput) {
   if (!input.url) {
     return fail("url is required");
@@ -111,23 +188,33 @@ async function checkX402Support(input: NanoInput) {
     return blocked;
   }
   try {
-    const response = await fetch(input.url, { method: "GET" });
+    const method = defaultX402Method(input);
+    const response = await fetch(input.url, {
+      method,
+      headers:
+        method === "GET"
+          ? undefined
+          : { "Content-Type": "application/json" },
+      body:
+        method === "GET"
+          ? undefined
+          : input.requestBody || "{}",
+    });
     const paymentRequired = response.headers.get("PAYMENT-REQUIRED");
-    const bodyText = await response.text();
-    let body: unknown = bodyText;
-    try {
-      body = JSON.parse(bodyText);
-    } catch {
-      body = bodyText;
-    }
-    const acceptsGateway =
-      paymentRequired?.includes("GatewayWalletBatched") ||
-      JSON.stringify(body).includes("GatewayWalletBatched");
+    const decoded = decodePaymentHeader(paymentRequired);
+    const body = parseJsonBody(await response.text());
+    const accept = pickGatewayAccept(decoded, body);
+    const extra = accept?.extra;
+    const extraName =
+      extra && typeof extra === "object"
+        ? (extra as { name?: unknown }).name
+        : undefined;
     return ok({
       httpStatus: response.status,
       paymentRequired: response.status === 402,
       paymentRequiredHeader: paymentRequired,
-      acceptsGatewayWalletBatched: Boolean(acceptsGateway),
+      acceptsGatewayWalletBatched: extraName === "GatewayWalletBatched",
+      accept,
       body,
     });
   } catch (error) {
@@ -143,22 +230,75 @@ async function payX402(input: NanoInput) {
   if (blocked) {
     return blocked;
   }
-  const wallet = await requireLinkedWalletForExecution(input._context?.executionId);
+  const wallet = await requireLinkedWalletForExecution(
+    input._context?.executionId
+  );
   if (!wallet.success) {
     return wallet;
   }
-  if (!input.network || !input.payTo || !input.amount) {
-    return fail("network, payTo, and amount are required");
+  if (!input.network) {
+    return fail("network is required");
   }
   try {
     const chain = requireChain(input.network);
-    const token = input.tokenAddress || lookupToken("USDC", input.network)?.address;
-    if (!token) {
-      return fail("USDC address unknown. Pass tokenAddress.");
+    const method = defaultX402Method(input);
+    const probeHeaders: Record<string, string> = {};
+    if (method !== "GET") {
+      probeHeaders["Content-Type"] = "application/json";
     }
+    const probe = await fetch(input.url, {
+      method,
+      headers: probeHeaders,
+      body: method === "GET" ? undefined : input.requestBody || "{}",
+    });
+    const probeText = await probe.text();
+    const probeBody = parseJsonBody(probeText);
+    if (probe.status !== 402) {
+      return ok({
+        httpStatus: probe.status,
+        body: probeBody,
+        paid: false,
+        note: "Resource did not require payment.",
+      });
+    }
+
+    const challenge = decodePaymentHeader(probe.headers.get("PAYMENT-REQUIRED"));
+    const accept = pickGatewayAccept(challenge, probeBody);
+    if (!accept) {
+      return fail("402 response did not include payment requirements");
+    }
+    const extra =
+      accept.extra && typeof accept.extra === "object"
+        ? (accept.extra as Record<string, unknown>)
+        : {};
+    const verifyingContract =
+      (typeof extra.verifyingContract === "string" && extra.verifyingContract) ||
+      gatewayWallet(input.network);
+    const payTo =
+      (typeof accept.payTo === "string" && accept.payTo) || input.payTo;
+    const atomic =
+      (typeof accept.amount === "string" && accept.amount) ||
+      (typeof accept.maxAmountRequired === "string" &&
+        accept.maxAmountRequired) ||
+      (input.amount ? parseUnits(input.amount, 6).toString() : undefined);
+    if (!payTo || !atomic) {
+      return fail("payTo and amount are required (from 402 or step inputs)");
+    }
+
     const nonce =
       input.nonce ||
       `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex")}`;
+    const validBefore =
+      input.validBefore ||
+      String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 8);
+    const authorization = {
+      from: wallet.wallet.address,
+      to: payTo,
+      value: atomic,
+      validAfter: input.validAfter || "0",
+      validBefore,
+      nonce,
+    };
     const typedData = {
       types: {
         EIP712Domain: [
@@ -177,44 +317,55 @@ async function payX402(input: NanoInput) {
         ],
       },
       domain: {
-        name: "USD Coin",
-        version: "2",
+        name:
+          (typeof extra.name === "string" && extra.name) ||
+          "GatewayWalletBatched",
+        version: (typeof extra.version === "string" && extra.version) || "1",
         chainId: chain.chainId,
-        verifyingContract: token,
+        verifyingContract,
       },
       primaryType: "TransferWithAuthorization",
-      message: {
-        from: wallet.wallet.address,
-        to: input.payTo,
-        value: parseUnits(input.amount, 6).toString(),
-        validAfter: input.validAfter || "0",
-        validBefore: input.validBefore || String(Math.floor(Date.now() / 1000) + 3600),
-        nonce,
-      },
+      message: authorization,
     };
     const { signature } = await signTypedDataV4({
       walletId: wallet.wallet.privyWalletId,
       typedData,
       chain,
     });
-    const retry = await fetch(input.url, {
-      method: "GET",
-      headers: {
-        "PAYMENT-SIGNATURE": signature,
-        "PAYMENT-REQUIRED": JSON.stringify(typedData.message),
-      },
-    });
-    const text = await retry.text();
-    let body: unknown = text;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = text;
+    const resourceFromChallenge = challenge?.resource;
+    const paymentPayload = {
+      x402Version: 2,
+      resource:
+        resourceFromChallenge && typeof resourceFromChallenge === "object"
+          ? resourceFromChallenge
+          : {
+              url: input.url,
+              description: "x402 resource",
+              mimeType: "application/json",
+            },
+      accepted: accept,
+      payload: { signature, authorization },
+    };
+    const retryHeaders: Record<string, string> = {
+      "PAYMENT-SIGNATURE": Buffer.from(
+        JSON.stringify(paymentPayload),
+        "utf8"
+      ).toString("base64"),
+    };
+    if (method !== "GET") {
+      retryHeaders["Content-Type"] = "application/json";
     }
+    const retry = await fetch(input.url, {
+      method,
+      headers: retryHeaders,
+      body: method === "GET" ? undefined : input.requestBody || "{}",
+    });
+    const body = parseJsonBody(await retry.text());
     return ok({
       signature,
       nonce,
       httpStatus: retry.status,
+      paymentResponse: retry.headers.get("PAYMENT-RESPONSE"),
       body,
       note: "Nanopayments use EIP-3009 ecrecover only. SCA / ERC-1271 is not supported.",
     });
@@ -228,15 +379,34 @@ async function settleX402(input: NanoInput) {
     return fail("authorizationJson or nonce is required");
   }
   try {
-    const body = input.authorizationJson
-      ? JSON.parse(input.authorizationJson)
+    const parsed = input.authorizationJson
+      ? (JSON.parse(input.authorizationJson) as unknown)
       : { nonce: input.nonce };
-    const path = input.authorizationJson ? "/v1/transfer" : `/v1/transfers?nonce=${encodeURIComponent(input.nonce || "")}`;
+    const record =
+      parsed && typeof parsed === "object"
+        ? (parsed as Record<string, unknown>)
+        : null;
+    const isX402Payload = Boolean(
+      record && (record.payload || record.accepted || record.paymentPayload)
+    );
+    const path = isX402Payload
+      ? "/v1/x402/settle"
+      : input.authorizationJson
+        ? "/v1/transfer"
+        : `/v1/transfers?nonce=${encodeURIComponent(input.nonce || "")}`;
+    const body = isX402Payload
+      ? {
+          paymentPayload: record?.paymentPayload ?? parsed,
+          paymentRequirements: record?.paymentRequirements ?? record?.accepted,
+        }
+      : input.authorizationJson
+        ? parsed
+        : undefined;
     const result = await circleFetch({
       baseUrl: gatewayApi(input.network || "arc-testnet"),
       path,
-      method: input.authorizationJson ? "POST" : "GET",
-      body: input.authorizationJson ? body : undefined,
+      method: input.authorizationJson || isX402Payload ? "POST" : "GET",
+      body,
     });
     if (result.error) {
       return fail(result.error);

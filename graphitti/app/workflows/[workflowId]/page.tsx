@@ -21,6 +21,7 @@ import {
   workflowUsesOrgWallet,
 } from "@/lib/workflow/bind-org-wallet-nodes";
 import {
+  canViewWorkflowRunsAtom,
   currentWorkflowIdAtom,
   currentWorkflowNameAtom,
   currentWorkflowVisibilityAtom,
@@ -136,6 +137,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
     currentWorkflowVisibilityAtom
   );
   const [isOwner, setIsWorkflowOwner] = useAtom(isWorkflowOwnerAtom);
+  const setCanViewWorkflowRuns = useSetAtom(canViewWorkflowRunsAtom);
   const setGlobalIntegrations = useSetAtom(integrationsAtom);
   const setIntegrationsLoaded = useSetAtom(integrationsLoadedAtom);
   const integrationsVersion = useAtomValue(integrationsVersionAtom);
@@ -367,14 +369,8 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
       setCurrentWorkflowVisibility(
         (workflow.visibility as WorkflowVisibility) ?? "private"
       );
-      if (workflow.isOwner) {
-        setIsWorkflowOwner(true);
-      } else {
-        const owned = await api.workflow.getAll().catch(() => []);
-        setIsWorkflowOwner(
-          Array.isArray(owned) && owned.some((item) => item.id === workflow.id)
-        );
-      }
+      setIsWorkflowOwner(Boolean(workflow.canEdit ?? workflow.isOwner));
+      setCanViewWorkflowRuns(true);
       setHasUnsavedChanges(false);
       setWorkflowNotFound(false);
     } catch (error) {
@@ -393,6 +389,7 @@ const WorkflowEditor = ({ params }: WorkflowPageProps) => {
     setCurrentWorkflowName,
     setCurrentWorkflowVisibility,
     setIsWorkflowOwner,
+    setCanViewWorkflowRuns,
     setHasUnsavedChanges,
     setWorkflowNotFound,
   ]);

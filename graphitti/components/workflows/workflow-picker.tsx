@@ -30,7 +30,8 @@ import { cn } from "@/lib/utils";
 import { resetEditorAtom } from "@/lib/workflow-store";
 
 type WorkflowPickerProps = {
-  workflows: SavedWorkflow[];
+  personalWorkflows: SavedWorkflow[];
+  organizationWorkflows: SavedWorkflow[];
   catalogExamples: SavedWorkflow[];
   activeWorkflowId: string | undefined;
   loading: boolean;
@@ -54,8 +55,13 @@ function matchesQuery(workflow: SavedWorkflow, needle: string): boolean {
   return workflow.name.toLowerCase().includes(needle);
 }
 
+function canManageWorkflow(workflow: SavedWorkflow): boolean {
+  return Boolean(workflow.isOwner || workflow.canEdit);
+}
+
 export function WorkflowPicker({
-  workflows,
+  personalWorkflows,
+  organizationWorkflows,
   catalogExamples,
   activeWorkflowId,
   loading,
@@ -67,31 +73,43 @@ export function WorkflowPicker({
 
   const needle = query.trim().toLowerCase();
 
-  const { examples, userWorkflows } = useMemo(() => {
-    const ownedIds = new Set(workflows.map((workflow) => workflow.id));
+  const { examples, personal, organization } = useMemo(() => {
+    const ownedIds = new Set([
+      ...personalWorkflows.map((workflow) => workflow.id),
+      ...organizationWorkflows.map((workflow) => workflow.id),
+    ]);
     return {
       examples: catalogExamples.filter(
         (workflow) => !ownedIds.has(workflow.id)
       ),
-      userWorkflows: workflows,
+      personal: personalWorkflows,
+      organization: organizationWorkflows,
     };
-  }, [catalogExamples, workflows]);
+  }, [catalogExamples, organizationWorkflows, personalWorkflows]);
 
   const filteredExamples = useMemo(
     () => examples.filter((workflow) => matchesQuery(workflow, needle)),
     [examples, needle]
   );
 
-  const filteredUserWorkflows = useMemo(
-    () => userWorkflows.filter((workflow) => matchesQuery(workflow, needle)),
-    [userWorkflows, needle]
+  const filteredPersonal = useMemo(
+    () => personal.filter((workflow) => matchesQuery(workflow, needle)),
+    [personal, needle]
+  );
+
+  const filteredOrganization = useMemo(
+    () => organization.filter((workflow) => matchesQuery(workflow, needle)),
+    [organization, needle]
   );
 
   const hasResults =
-    filteredExamples.length > 0 || filteredUserWorkflows.length > 0;
+    filteredExamples.length > 0 ||
+    filteredPersonal.length > 0 ||
+    filteredOrganization.length > 0;
   const isLoading = loading || catalogLoading;
+  const totalUser = filteredPersonal.length + filteredOrganization.length;
 
-  if (isLoading && examples.length === 0 && userWorkflows.length === 0) {
+  if (isLoading && examples.length === 0 && totalUser === 0) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -119,6 +137,15 @@ export function WorkflowPicker({
       />
       {hasResults ? (
         <div className="flex flex-col gap-3">
+          {filteredOrganization.length > 0 ? (
+            <WorkflowSection
+              activeWorkflowId={activeWorkflowId}
+              renamingId={renamingId}
+              setRenamingId={setRenamingId}
+              title="Organization workflows"
+              workflows={filteredOrganization}
+            />
+          ) : null}
           {filteredExamples.length > 0 ? (
             <WorkflowSection
               activeWorkflowId={activeWorkflowId}
@@ -129,21 +156,21 @@ export function WorkflowPicker({
               workflows={filteredExamples}
             />
           ) : null}
-          {filteredUserWorkflows.length > 0 ? (
+          {filteredPersonal.length > 0 ? (
             <WorkflowSection
               activeWorkflowId={activeWorkflowId}
               renamingId={renamingId}
               setRenamingId={setRenamingId}
-              title="Your workflows"
-              workflows={filteredUserWorkflows}
+              title="Personal workflows"
+              workflows={filteredPersonal}
             />
-          ) : (
+          ) : totalUser === 0 ? (
             <p className="px-1 text-muted-foreground text-xs">
               {hasWalletAccess
                 ? "No saved workflows yet."
                 : "Connect a wallet to save and run your own workflows."}
             </p>
-          )}
+          ) : null}
         </div>
       ) : (
         <p className="py-4 text-center text-muted-foreground text-sm">
@@ -181,7 +208,7 @@ function WorkflowSection({
             key={workflow.id}
             onRename={() => setRenamingId(workflow.id)}
             onRenameDone={() => setRenamingId(null)}
-            readOnly={readOnly}
+            readOnly={readOnly || !canManageWorkflow(workflow)}
             renaming={renamingId === workflow.id}
             workflow={workflow}
           />
@@ -306,20 +333,39 @@ function WorkflowRow({
 
   if (readOnly) {
     return (
-      <button
-        className={cn(rowClass, "px-2 py-1")}
-        onClick={openWorkflow}
-        type="button"
-      >
-        <TruncatedTooltip side="right" text={workflow.name} />
-        <span className="ml-auto flex shrink-0 items-center gap-1.5">
-          {categoryLabel ? (
-            <span className="text-muted-foreground text-xs">
-              {categoryLabel}
-            </span>
-          ) : null}
-        </span>
-      </button>
+      <div className={rowClass}>
+        <button
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-2 py-1"
+          onClick={openWorkflow}
+          type="button"
+        >
+          <TruncatedTooltip side="right" text={workflow.name} />
+          <span className="ml-auto flex shrink-0 items-center gap-1.5">
+            {categoryLabel ? (
+              <span className="text-muted-foreground text-xs">
+                {categoryLabel}
+              </span>
+            ) : null}
+          </span>
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label={`Actions for ${workflow.name}`}
+              className="rounded-md p-1 text-muted-foreground hover:bg-background hover:text-foreground"
+              type="button"
+            >
+              <MoreHorizontal className="size-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onSelect={duplicate}>
+              <Copy className="size-4" />
+              Duplicate
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   }
 

@@ -5,8 +5,8 @@ import { NodeResizer } from "@xyflow/react";
 import { useSetAtom } from "jotai";
 import { GripHorizontal, ImageIcon, Upload } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
-import { cn } from "@/lib/utils";
 import { useCanvasImageFile } from "@/components/workflow/hooks/use-canvas-image-file";
+import { cn } from "@/lib/utils";
 import {
   CANVAS_IMAGE_MAX_HEIGHT,
   CANVAS_IMAGE_MAX_WIDTH,
@@ -87,7 +87,11 @@ function ImageNodeComponent({ id, data, selected }: NodeProps) {
           {src ? (
             <>
               {/* biome-ignore lint/performance/noImgElement: user URLs and data URLs are not next/image remote hosts */}
-              <img alt={alt} className="h-full w-full object-contain" src={src} />
+              <img
+                alt={alt}
+                className="h-full w-full object-contain"
+                src={src}
+              />
               <button
                 className={cn(
                   "nodrag nopan absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 px-4 text-center opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100",
@@ -117,9 +121,7 @@ function ImageNodeComponent({ id, data, selected }: NodeProps) {
             >
               <ImageIcon className="size-8" />
               <p className="text-xs">
-                {isDragOver
-                  ? "Drop image here"
-                  : "Click or drag an image here"}
+                {isDragOver ? "Drop image here" : "Click or drag an image here"}
               </p>
             </button>
           )}

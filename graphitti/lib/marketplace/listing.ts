@@ -1,7 +1,12 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userWallets, workflowExecutions, workflows } from "@/lib/db/schema";
-import { isReservedSlug, toKebabSlug } from "./constants";
+import {
+  isReservedSlug,
+  normalizeListingSlug,
+  parseListingPriceUsdc,
+  toKebabSlug,
+} from "./constants";
 
 /** Listed marketplace workflows are readable by anyone, even if visibility is still private. */
 export function isPubliclyReadable(workflow: {
@@ -62,6 +67,104 @@ export async function requireCreatorWallet(userId: string) {
   return wallet;
 }
 
+function listingSlugError(
+  workflow: typeof workflows.$inferSelect,
+  slug: string,
+  payloadSlug?: string
+): { error: string; status: number } | null {
+  if (!slug) {
+    return { error: "Slug is required", status: 400 };
+  }
+  if (isReservedSlug(slug)) {
+    return { error: `Slug "${slug}" is reserved`, status: 400 };
+  }
+  if (
+    workflow.listedSlug &&
+    payloadSlug &&
+    normalizeListingSlug(payloadSlug) !== workflow.listedSlug
+  ) {
+    return {
+      error: "Slug cannot change after the first publish",
+      status: 400,
+    };
+  }
+  return null;
+}
+
+async function unlistWorkflow(workflowId: string) {
+  const [unlisted] = await db
+    .update(workflows)
+    .set({
+      isListed: false,
+      updatedAt: new Date(),
+    })
+    .where(eq(workflows.id, workflowId))
+    .returning();
+  return unlisted;
+}
+
+async function paidListingWalletError(
+  userId: string,
+  price: string
+): Promise<{ error: string; status: number } | null> {
+  if (Number(price) <= 0) {
+    return null;
+  }
+  const wallet = await requireCreatorWallet(userId);
+  if (wallet) {
+    return null;
+  }
+  return {
+    error:
+      "Link a Privy wallet before listing a paid workflow. Agents pay per call in Arc USDC via Circle nanopayments to that address.",
+    status: 400,
+  };
+}
+
+async function takenSlugError(
+  slug: string,
+  workflowId: string
+): Promise<{ error: string; status: number } | null> {
+  const existingSlug = await db.query.workflows.findFirst({
+    where: and(eq(workflows.listedSlug, slug), isNull(workflows.deletedAt)),
+  });
+  if (existingSlug && existingSlug.id !== workflowId) {
+    return { error: "That slug is already taken", status: 409 };
+  }
+  return null;
+}
+
+async function publishListingRow(options: {
+  workflow: typeof workflows.$inferSelect;
+  slug: string;
+  price: string;
+  payload: ListingPayload;
+}) {
+  const [updated] = await db
+    .update(workflows)
+    .set({
+      isListed: true,
+      visibility: "public",
+      listedSlug: options.workflow.listedSlug || options.slug,
+      listedAt: options.workflow.listedAt ?? new Date(),
+      listingVersion:
+        (options.workflow.listingVersion ?? 1) +
+        (options.workflow.isListed ? 1 : 0),
+      priceUsdcPerCall: options.price,
+      category: options.payload.category ?? options.workflow.category,
+      chain: options.payload.chain ?? options.workflow.chain ?? "arc-testnet",
+      workflowType:
+        options.payload.workflowType ?? options.workflow.workflowType ?? "read",
+      inputSchema: options.payload.inputSchema ?? options.workflow.inputSchema,
+      outputMapping:
+        options.payload.outputMapping ?? options.workflow.outputMapping,
+      updatedAt: new Date(),
+    })
+    .where(eq(workflows.id, options.workflow.id))
+    .returning();
+  return updated;
+}
+
 export async function upsertListing(
   userId: string,
   payload: ListingPayload
@@ -81,79 +184,32 @@ export async function upsertListing(
   }
 
   if (payload.listed === false) {
-    const [updated] = await db
-      .update(workflows)
-      .set({
-        isListed: false,
-        updatedAt: new Date(),
-      })
-      .where(eq(workflows.id, workflow.id))
-      .returning();
-    return { success: true, listing: updated };
+    return { success: true, listing: await unlistWorkflow(workflow.id) };
   }
 
-  const slug = (
-    payload.slug ||
-    workflow.listedSlug ||
-    toKebabSlug(workflow.name)
-  ).toLowerCase();
-  if (!slug) {
-    return { success: false, error: "Slug is required", status: 400 };
-  }
-  if (isReservedSlug(slug)) {
-    return { success: false, error: `Slug "${slug}" is reserved`, status: 400 };
-  }
-  if (
-    workflow.listedSlug &&
-    payload.slug &&
-    payload.slug !== workflow.listedSlug
-  ) {
-    return {
-      success: false,
-      error: "Slug cannot change after the first publish",
-      status: 400,
-    };
+  const slug = normalizeListingSlug(
+    payload.slug || workflow.listedSlug || toKebabSlug(workflow.name)
+  );
+  const slugError = listingSlugError(workflow, slug, payload.slug);
+  if (slugError) {
+    return { success: false, ...slugError };
   }
 
-  const existingSlug = await db.query.workflows.findFirst({
-    where: and(eq(workflows.listedSlug, slug), isNull(workflows.deletedAt)),
-  });
-  if (existingSlug && existingSlug.id !== workflow.id) {
-    return { success: false, error: "That slug is already taken", status: 409 };
+  const takenError = await takenSlugError(slug, workflow.id);
+  if (takenError) {
+    return { success: false, ...takenError };
   }
 
-  const price = payload.priceUsdcPerCall ?? workflow.priceUsdcPerCall ?? "0";
-  if (Number(price) > 0) {
-    const wallet = await requireCreatorWallet(userId);
-    if (!wallet) {
-      return {
-        success: false,
-        error:
-          "Link a Privy wallet before listing a paid workflow. Payouts settle as Arc USDC to that address.",
-        status: 400,
-      };
-    }
+  const price = parseListingPriceUsdc(
+    payload.priceUsdcPerCall ?? workflow.priceUsdcPerCall ?? "0"
+  );
+  const walletError = await paidListingWalletError(userId, price);
+  if (walletError) {
+    return { success: false, ...walletError };
   }
 
-  const [updated] = await db
-    .update(workflows)
-    .set({
-      isListed: true,
-      visibility: "public",
-      listedSlug: workflow.listedSlug || slug,
-      listedAt: workflow.listedAt ?? new Date(),
-      listingVersion:
-        (workflow.listingVersion ?? 1) + (workflow.isListed ? 1 : 0),
-      priceUsdcPerCall: price,
-      category: payload.category ?? workflow.category,
-      chain: payload.chain ?? workflow.chain ?? "arc-testnet",
-      workflowType: payload.workflowType ?? workflow.workflowType ?? "read",
-      inputSchema: payload.inputSchema ?? workflow.inputSchema,
-      outputMapping: payload.outputMapping ?? workflow.outputMapping,
-      updatedAt: new Date(),
-    })
-    .where(eq(workflows.id, workflow.id))
-    .returning();
-
-  return { success: true, listing: updated };
+  return {
+    success: true,
+    listing: await publishListingRow({ workflow, slug, price, payload }),
+  };
 }

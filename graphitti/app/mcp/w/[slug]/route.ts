@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
-import { executeListingCall } from "@/lib/marketplace/call-listing";
-import { type JsonRpcRequest, mcpToolsList } from "@/lib/mcp/json-rpc";
+import {
+  type JsonRpcRequest,
+  mcpCallWorkflowResponse,
+  mcpToolsList,
+} from "@/lib/mcp/json-rpc";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version, PAYMENT-SIGNATURE, PAYMENT-RESPONSE",
+  "Access-Control-Expose-Headers": "PAYMENT-REQUIRED, PAYMENT-RESPONSE",
 };
 
 export function OPTIONS() {
@@ -61,47 +65,13 @@ export async function POST(
         ? (args.input as Record<string, unknown>)
         : {};
 
-    const callRequest = new Request(
-      `http://local/api/mcp/workflows/${slug}/call`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(request.headers.get("Authorization")
-            ? { Authorization: request.headers.get("Authorization")! }
-            : {}),
-          ...(request.headers.get("PAYMENT-SIGNATURE")
-            ? { "PAYMENT-SIGNATURE": request.headers.get("PAYMENT-SIGNATURE")! }
-            : {}),
-          ...(request.headers.get("PAYMENT-RESPONSE")
-            ? { "PAYMENT-RESPONSE": request.headers.get("PAYMENT-RESPONSE")! }
-            : {}),
-        },
-        body: JSON.stringify(input),
-      }
-    );
-
-    const response = await executeListingCall(slug, callRequest);
-    const payload = await response.json().catch(() => ({}));
-
-    return NextResponse.json(
-      {
-        jsonrpc: "2.0",
-        id,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                status: response.status,
-                ...((payload as Record<string, unknown>) ?? {}),
-              }),
-            },
-          ],
-        },
-      },
-      { headers: corsHeaders }
-    );
+    return mcpCallWorkflowResponse({
+      slug,
+      input,
+      request,
+      id,
+      corsHeaders,
+    });
   }
 
   return NextResponse.json(
