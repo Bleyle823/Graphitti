@@ -20,6 +20,49 @@ export const CANVAS_IMAGE_HEIGHT = 240;
 export const CANVAS_IMAGE_MAX_BYTES = 1024 * 1024;
 export const CANVAS_IMAGE_DRAG_HANDLE = ".canvas-image-drag-handle";
 
+export function getCanvasImageFileValidationError(file: File): string | null {
+  if (!file.type.startsWith("image/")) {
+    return "Choose an image file.";
+  }
+  if (file.size > CANVAS_IMAGE_MAX_BYTES) {
+    return "Image must be 1 MB or smaller.";
+  }
+  return null;
+}
+
+export function readCanvasImageFileAsDataUrl(file: File): Promise<string> {
+  const validationError = getCanvasImageFileValidationError(file);
+  if (validationError) {
+    return Promise.reject(new Error(validationError));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Could not read that image."));
+    };
+    reader.onerror = () => {
+      reject(new Error("Could not read that image."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export function pickCanvasImageFileFromDataTransfer(
+  dataTransfer: DataTransfer | null
+): File | undefined {
+  if (!dataTransfer?.files?.length) {
+    return undefined;
+  }
+  return Array.from(dataTransfer.files).find((file) =>
+    file.type.startsWith("image/")
+  );
+}
+
 export function parseCanvasImageConfig(
   config: Record<string, unknown> | undefined
 ): CanvasImageConfig {

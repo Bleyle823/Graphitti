@@ -1,14 +1,10 @@
 "use client";
 
-import { useRef } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { useCanvasImageFile } from "@/components/workflow/hooks/use-canvas-image-file";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  CANVAS_IMAGE_MAX_BYTES,
-  parseCanvasImageConfig,
-} from "@/lib/workflow/canvas-image";
+import { cn } from "@/lib/utils";
+import { parseCanvasImageConfig } from "@/lib/workflow/canvas-image";
 
 type ImageConfigProps = {
   config: Record<string, unknown>;
@@ -22,35 +18,18 @@ export function ImageConfig({
   onUpdateConfig,
 }: ImageConfigProps) {
   const imageConfig = parseCanvasImageConfig(config);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File | undefined) => {
-    if (!file) {
-      return;
-    }
-    if (!file.type.startsWith("image/")) {
-      toast.error("Choose an image file.");
-      return;
-    }
-    if (file.size > CANVAS_IMAGE_MAX_BYTES) {
-      toast.error("Image must be 1 MB or smaller.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        onUpdateConfig("src", reader.result);
-        if (!imageConfig.alt) {
-          onUpdateConfig("alt", file.name);
+  const { dropZoneProps, fileInputRef, isDragOver, onFileInputChange, openFilePicker } =
+    useCanvasImageFile({
+      currentAlt: imageConfig.alt,
+      disabled,
+      onApply: ({ src, alt }) => {
+        onUpdateConfig("src", src);
+        if (alt !== undefined && !imageConfig.alt?.trim()) {
+          onUpdateConfig("alt", alt);
         }
-      }
-    };
-    reader.onerror = () => {
-      toast.error("Could not read that image.");
-    };
-    reader.readAsDataURL(file);
-  };
+      },
+    });
 
   return (
     <div className="space-y-4">
@@ -70,25 +49,30 @@ export function ImageConfig({
           accept="image/*"
           className="hidden"
           disabled={disabled}
-          onChange={(event) => {
-            handleFile(event.target.files?.[0]);
-            event.target.value = "";
-          }}
+          onChange={onFileInputChange}
           ref={fileInputRef}
           type="file"
         />
-        <Button
+        <button
+          className={cn(
+            "nodrag nopan flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors",
+            isDragOver
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/50 hover:bg-muted/40",
+            disabled && "pointer-events-none opacity-50"
+          )}
           disabled={disabled}
-          onClick={() => fileInputRef.current?.click()}
-          size="sm"
+          onClick={openFilePicker}
           type="button"
-          variant="outline"
+          {...dropZoneProps}
         >
-          Choose image
-        </Button>
-        <p className="text-muted-foreground text-xs">
-          Max 1 MB. Stored with the workflow.
-        </p>
+          <span className="font-medium text-sm">
+            {isDragOver ? "Drop image here" : "Click or drag an image here"}
+          </span>
+          <span className="text-muted-foreground text-xs">
+            Max 1 MB. Stored with the workflow.
+          </span>
+        </button>
       </div>
       <div className="space-y-2">
         <Label htmlFor="canvas-image-alt">Alt text</Label>
