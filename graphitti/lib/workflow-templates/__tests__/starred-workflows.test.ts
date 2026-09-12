@@ -80,6 +80,12 @@ function conditionOutgoingEdges(template: Template) {
   return template.edges.filter((edge) => conditionIds.has(edge.source));
 }
 
+function listConditionNodeIds(template: Template) {
+  return template.nodes
+    .filter((node) => node.data.config?.actionType === "Condition")
+    .map((node) => node.id);
+}
+
 function hasEdge(
   template: Template,
   source: string,
@@ -91,6 +97,12 @@ function hasEdge(
       edge.source === source &&
       edge.target === target &&
       (sourceHandle === undefined || edge.sourceHandle === sourceHandle)
+  );
+}
+
+function hasFalseOutgoing(template: Template, conditionId: string) {
+  return template.edges.some(
+    (edge) => edge.source === conditionId && edge.sourceHandle === "false"
   );
 }
 
@@ -106,7 +118,7 @@ describe("starred workflow templates", () => {
     }
   });
 
-  it("connect every executable node from the trigger and wire condition true/false handles", () => {
+  it("connect every executable node from the trigger and wire condition handles", () => {
     const templates = loadInMemoryWorkflowTemplates().filter((template) =>
       (STARRED_NAMES as readonly string[]).includes(template.name)
     );
@@ -124,15 +136,21 @@ describe("starred workflow templates", () => {
     }
   });
 
-  it("FPL pays 1st and 2nd from funded true branches and notifies Telegram", () => {
+  it("FPL pays from funded true branches and has false paths for gameweek and pool", () => {
     const fpl = requireTemplate("FPL League Top Two USDC Payouts");
     expect(actionTypes(fpl)).toContain("telegram/send-message");
     expect(hasEdge(fpl, "fpl-gw-finished", "fpl-standings", "true")).toBe(true);
+    expect(hasEdge(fpl, "fpl-gw-finished", "fpl-standings", "false")).toBe(
+      true
+    );
     expect(
       hasEdge(fpl, "fpl-funded-condition", "fpl-pay-first-condition", "true")
     ).toBe(true);
     expect(
       hasEdge(fpl, "fpl-funded-condition", "fpl-pay-second-condition", "true")
+    ).toBe(true);
+    expect(
+      hasEdge(fpl, "fpl-funded-condition", "fpl-underfunded-telegram", "false")
     ).toBe(true);
     expect(
       hasEdge(fpl, "fpl-pay-first-condition", "arc-pay-first", "true")
@@ -144,20 +162,29 @@ describe("starred workflow templates", () => {
     expect(hasEdge(fpl, "arc-pay-second", "fpl-telegram")).toBe(true);
   });
 
-  it("keeper is a single line through Markets live? into the org wallet", () => {
+  it("keeper resolves wallets before Markets live and parks on false", () => {
     const keeper = requireTemplate("Aave Uniswap USDC keeper");
     const types = actionTypes(keeper);
     expect(types).toContain("the-graph/query-subgraph");
     expect(types).toContain("privy/wallet-transfer");
     expect(types).toContain("telegram/send-message");
-    expect(types.at(-2)).toBe("privy/wallet-transfer");
-    expect(types.at(-1)).toBe("telegram/send-message");
     expect(hasEdge(keeper, "keeper-trigger", "aave-usdc")).toBe(true);
     expect(hasEdge(keeper, "aave-usdc", "uni-usdc-weth")).toBe(true);
-    expect(hasEdge(keeper, "uni-usdc-weth", "keeper-markets-live")).toBe(true);
-    expect(
-      hasEdge(keeper, "keeper-markets-live", "keeper-org-wallet", "true")
-    ).toBe(true);
+    expect(hasEdge(keeper, "uni-usdc-weth", "keeper-org-wallet")).toBe(true);
+    expect(hasEdge(keeper, "keeper-org-wallet", "keeper-privy-wallet")).toBe(
+      true
+    );
+    expect(hasEdge(keeper, "keeper-privy-wallet", "keeper-markets-live")).toBe(
+      true
+    );
+    expect(hasEdge(keeper, "keeper-markets-live", "keeper-pay", "true")).toBe(
+      true
+    );
+    expect(hasEdge(keeper, "keeper-markets-live", "keeper-park", "false")).toBe(
+      true
+    );
+    expect(hasEdge(keeper, "keeper-pay", "keeper-telegram")).toBe(true);
+    expect(hasEdge(keeper, "keeper-park", "keeper-telegram-hold")).toBe(true);
 
     const configs = keeper.nodes.map((node) => node.data.config ?? {});
     const subgraphIds = configs
@@ -171,7 +198,7 @@ describe("starred workflow templates", () => {
     );
   });
 
-  it("Stripe payout valid, Uniswap large swap, and Kelp deviation connect to the next step", () => {
+  it("demo conditions expose false branches with Telegram or transfer follow-ups", () => {
     const stripe = requireTemplate("Stripe invoice to Privy USDC settlement");
     const uniswap = requireTemplate("Uniswap V3 large swap alert (subgraph)");
     const kelp = requireTemplate(
@@ -182,7 +209,18 @@ describe("starred workflow templates", () => {
       hasEdge(stripe, "payout-valid-stripe-settle", "pay-stripe-settle", "true")
     ).toBe(true);
     expect(
+      hasEdge(
+        stripe,
+        "payout-valid-stripe-settle",
+        "telegram-stripe-held",
+        "false"
+      )
+    ).toBe(true);
+    expect(
       hasEdge(uniswap, "uni-v3-condition", "uni-v3-telegram", "true")
+    ).toBe(true);
+    expect(
+      hasEdge(uniswap, "uni-v3-condition", "uni-v3-telegram-clear", "false")
     ).toBe(true);
     expect(
       hasEdge(
@@ -192,5 +230,48 @@ describe("starred workflow templates", () => {
         "true"
       )
     ).toBe(true);
+    expect(
+      hasEdge(
+        kelp,
+        "rseth-sb-deviation-condition",
+        "rseth-sb-telegram-ok",
+        "false"
+      )
+    ).toBe(true);
+  });
+
+  it("key demo conditions each have a false outgoing edge", () => {
+    const checks: Array<{ name: string; conditionId: string }> = [
+      {
+        name: "Aave Uniswap USDC keeper",
+        conditionId: "keeper-markets-live",
+      },
+      {
+        name: "FPL League Top Two USDC Payouts",
+        conditionId: "fpl-gw-finished",
+      },
+      {
+        name: "FPL League Top Two USDC Payouts",
+        conditionId: "fpl-funded-condition",
+      },
+      {
+        name: "Stripe invoice to Privy USDC settlement",
+        conditionId: "payout-valid-stripe-settle",
+      },
+      {
+        name: "Uniswap V3 large swap alert (subgraph)",
+        conditionId: "uni-v3-condition",
+      },
+      {
+        name: "Kelp rsETH Backing Monitor (Substreams → Supabase)",
+        conditionId: "rseth-sb-deviation-condition",
+      },
+    ];
+
+    for (const { name, conditionId } of checks) {
+      const template = requireTemplate(name);
+      expect(listConditionNodeIds(template)).toContain(conditionId);
+      expect(hasFalseOutgoing(template, conditionId)).toBe(true);
+    }
   });
 });

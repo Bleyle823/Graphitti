@@ -618,7 +618,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "uni-v3-telegram",
         type: "action",
-        position: { x: 960, y: 200 },
+        position: { x: 960, y: 80 },
         data: {
           label: "Send Telegram alert",
           type: "action",
@@ -630,6 +630,24 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             parseMode: "none",
           },
           status: "idle",
+        },
+      },
+      {
+        id: "uni-v3-telegram-clear",
+        type: "action",
+        position: { x: 960, y: 320 },
+        data: {
+          label: "Send all-clear",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Uniswap V3 watch — all clear\n\nNo swaps above $10k USD in this poll. Treasury watch standing by.",
+            parseMode: "none",
+          },
+          status: "idle",
+          description: "Heartbeat when no large swap matched the threshold",
         },
       },
     ],
@@ -649,6 +667,12 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         source: "uni-v3-condition",
         target: "uni-v3-telegram",
         sourceHandle: "true",
+      },
+      {
+        id: "e-uni-v3-4",
+        source: "uni-v3-condition",
+        target: "uni-v3-telegram-clear",
+        sourceHandle: "false",
       },
     ],
   },
@@ -739,24 +763,9 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
-        id: "keeper-markets-live",
-        type: "action",
-        position: { x: 840, y: 200 },
-        data: {
-          label: "Markets live?",
-          type: "action",
-          config: {
-            actionType: "Condition",
-            condition:
-              'Number("{{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}") > 0',
-          },
-          status: "idle",
-        },
-      },
-      {
         id: "keeper-org-wallet",
         type: "action",
-        position: { x: 1120, y: 200 },
+        position: { x: 840, y: 200 },
         data: {
           label: "Get org wallet",
           type: "action",
@@ -767,7 +776,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "keeper-privy-wallet",
         type: "action",
-        position: { x: 1400, y: 200 },
+        position: { x: 1120, y: 200 },
         data: {
           label: "Get Privy wallet",
           type: "action",
@@ -779,9 +788,26 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
+        id: "keeper-markets-live",
+        type: "action",
+        position: { x: 1400, y: 200 },
+        data: {
+          label: "Markets live?",
+          type: "action",
+          config: {
+            actionType: "Condition",
+            condition:
+              'Number("{{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}") > 0',
+          },
+          status: "idle",
+          description:
+            "True when Aave USDC TVL is positive; false parks capital instead of full keeper refill",
+        },
+      },
+      {
         id: "keeper-pay",
         type: "action",
-        position: { x: 1680, y: 200 },
+        position: { x: 1680, y: 80 },
         data: {
           label: "Pay keeper USDC",
           type: "action",
@@ -800,9 +826,32 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
+        id: "keeper-park",
+        type: "action",
+        position: { x: 1680, y: 320 },
+        data: {
+          label: "Park idle USDC",
+          type: "action",
+          config: {
+            actionType: "privy/wallet-transfer",
+            walletId: "{{@keeper-org-wallet:Get org wallet.walletId}}",
+            sourceChain: "base_sepolia",
+            sourceAsset: "usdc",
+            amount: "0.1",
+            destinationAddress: "{{@keeper-org-wallet:Get org wallet.address}}",
+            destinationChain: "base_sepolia",
+            destinationAsset: "usdc",
+            useIntent: "false",
+          },
+          status: "idle",
+          description:
+            "Small self-transfer to org treasury when markets look stale",
+        },
+      },
+      {
         id: "keeper-telegram",
         type: "action",
-        position: { x: 1960, y: 200 },
+        position: { x: 1960, y: 80 },
         data: {
           label: "Send Telegram report",
           type: "action",
@@ -810,7 +859,24 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "telegram/send-message",
             chatId: "YOUR_TELEGRAM_CHAT_ID",
             message:
-              "Aave Uniswap USDC keeper\n\nAave USDC TVL: {{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}\nAave borrows: {{@aave-usdc:Query Aave USDC market.data.market.totalBorrowBalanceUSD}}\nUniswap pool TVL: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.totalValueLockedUSD}}\nUSDC per WETH: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.token0Price}}\nPayout: {{@keeper-pay:Pay keeper USDC.status}}\nTx: {{@keeper-pay:Pay keeper USDC.transaction_hash}}",
+              "Aave Uniswap USDC keeper — markets live\n\nAave USDC TVL: {{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}\nAave borrows: {{@aave-usdc:Query Aave USDC market.data.market.totalBorrowBalanceUSD}}\nUniswap pool TVL: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.totalValueLockedUSD}}\nUSDC per WETH: {{@uni-usdc-weth:Query Uniswap USDC/WETH.data.pool.token0Price}}\nPayout: {{@keeper-pay:Pay keeper USDC.status}}\nTx: {{@keeper-pay:Pay keeper USDC.transaction_hash}}",
+            parseMode: "none",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "keeper-telegram-hold",
+        type: "action",
+        position: { x: 1960, y: 320 },
+        data: {
+          label: "Send hold report",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "Aave Uniswap USDC keeper — refill held\n\nMarkets did not pass the live TVL check. Full keeper buffer not sent.\nLast Aave USDC TVL: {{@aave-usdc:Query Aave USDC market.data.market.totalValueLockedUSD}}\nParked 0.1 USDC to org: {{@keeper-park:Park idle USDC.status}}\nTx: {{@keeper-park:Park idle USDC.transaction_hash}}",
             parseMode: "none",
           },
           status: "idle",
@@ -823,25 +889,36 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "e-keeper-3",
         source: "uni-usdc-weth",
-        target: "keeper-markets-live",
-      },
-      {
-        id: "e-keeper-5",
-        source: "keeper-markets-live",
         target: "keeper-org-wallet",
-        sourceHandle: "true",
       },
       {
-        id: "e-keeper-6",
+        id: "e-keeper-4",
         source: "keeper-org-wallet",
         target: "keeper-privy-wallet",
       },
       {
-        id: "e-keeper-7",
+        id: "e-keeper-5",
         source: "keeper-privy-wallet",
+        target: "keeper-markets-live",
+      },
+      {
+        id: "e-keeper-6",
+        source: "keeper-markets-live",
         target: "keeper-pay",
+        sourceHandle: "true",
+      },
+      {
+        id: "e-keeper-7",
+        source: "keeper-markets-live",
+        target: "keeper-park",
+        sourceHandle: "false",
       },
       { id: "e-keeper-8", source: "keeper-pay", target: "keeper-telegram" },
+      {
+        id: "e-keeper-9",
+        source: "keeper-park",
+        target: "keeper-telegram-hold",
+      },
     ],
   },
 ];

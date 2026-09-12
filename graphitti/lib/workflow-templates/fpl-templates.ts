@@ -112,7 +112,8 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
               "{{@fpl-prev-gw:Get Previous Gameweek.events.0.finished}} === true",
           },
           status: "idle",
-          description: "Skip payouts until FPL has finalized the gameweek",
+          description:
+            "True when the previous gameweek is finalized; false still pays from the live league table for demos",
         },
       },
       {
@@ -271,6 +272,25 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
+        id: "fpl-underfunded-telegram",
+        type: "action",
+        position: { x: 2000, y: 520 },
+        data: {
+          label: "Send underfunded notice",
+          type: "action",
+          config: {
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "FPL payouts held — prize pool underfunded\n\nGameweek: {{@fpl-prev-gw:Get Previous Gameweek.events.0.name}}\nPool balance: {{@circle-balance:Get Prize Pool USDC.nativeBalance}} USDC\nRequired: {{@fpl-rank:Rank Top Two.totalPrizeUsdc}} USDC\nNo Arc transfers sent.",
+            parseMode: "none",
+          },
+          status: "idle",
+          description:
+            "Reports when mapped winners exist but the pool is short",
+        },
+      },
+      {
         id: "fpl-telegram",
         type: "action",
         position: { x: 2600, y: 200 },
@@ -307,6 +327,12 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         sourceHandle: "true",
       },
       {
+        id: "e-fpl-gw-standings-inprogress",
+        source: "fpl-gw-finished",
+        target: "fpl-standings",
+        sourceHandle: "false",
+      },
+      {
         id: "e-fpl-standings-rank",
         source: "fpl-standings",
         target: "fpl-rank",
@@ -337,6 +363,12 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         source: "fpl-funded-condition",
         target: "fpl-pay-second-condition",
         sourceHandle: "true",
+      },
+      {
+        id: "e-fpl-funded-underfunded",
+        source: "fpl-funded-condition",
+        target: "fpl-underfunded-telegram",
+        sourceHandle: "false",
       },
       {
         id: "e-fpl-pay-first",
