@@ -38,7 +38,7 @@ export default function EarningsPage() {
 
   return (
     <PageShell
-      description="Revenue from listed workflows, settled in Arc USDC."
+      description="Revenue from listed workflows, paid per request in Arc USDC via Circle nanopayments."
       title="Earnings"
     >
       {loading || walletAccessPending ? (
@@ -56,7 +56,7 @@ export default function EarningsPage() {
                 Browse marketplace
               </Button>
             }
-            description="List a workflow on the marketplace to start earning Arc USDC per call."
+            description="List a workflow on the marketplace to start earning Arc USDC per agent call."
             icon={DollarSign}
             title="No earnings yet"
           />
@@ -72,7 +72,8 @@ export default function EarningsPage() {
               <Stat label="Net USDC" value={data.netUsdc} />
             </div>
             <p className="mt-6 text-muted-foreground text-sm">
-              Paid listings settle on Arc Testnet as USDC (6-decimal ERC-20)
+              Paid listings settle as Circle nanopayments on Arc Testnet (USDC,
+              6-decimal ERC-20)
               {data.chain ? ` on ${data.chain}` : ""}.
             </p>
           </>

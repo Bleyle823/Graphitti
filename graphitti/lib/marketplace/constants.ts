@@ -13,6 +13,19 @@ export const ARC_MARKETPLACE_CHAIN = CHAINS["arc-testnet"];
 export const ARC_MARKETPLACE_ASSET = ARC_USDC_ERC20;
 export const ARC_MARKETPLACE_DECIMALS = 6;
 
+/** Circle Gateway Wallet on Arc Testnet (same address as other Gateway testnets). */
+export const MARKETPLACE_GATEWAY_WALLET =
+  "0x0077777d7EBA4688BDeF3E311b846F25870A19B9" as const;
+
+export const GATEWAY_WALLET_BATCHED_NAME = "GatewayWalletBatched";
+export const GATEWAY_WALLET_BATCHED_VERSION = "1";
+
+/** 7 days plus verification latency, matching Circle Gateway middleware. */
+export const MARKETPLACE_X402_MAX_TIMEOUT_SECONDS = 604_900;
+
+export const CIRCLE_GATEWAY_X402_BASE =
+  "https://gateway-api-testnet.circle.com";
+
 export function isReservedSlug(slug: string): boolean {
   return (RESERVED_SLUGS as readonly string[]).includes(slug.toLowerCase());
 }

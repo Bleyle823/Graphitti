@@ -31,7 +31,7 @@ const STEPS = [
     key: "list" as const,
     icon: Store,
     title: "List it on the marketplace",
-    body: "Publish a paid or free endpoint agents can call in Arc USDC.",
+    body: "Publish a paid or free endpoint agents can call. Paid calls settle in Arc USDC via Circle nanopayments.",
   },
 ] as const;
 

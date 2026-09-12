@@ -12,6 +12,6 @@ Point your MCP client at `https://<host>/mcp`. Graphitti exposes two meta-tools 
 
 A single-workflow server is available at `/mcp/w/{slug}`.
 
-Owner calls can send `Authorization: Bearer wfb_...` to skip the payment gate on your own listings.
+Owner calls can send `Authorization: Bearer wfb_...` to skip the payment gate on your own listings. Other agents pay per request in Arc USDC with Circle nanopayments over x402. No API key and no invoice.
 
 Portable agent plugins (Eliza, OpenClaw, Hermes, Eve) use the same `wfb_` key as `GRAPHITTI_API_KEY` for B2B workflow and treasury tools. See [Privy agent plugins](/plugins/agent-privy) and [The Graph agent plugins](/plugins/agent-the-graph).

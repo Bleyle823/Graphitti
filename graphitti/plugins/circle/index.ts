@@ -349,7 +349,8 @@ const circlePlugin: IntegrationPlugin = {
     {
       slug: "pay-x402",
       label: "Pay x402",
-      description: "Sign EIP-3009 with Privy and retry. Refuses Graph x402 URLs.",
+      description:
+        "Sign GatewayWalletBatched EIP-3009 and retry with PAYMENT-SIGNATURE. Refuses Graph x402 URLs.",
       category: "Circle Nanopayments",
       stepFunction: "payX402Step",
       stepImportPath: "nanopayments",
@@ -357,8 +358,10 @@ const circlePlugin: IntegrationPlugin = {
       configFields: [
         { key: "url", label: "URL", type: "template-input", required: true },
         network,
-        { key: "payTo", label: "Pay to", type: "template-input", required: true },
-        { key: "amount", label: "Amount", type: "template-input", required: true },
+        { key: "payTo", label: "Pay to (optional if 402 includes it)", type: "template-input" },
+        { key: "amount", label: "Amount (optional if 402 includes it)", type: "template-input" },
+        { key: "httpMethod", label: "HTTP method", type: "template-input", defaultValue: "POST" },
+        { key: "requestBody", label: "Request body JSON", type: "template-textarea" },
         { key: "tokenAddress", label: "Token override", type: "template-input" },
       ],
     },

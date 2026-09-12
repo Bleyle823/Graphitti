@@ -1,4 +1,8 @@
-import { ARC_MARKETPLACE_ASSET, ARC_MARKETPLACE_CHAIN } from "./constants";
+import {
+  ARC_MARKETPLACE_ASSET,
+  ARC_MARKETPLACE_CHAIN,
+  MARKETPLACE_GATEWAY_WALLET,
+} from "./constants";
 
 export function buildOpenApiDocument(options: {
   origin: string;
@@ -51,7 +55,7 @@ export function buildOpenApiDocument(options: {
           "200": { description: "Mapped outputs" },
           "402": {
             description:
-              "Payment required in Arc USDC (x402 exact scheme, 6-decimal amount)",
+              "Payment required: Circle nanopayments over x402 on Arc Testnet (GatewayWalletBatched, 6-decimal USDC)",
           },
         },
       },
@@ -88,7 +92,7 @@ export function buildOpenApiDocument(options: {
       title: "Graphitti Marketplace",
       version: "1.0.0",
       description:
-        "Public catalog and call APIs. Paid listings settle in Arc USDC.",
+        "Public catalog and call APIs. Paid listings settle with Circle nanopayments over x402 on Arc Testnet.",
     },
     servers: [{ url: options.origin }],
     paths,
@@ -96,6 +100,12 @@ export function buildOpenApiDocument(options: {
       network: `eip155:${ARC_MARKETPLACE_CHAIN.chainId}`,
       asset: ARC_MARKETPLACE_ASSET,
       decimals: 6,
+      paymentProtocol: "circle-nanopay",
+      extra: {
+        name: "GatewayWalletBatched",
+        version: "1",
+        verifyingContract: MARKETPLACE_GATEWAY_WALLET,
+      },
     },
   };
 }

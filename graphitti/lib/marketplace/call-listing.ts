@@ -11,8 +11,9 @@ import {
   waitForExecution,
 } from "@/lib/marketplace/run-workflow";
 import {
-  buildArcPaymentRequired,
   buildCircleNanopayRequired,
+  encodeX402Header,
+  extractPayer,
   extractTxHash,
   paymentHashFromReceipt,
   recordWorkflowPayment,
@@ -25,7 +26,139 @@ export const listingCorsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, PAYMENT-SIGNATURE, PAYMENT-RESPONSE",
+  "Access-Control-Expose-Headers": "PAYMENT-REQUIRED, PAYMENT-RESPONSE",
 };
+
+function paymentRequiredResponse(
+  challenge: ReturnType<typeof buildCircleNanopayRequired>,
+  error: string
+): NextResponse {
+  return NextResponse.json(
+    { error, ...challenge },
+    {
+      status: 402,
+      headers: {
+        ...listingCorsHeaders,
+        "PAYMENT-REQUIRED": encodeX402Header(challenge),
+      },
+    }
+  );
+}
+
+async function enforceListingPayment(options: {
+  workflow: typeof workflows.$inferSelect;
+  slug: string;
+  isOwner: boolean;
+  request: Request;
+}): Promise<
+  | { ok: true; paymentResponseHeader?: string }
+  | { ok: false; response: NextResponse }
+> {
+  const price = Number(options.workflow.priceUsdcPerCall ?? 0);
+  if (price <= 0 || options.isOwner) {
+    return { ok: true };
+  }
+
+  const paymentHeader =
+    options.request.headers.get("PAYMENT-SIGNATURE") ||
+    options.request.headers.get("PAYMENT-RESPONSE");
+
+  const creator = await db.query.userWallets.findFirst({
+    where: eq(userWallets.userId, options.workflow.userId),
+  });
+  if (!creator) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Listing owner has no payout wallet" },
+        { status: 400, headers: listingCorsHeaders }
+      ),
+    };
+  }
+
+  const challenge = buildCircleNanopayRequired({
+    priceUsdc: String(options.workflow.priceUsdcPerCall),
+    payTo: creator.address,
+    resource: `/api/mcp/workflows/${options.slug}/call`,
+    description: options.workflow.name,
+  });
+
+  if (!paymentHeader) {
+    return {
+      ok: false,
+      response: paymentRequiredResponse(challenge, "Payment required"),
+    };
+  }
+
+  const requirement = challenge.accepts[0];
+  if (!requirement) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Payment requirements unavailable" },
+        { status: 500, headers: listingCorsHeaders }
+      ),
+    };
+  }
+
+  const verified = await verifyMarketplacePayment({
+    paymentHeader,
+    requirements: requirement,
+  });
+
+  if (!verified.valid) {
+    return {
+      ok: false,
+      response: paymentRequiredResponse(
+        challenge,
+        "Payment verification failed"
+      ),
+    };
+  }
+
+  await recordWorkflowPayment({
+    workflowId: options.workflow.id,
+    caller: verified.payer ?? extractPayer(verified.receipt),
+    amountUsdc: String(options.workflow.priceUsdcPerCall),
+    paymentHash: paymentHashFromReceipt(verified.receipt),
+    txHash: verified.txHash ?? extractTxHash(verified.receipt),
+  });
+
+  return {
+    ok: true,
+    paymentResponseHeader: encodeX402Header({
+      success: true,
+      transaction: verified.txHash ?? extractTxHash(verified.receipt) ?? "",
+      network: requirement.network,
+      payer: verified.payer ?? extractPayer(verified.receipt) ?? "",
+    }),
+  };
+}
+
+function listingInputFromBody(
+  body: Record<string, unknown>
+): Record<string, unknown> {
+  if (body.input && typeof body.input === "object") {
+    return body.input as Record<string, unknown>;
+  }
+  return body;
+}
+
+function missingRequiredField(
+  schema: Record<string, unknown> | null,
+  input: Record<string, unknown>
+): string | null {
+  const required = schema?.required;
+  if (!Array.isArray(required)) {
+    return null;
+  }
+  for (const field of required) {
+    if (typeof field === "string" && !(field in input)) {
+      return field;
+    }
+  }
+  return null;
+}
 
 export async function executeListingCall(
   slug: string,
@@ -50,103 +183,29 @@ export async function executeListingCall(
     string,
     unknown
   >;
-  const input =
-    body.input && typeof body.input === "object"
-      ? (body.input as Record<string, unknown>)
-      : body;
-
-  if (workflow.inputSchema && typeof workflow.inputSchema === "object") {
-    const required = (workflow.inputSchema as { required?: unknown }).required;
-    if (Array.isArray(required)) {
-      for (const field of required) {
-        if (typeof field === "string" && !(field in input)) {
-          return NextResponse.json(
-            { error: `Missing required field: ${field}` },
-            { status: 400, headers: listingCorsHeaders }
-          );
-        }
-      }
-    }
+  const input = listingInputFromBody(body);
+  const missing = missingRequiredField(
+    workflow.inputSchema as Record<string, unknown> | null,
+    input
+  );
+  if (missing) {
+    return NextResponse.json(
+      { error: `Missing required field: ${missing}` },
+      { status: 400, headers: listingCorsHeaders }
+    );
   }
 
   const authHeader = request.headers.get("Authorization");
   const ownerKey = await validateApiKey(authHeader, workflow.userId);
   const isOwner = ownerKey.valid;
-
-  const price = Number(workflow.priceUsdcPerCall ?? 0);
-  if (price > 0 && !isOwner) {
-    const paymentHeader =
-      request.headers.get("PAYMENT-SIGNATURE") ||
-      request.headers.get("PAYMENT-RESPONSE");
-
-    if (!paymentHeader) {
-      const creator = await db.query.userWallets.findFirst({
-        where: eq(userWallets.userId, workflow.userId),
-      });
-      if (!creator) {
-        return NextResponse.json(
-          { error: "Listing owner has no payout wallet" },
-          { status: 400, headers: listingCorsHeaders }
-        );
-      }
-
-      const resource = `/api/mcp/workflows/${slug}/call`;
-      const arcChallenge = buildArcPaymentRequired({
-        priceUsdc: String(workflow.priceUsdcPerCall),
-        payTo: creator.address,
-        resource,
-      });
-      const circleChallenge = buildCircleNanopayRequired({
-        priceUsdc: String(workflow.priceUsdcPerCall),
-        payTo: creator.address,
-        resource,
-      });
-
-      const challenge = {
-        accepts: [...arcChallenge.accepts, ...circleChallenge.accepts],
-      };
-
-      return NextResponse.json(
-        { error: "Payment required", ...challenge },
-        {
-          status: 402,
-          headers: {
-            ...listingCorsHeaders,
-            "PAYMENT-REQUIRED": JSON.stringify(challenge),
-          },
-        }
-      );
-    }
-
-    const creator = await db.query.userWallets.findFirst({
-      where: eq(userWallets.userId, workflow.userId),
-    });
-    if (!creator) {
-      return NextResponse.json(
-        { error: "Listing owner has no payout wallet" },
-        { status: 400, headers: listingCorsHeaders }
-      );
-    }
-
-    const verified = await verifyMarketplacePayment({
-      paymentHeader,
-      payTo: creator.address,
-      priceUsdc: String(workflow.priceUsdcPerCall),
-    });
-
-    if (!verified.valid) {
-      return NextResponse.json(
-        { error: "Payment verification failed" },
-        { status: 402, headers: listingCorsHeaders }
-      );
-    }
-
-    await recordWorkflowPayment({
-      workflowId: workflow.id,
-      amountUsdc: String(workflow.priceUsdcPerCall),
-      paymentHash: paymentHashFromReceipt(verified.receipt),
-      txHash: verified.txHash ?? extractTxHash(verified.receipt),
-    });
+  const payment = await enforceListingPayment({
+    workflow,
+    slug,
+    isOwner,
+    request,
+  });
+  if (!payment.ok) {
+    return payment.response;
   }
 
   if (workflow.workflowType === "write" && !isOwner) {
@@ -179,6 +238,13 @@ export async function executeListingCall(
       output: mapOutputs(result.output, workflow.outputMapping),
       error: result.error,
     },
-    { headers: listingCorsHeaders }
+    {
+      headers: {
+        ...listingCorsHeaders,
+        ...(payment.paymentResponseHeader
+          ? { "PAYMENT-RESPONSE": payment.paymentResponseHeader }
+          : {}),
+      },
+    }
   );
 }

@@ -13,7 +13,7 @@
 - **slug**: Public URL key for a listing. Reserved values: marketplace, api, mcp, openapi, admin, hub
 - **Privy wallet**: Embedded EVM wallet linked to a Better Auth user and stored in `user_wallets`
 - **org treasury**: Shared Privy organization wallet with policies, payees, and intents
-- **Arc USDC**: Marketplace settlement asset on Arc Testnet (`0x3600…0000`, 6-decimal ERC-20). Native Arc gas USDC is 18 decimals
+- **Arc USDC**: Marketplace settlement asset on Arc Testnet (`0x3600…0000`, 6-decimal ERC-20). Native Arc gas USDC is 18 decimals. Paid listing calls settle as Circle Gateway nanopayments over x402 (`GatewayWalletBatched`).
 - **plugin**: An integration that registers actions in the workflow builder
 - **action**: A single step a plugin can run
 

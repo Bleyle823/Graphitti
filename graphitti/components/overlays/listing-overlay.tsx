@@ -131,8 +131,9 @@ export function ListingOverlay({
     >
       <div className="space-y-4">
         <p className="text-muted-foreground text-sm">
-          Paid listings settle in Arc USDC. Link a Privy wallet before setting a
-          price greater than 0. The slug cannot change after the first publish.
+          Agents pay per request in Arc USDC with Circle nanopayments over x402.
+          No API key and no invoice. Link a Privy wallet before setting a price
+          greater than 0. The slug cannot change after the first publish.
         </p>
         <div className="space-y-2">
           <Label htmlFor="listing-slug">Slug</Label>
@@ -145,7 +146,7 @@ export function ListingOverlay({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="listing-price">Price (Arc USDC per call)</Label>
+          <Label htmlFor="listing-price">Price (USDC per call)</Label>
           <Input
             id="listing-price"
             onChange={(event) => setPrice(event.target.value)}

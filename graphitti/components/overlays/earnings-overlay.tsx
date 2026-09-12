@@ -39,7 +39,7 @@ export function EarningsOverlay({ overlayId }: EarningsOverlayProps) {
             Invocations: <strong>{data?.invocations ?? 0}</strong>
           </p>
           <p>
-            Gross Arc USDC: <strong>{data?.grossUsdc ?? "0"}</strong>
+            Gross USDC: <strong>{data?.grossUsdc ?? "0"}</strong>
           </p>
           <p>
             Platform fee:{" "}
@@ -48,10 +48,11 @@ export function EarningsOverlay({ overlayId }: EarningsOverlayProps) {
             </strong>
           </p>
           <p>
-            Net Arc USDC: <strong>{data?.netUsdc ?? "0"}</strong>
+            Net USDC: <strong>{data?.netUsdc ?? "0"}</strong>
           </p>
           <p className="text-muted-foreground">
-            Paid listings settle on Arc Testnet as USDC (6-decimal ERC-20).
+            Paid listings settle as Circle nanopayments on Arc Testnet. Agents
+            pay USDC per request with no API key.
           </p>
         </div>
       )}

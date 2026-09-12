@@ -129,7 +129,7 @@ export async function upsertListing(
       return {
         success: false,
         error:
-          "Link a Privy wallet before listing a paid workflow. Payouts settle as Arc USDC to that address.",
+          "Link a Privy wallet before listing a paid workflow. Agents pay per call in Arc USDC via Circle nanopayments to that address.",
         status: 400,
       };
     }

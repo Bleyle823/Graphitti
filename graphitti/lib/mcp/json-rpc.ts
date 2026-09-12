@@ -1,6 +1,8 @@
 import { and, desc, eq, ilike, isNull } from "drizzle-orm";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { workflows } from "@/lib/db/schema";
+import { executeListingCall } from "@/lib/marketplace/call-listing";
 import { LISTING_PUBLIC_COLUMNS } from "@/lib/marketplace/listing";
 
 export type JsonRpcRequest = {
@@ -88,4 +90,73 @@ export function mcpToolsList(slug?: string) {
       },
     ],
   };
+}
+
+export async function mcpCallWorkflowResponse(options: {
+  slug: string;
+  input: Record<string, unknown>;
+  request: Request;
+  id: string | number | null;
+  corsHeaders: Record<string, string>;
+}): Promise<NextResponse> {
+  const authorization = options.request.headers.get("Authorization");
+  const paymentSignature = options.request.headers.get("PAYMENT-SIGNATURE");
+  const incomingPaymentResponse =
+    options.request.headers.get("PAYMENT-RESPONSE");
+  const callRequest = new Request(
+    `http://local/api/mcp/workflows/${options.slug}/call`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authorization ? { Authorization: authorization } : {}),
+        ...(paymentSignature ? { "PAYMENT-SIGNATURE": paymentSignature } : {}),
+        ...(incomingPaymentResponse
+          ? { "PAYMENT-RESPONSE": incomingPaymentResponse }
+          : {}),
+      },
+      body: JSON.stringify(options.input),
+    }
+  );
+
+  const response = await executeListingCall(options.slug, callRequest);
+  const payload = (await response.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+  const headers: Record<string, string> = { ...options.corsHeaders };
+  const paymentRequired = response.headers.get("PAYMENT-REQUIRED");
+  const paymentResponse = response.headers.get("PAYMENT-RESPONSE");
+  if (paymentRequired) {
+    headers["PAYMENT-REQUIRED"] = paymentRequired;
+  }
+  if (paymentResponse) {
+    headers["PAYMENT-RESPONSE"] = paymentResponse;
+  }
+  if (paymentRequired || paymentResponse) {
+    headers["Access-Control-Expose-Headers"] =
+      "PAYMENT-REQUIRED, PAYMENT-RESPONSE";
+  }
+
+  return NextResponse.json(
+    {
+      jsonrpc: "2.0",
+      id: options.id,
+      result: {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: response.status,
+              ...payload,
+            }),
+          },
+        ],
+      },
+    },
+    {
+      status: response.status === 402 ? 402 : 200,
+      headers,
+    }
+  );
 }
