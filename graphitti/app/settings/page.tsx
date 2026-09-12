@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ApiKeysOverlay } from "@/components/overlays/api-keys-overlay";
 import { IntegrationsOverlay } from "@/components/overlays/integrations-overlay";
@@ -157,7 +157,26 @@ function SettingsBody({
   );
 }
 
-export default function SettingsPage() {
+export default function SettingsPage(): React.ReactElement {
+  return (
+    <Suspense
+      fallback={
+        <PageShell
+          description="Account, organization, wallet, connections, and API keys."
+          title="Settings"
+        >
+          <div className="flex justify-center py-12">
+            <Spinner />
+          </div>
+        </PageShell>
+      }
+    >
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+function SettingsPageContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sectionParam = searchParams.get("section");

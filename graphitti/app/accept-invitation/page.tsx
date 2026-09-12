@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AuthDialog } from "@/components/auth/dialog";
 import { PageShell } from "@/components/page-shell";
@@ -10,6 +10,20 @@ import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 
 export default function AcceptInvitationPage(): React.ReactElement {
+  return (
+    <Suspense
+      fallback={
+        <PageShell description="Loading your session." title="Accept invitation">
+          <Spinner />
+        </PageShell>
+      }
+    >
+      <AcceptInvitationContent />
+    </Suspense>
+  );
+}
+
+function AcceptInvitationContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const invitationId = searchParams.get("invitationId");
