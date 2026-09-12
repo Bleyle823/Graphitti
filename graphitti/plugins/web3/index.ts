@@ -192,6 +192,19 @@ const web3Plugin: IntegrationPlugin = {
           required: true,
         },
         {
+          key: "token",
+          label: "Token",
+          type: "select",
+          options: [
+            {
+              value: "native",
+              label: "Native (ETH on EVM, SOL on Solana, etc.)",
+            },
+          ],
+          defaultValue: "native",
+          required: true,
+        },
+        {
           key: "amount",
           label: "Amount",
           type: "template-input",

@@ -228,6 +228,14 @@ const privyPlugin: IntegrationPlugin = {
           required: true,
         },
         {
+          key: "token",
+          label: "Token",
+          type: "select",
+          options: [{ value: "eth", label: "ETH (native)" }],
+          defaultValue: "eth",
+          required: true,
+        },
+        {
           key: "amount",
           label: "Amount",
           type: "template-input",
@@ -288,9 +296,12 @@ const privyPlugin: IntegrationPlugin = {
         },
         {
           key: "sourceAsset",
-          label: "Source asset",
+          label: "Token",
           type: "select",
-          options: [{ value: "usdc", label: "USDC" }],
+          options: [
+            { value: "usdc", label: "USDC" },
+            { value: "eth", label: "ETH" },
+          ],
           defaultValue: "usdc",
           required: true,
         },
@@ -320,9 +331,12 @@ const privyPlugin: IntegrationPlugin = {
         },
         {
           key: "destinationAsset",
-          label: "Destination asset",
+          label: "Destination token",
           type: "select",
-          options: [{ value: "usdc", label: "USDC" }],
+          options: [
+            { value: "usdc", label: "USDC" },
+            { value: "eth", label: "ETH" },
+          ],
         },
         {
           key: "useIntent",
@@ -363,16 +377,24 @@ const privyPlugin: IntegrationPlugin = {
         },
         {
           key: "fromAsset",
-          label: "From asset",
-          type: "template-input",
-          placeholder: "usdc",
+          label: "Token",
+          type: "select",
+          options: [
+            { value: "usdc", label: "USDC" },
+            { value: "eth", label: "ETH" },
+          ],
+          defaultValue: "usdc",
           required: true,
         },
         {
           key: "toAsset",
-          label: "To asset",
-          type: "template-input",
-          placeholder: "usdc",
+          label: "Destination token",
+          type: "select",
+          options: [
+            { value: "usdc", label: "USDC" },
+            { value: "eth", label: "ETH" },
+          ],
+          defaultValue: "eth",
           required: true,
         },
         {
@@ -483,9 +505,12 @@ const privyPlugin: IntegrationPlugin = {
         },
         {
           key: "sourceAsset",
-          label: "Source asset",
+          label: "Token",
           type: "select",
-          options: [{ value: "usdc", label: "USDC" }],
+          options: [
+            { value: "usdc", label: "USDC" },
+            { value: "eth", label: "ETH" },
+          ],
           defaultValue: "usdc",
           required: true,
         },
