@@ -474,184 +474,6 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     ],
   },
   {
-    name: "Kelp rsETH Backing Monitor",
-    description:
-      "Substreams pull monitor: every Ethereum block, query BackingSnapshot entities from a kelp-rseth-backing-alerts subgraph (graph_out). Substreams runs 24/7 externally; this workflow never starts gRPC.",
-    nodes: [
-      {
-        id: "rseth-block-trigger",
-        type: "trigger",
-        position: { x: 0, y: 200 },
-        data: {
-          label: "Ethereum Mainnet Block",
-          type: "trigger",
-          config: {
-            triggerType: "Block",
-            network: "1",
-            blockInterval: "1",
-          },
-          status: "idle",
-          description: "Fires every Ethereum mainnet block (~12s)",
-        },
-      },
-      {
-        id: "rseth-monitor-note",
-        type: "note",
-        dragHandle: ".sticky-note-drag-handle",
-        width: 320,
-        height: 320,
-        position: { x: -360, y: 40 },
-        data: {
-          label: "Sticky note",
-          type: "note",
-          config: {
-            text: "April 2026: a forged LayerZero message released ~116,500 rsETH from the Ethereum OFT adapter with no matching burn on the source chain. Circulating rsETH jumped while LRT vault collateral did not — the same supply-vs-backing invariant this monitor tracks. Every mainnet block this workflow pulls BackingSnapshot rows where shouldAlert is true (supply vs backing or bridge deviation > 50 bps) and can Telegram-alert within ~12s, before unbacked rsETH is reused as lending collateral. Deploy Substreams with pnpm substreams:deploy-kelp; connect Telegram and set chat ID on Send Telegram Alert.",
-            color: "blue",
-            fontSize: "sm",
-            textAlign: "left",
-          },
-          status: "idle",
-        },
-      },
-      {
-        id: "rseth-monitor-image",
-        type: "image",
-        dragHandle: ".canvas-image-drag-handle",
-        width: 320,
-        height: 240,
-        position: { x: -360, y: 380 },
-        data: {
-          label: "Image",
-          type: "image",
-          config: {
-            src: "https://i.imgur.com/5b0ebb7e-272b-4995-94a1-9b73c4fe28cf.png",
-            alt: "Kelp rsETH backing monitor",
-          },
-          status: "idle",
-        },
-      },
-      {
-        id: "rseth-resolve-package",
-        type: "action",
-        position: { x: 280, y: 200 },
-        data: {
-          label: "Resolve Substreams Package",
-          type: "action",
-          config: {
-            actionType: "the-graph/resolve-substreams-package",
-            slug: "kelp-rseth-backing-alerts",
-            network: "ethereum",
-          },
-          status: "idle",
-          description:
-            "Registry lookup + deploy checklist for substreams/kelp-rseth-backing-alerts",
-        },
-      },
-      {
-        id: "rseth-stream-status",
-        type: "action",
-        position: { x: 560, y: 200 },
-        data: {
-          label: "Indexing Status",
-          type: "action",
-          config: {
-            actionType: "the-graph/get-substreams-stream-status",
-            id: "{{@rseth-resolve-package:Resolve Substreams Package.subgraph_id}}",
-          },
-          status: "idle",
-          description: "Confirm subgraph _meta is near chain head",
-        },
-      },
-      {
-        id: "rseth-query",
-        type: "action",
-        position: { x: 840, y: 200 },
-        data: {
-          label: "Query BackingSnapshot",
-          type: "action",
-          config: {
-            actionType: "the-graph/query-substreams-entity",
-            id: "{{@rseth-resolve-package:Resolve Substreams Package.subgraph_id}}",
-            entityName: "backingSnapshots",
-            entityFields:
-              "id,blockNumber,shouldAlert,deviationBps,deviationPct,thresholdBps,mainnetSupplyEth,arbSupplyEth,totalSupplyEth,totalBackingEthHuman,excessEthHuman",
-            orderBy: "blockNumber",
-            orderDirection: "desc",
-            first: "5",
-            whereJson: '{ "shouldAlert": true }',
-          },
-          status: "idle",
-          description:
-            "Pull latest alarming BackingSnapshot from Substreams graph_out subgraph",
-        },
-      },
-      {
-        id: "rseth-deviation-condition",
-        type: "action",
-        position: { x: 1120, y: 200 },
-        data: {
-          label: "Deviation Above Threshold?",
-          type: "action",
-          config: {
-            actionType: "Condition",
-            condition:
-              "{{@rseth-query:Query BackingSnapshot.should_alert}} === true",
-          },
-          status: "idle",
-          description:
-            "Routes to alert when Substreams flagged shouldAlert and deviation > 50 bps",
-        },
-      },
-      {
-        id: "rseth-telegram-alert",
-        type: "action",
-        position: { x: 1400, y: 200 },
-        data: {
-          label: "Send Telegram Alert",
-          type: "action",
-          config: {
-            actionType: "telegram/send-message",
-            chatId: "YOUR_TELEGRAM_CHAT_ID",
-            message:
-              "KELP rsETH BACKING DEVIATION\n\nBlock: {{@rseth-block-trigger:Ethereum Mainnet Block.blockNumber}}\nMainnet supply ETH: {{@rseth-query:Query BackingSnapshot.mainnet_supply_eth}}\nArb supply ETH: {{@rseth-query:Query BackingSnapshot.arb_supply_eth}}\nTotal supply ETH: {{@rseth-query:Query BackingSnapshot.total_supply_eth}}\nTotal backing ETH: {{@rseth-query:Query BackingSnapshot.total_backing_eth}}\nExcess ETH: {{@rseth-query:Query BackingSnapshot.excess_eth}}\nDeviation bps: {{@rseth-query:Query BackingSnapshot.deviation_bps}}\nDeviation pct: {{@rseth-query:Query BackingSnapshot.deviation_pct}}\nThreshold bps: {{@rseth-query:Query BackingSnapshot.threshold_bps}}",
-            parseMode: "none",
-          },
-          status: "idle",
-          description:
-            "Connect Telegram integration and set chat ID (numeric or @channel)",
-        },
-      },
-    ],
-    edges: [
-      {
-        id: "e-rseth-1",
-        source: "rseth-block-trigger",
-        target: "rseth-resolve-package",
-      },
-      {
-        id: "e-rseth-1b",
-        source: "rseth-resolve-package",
-        target: "rseth-stream-status",
-      },
-      {
-        id: "e-rseth-2",
-        source: "rseth-stream-status",
-        target: "rseth-query",
-      },
-      {
-        id: "e-rseth-3",
-        source: "rseth-query",
-        target: "rseth-deviation-condition",
-      },
-      {
-        id: "e-rseth-4",
-        source: "rseth-deviation-condition",
-        target: "rseth-telegram-alert",
-        sourceHandle: "true",
-      },
-    ],
-  },
-  {
     name: "Kelp rsETH Backing Monitor (Substreams → Supabase)",
     description:
       "Detects unbacked rsETH mints by comparing total rsETH circulation across Ethereum mainnet and Arbitrum against verified ETH collateral in the KelpDAO LRTDepositPool. Substreams SQL sinks index live snapshots into Supabase; this workflow reads the latest row every Ethereum block (~12s). Alerts when supply exceeds backing by more than 50 bps (0.5%). Add Supabase credentials in Project Integrations.",
@@ -677,16 +499,33 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         type: "note",
         dragHandle: ".sticky-note-drag-handle",
         width: 320,
-        height: 240,
-        position: { x: -360, y: 60 },
+        height: 320,
+        position: { x: -360, y: 40 },
         data: {
           label: "Sticky note",
           type: "note",
           config: {
-            text: "1) Project Integrations → Supabase: paste Project URL + anon key. 2) Bind Supabase on Get latest row. 3) Replace webhook URL. 4) Deploy the workflow. Substreams SQL sinks (substreams/README.md) write backing_snapshots in Supabase.",
+            text: "April 2026: a forged LayerZero message released ~116,500 rsETH from the Ethereum OFT adapter with no matching burn on the source chain. Circulating rsETH jumped while LRT vault collateral did not — the same supply-vs-backing invariant this workflow tracks. Substreams SQL sinks write backing_snapshots to Supabase; every mainnet block this workflow reads the latest row and Telegram-alerts when should_alert is true (vault or bridge deviation > 50 bps), within ~12s before unbacked rsETH is reused as lending collateral. 1) Supabase in Project Integrations. 2) Bind Supabase on Get latest row. 3) Set Telegram chat ID on Send Telegram Alert. 4) Deploy. See substreams/README.md.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "rseth-sb-monitor-image",
+        type: "image",
+        dragHandle: ".canvas-image-drag-handle",
+        width: 320,
+        height: 240,
+        position: { x: -360, y: 380 },
+        data: {
+          label: "Image",
+          type: "image",
+          config: {
+            src: "https://pngup.com/Etdf/Black%20and%20White%20Minimalist%20%20Digital%20Marketing%20Portfolio%20Presentation.png",
+            alt: "Kelp rsETH backing monitor",
           },
           status: "idle",
         },
@@ -729,23 +568,22 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         },
       },
       {
-        id: "rseth-sb-webhook-alert",
+        id: "rseth-sb-telegram-alert",
         type: "action",
         position: { x: 840, y: 200 },
         data: {
-          label: "Send Webhook Alert",
+          label: "Send Telegram Alert",
           type: "action",
           config: {
-            actionType: "webhook/send-webhook",
-            webhookUrl: "https://YOUR_PAGERDUTY_OR_SLACK_WEBHOOK_URL",
-            webhookMethod: "POST",
-            webhookHeaders: '{"Content-Type": "application/json"}',
-            webhookPayload:
-              '{"alert":"KELP rsETH UNBACKED MINT DETECTED","summary":"{{@rseth-sb-query:Get latest row.alert_summary}}","timestamp":"{{@rseth-sb-query:Get latest row.timestamp}}","blockNumber":"{{@rseth-sb-query:Get latest row.block_number}}","mainnetSupply":"{{@rseth-sb-query:Get latest row.mainnet_supply}}","arbSupply":"{{@rseth-sb-query:Get latest row.arb_supply}}","totalSupply":"{{@rseth-sb-query:Get latest row.total_supply}}","stethDeposits":"{{@rseth-sb-query:Get latest row.steth_deposits}}","ethxDeposits":"{{@rseth-sb-query:Get latest row.ethx_deposits}}","nativeEthDeposits":"{{@rseth-sb-query:Get latest row.native_eth_deposits}}","totalBacking":"{{@rseth-sb-query:Get latest row.total_backing}}","excess":"{{@rseth-sb-query:Get latest row.excess}}","deviationBps":{{@rseth-sb-query:Get latest row.deviation_bps}},"bridgeDeviationBps":{{@rseth-sb-query:Get latest row.bridge_deviation_bps}},"effectiveSupply":"{{@rseth-sb-query:Get latest row.effective_supply}}"}',
+            actionType: "telegram/send-message",
+            chatId: "YOUR_TELEGRAM_CHAT_ID",
+            message:
+              "KELP rsETH UNBACKED MINT DETECTED\n\nBlock: {{@rseth-sb-query:Get latest row.block_number}}\nTimestamp: {{@rseth-sb-query:Get latest row.timestamp}}\nTotal supply: {{@rseth-sb-query:Get latest row.total_supply}}\nTotal backing: {{@rseth-sb-query:Get latest row.total_backing}}\nExcess: {{@rseth-sb-query:Get latest row.excess}}\nDeviation bps: {{@rseth-sb-query:Get latest row.deviation_bps}}\nBridge deviation bps: {{@rseth-sb-query:Get latest row.bridge_deviation_bps}}\nEffective supply: {{@rseth-sb-query:Get latest row.effective_supply}}",
+            parseMode: "none",
           },
           status: "idle",
           description:
-            "Replace placeholder URL with PagerDuty, Opsgenie, or Slack incoming webhook",
+            "Connect Telegram integration and set chat ID (numeric or @channel)",
         },
       },
     ],
@@ -763,7 +601,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "e-rseth-sb-3",
         source: "rseth-sb-deviation-condition",
-        target: "rseth-sb-webhook-alert",
+        target: "rseth-sb-telegram-alert",
         sourceHandle: "true",
       },
     ],

@@ -276,7 +276,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "fpl-funded-condition",
         type: "action",
-        position: { x: 1960, y: 200 },
+        position: { x: 2000, y: 200 },
         data: {
           label: "Prize Pool Funded?",
           type: "action",
@@ -291,13 +291,14 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "fpl-pay-first-condition",
         type: "action",
-        position: { x: 2240, y: 80 },
+        position: { x: 2300, y: 60 },
         data: {
           label: "Pay 1st?",
           type: "action",
           config: {
             actionType: "Condition",
-            condition: '{{@fpl-rank:Rank Top Two.result.first.address}} !== ""',
+            condition:
+              'String({{@fpl-rank:Rank Top Two.result.first.address}} || "").length >= 42',
           },
           status: "idle",
           description: "Mapped roster wallet for gameweek leader",
@@ -306,14 +307,14 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "fpl-pay-second-condition",
         type: "action",
-        position: { x: 2240, y: 320 },
+        position: { x: 2300, y: 340 },
         data: {
           label: "Pay 2nd?",
           type: "action",
           config: {
             actionType: "Condition",
             condition:
-              '{{@fpl-rank:Rank Top Two.result.second.address}} !== ""',
+              'String({{@fpl-rank:Rank Top Two.result.second.address}} || "").length >= 42',
           },
           status: "idle",
           description: "Mapped roster wallet for runner-up",
@@ -322,7 +323,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "arc-pay-first",
         type: "action",
-        position: { x: 2520, y: 80 },
+        position: { x: 2600, y: 60 },
         data: {
           label: "Pay 1st Place",
           type: "action",
@@ -339,7 +340,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "arc-pay-second",
         type: "action",
-        position: { x: 2520, y: 320 },
+        position: { x: 2600, y: 340 },
         data: {
           label: "Pay 2nd Place",
           type: "action",
