@@ -1,7 +1,14 @@
 "use client";
 
 import { useSetAtom } from "jotai";
-import { Copy, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,6 +32,10 @@ import { Input } from "@/components/ui/input";
 import { TruncatedTooltip } from "@/components/ui/truncated-tooltip";
 import type { SavedWorkflow } from "@/lib/api-client";
 import { ApiError, api } from "@/lib/api-client";
+import {
+  compareFeaturedWorkflowFirst,
+  isHackathonFeaturedWorkflow,
+} from "@/lib/marketplace/catalog";
 import { refetchSidebar } from "@/lib/refetch-sidebar";
 import { cn } from "@/lib/utils";
 import { resetEditorAtom } from "@/lib/workflow-store";
@@ -43,6 +54,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   circle: "Circle",
   arc: "Arc",
   privy: "Privy",
+  stripe: "Stripe",
   supabase: "Supabase",
   "the-graph": "The Graph",
   "fantasy-premier-league": "FPL",
@@ -88,7 +100,10 @@ export function WorkflowPicker({
   }, [catalogExamples, organizationWorkflows, personalWorkflows]);
 
   const filteredExamples = useMemo(
-    () => examples.filter((workflow) => matchesQuery(workflow, needle)),
+    () =>
+      examples
+        .filter((workflow) => matchesQuery(workflow, needle))
+        .sort(compareFeaturedWorkflowFirst),
     [examples, needle]
   );
 
@@ -341,6 +356,12 @@ function WorkflowRow({
         >
           <TruncatedTooltip side="right" text={workflow.name} />
           <span className="ml-auto flex shrink-0 items-center gap-1.5">
+            {isHackathonFeaturedWorkflow(workflow.name) ? (
+              <Star
+                aria-label="Hackathon demo"
+                className="size-3.5 shrink-0 fill-amber-400 text-amber-400"
+              />
+            ) : null}
             {categoryLabel ? (
               <span className="text-muted-foreground text-xs">
                 {categoryLabel}
@@ -380,6 +401,12 @@ function WorkflowRow({
           >
             <TruncatedTooltip side="right" text={workflow.name} />
             <span className="ml-auto flex shrink-0 items-center gap-1.5">
+              {isHackathonFeaturedWorkflow(workflow.name) ? (
+                <Star
+                  aria-label="Hackathon demo"
+                  className="size-3.5 shrink-0 fill-amber-400 text-amber-400"
+                />
+              ) : null}
               {categoryLabel ? (
                 <span className="text-muted-foreground text-xs">
                   {categoryLabel}

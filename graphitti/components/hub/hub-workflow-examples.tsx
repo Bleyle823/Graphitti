@@ -1,10 +1,15 @@
 "use client";
 
-import { Workflow as WorkflowIcon } from "lucide-react";
+import { Star, Workflow as WorkflowIcon } from "lucide-react";
+import { useMemo } from "react";
 import { PageEmptyState } from "@/components/page-empty-state";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { MarketplaceListing } from "@/lib/api-client";
+import {
+  compareFeaturedWorkflowFirst,
+  isHackathonFeaturedWorkflow,
+} from "@/lib/marketplace/catalog";
 
 type HubWorkflowExamplesProps = {
   loading: boolean;
@@ -30,6 +35,11 @@ export function HubWorkflowExamples({
   onClearSearch,
   onOpen,
 }: HubWorkflowExamplesProps): React.ReactElement {
+  const sortedItems = useMemo(
+    () => [...items].sort(compareFeaturedWorkflowFirst),
+    [items]
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -38,7 +48,7 @@ export function HubWorkflowExamples({
     );
   }
 
-  if (items.length === 0) {
+  if (sortedItems.length === 0) {
     return (
       <PageEmptyState
         action={
@@ -61,14 +71,22 @@ export function HubWorkflowExamples({
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
+      {sortedItems.map((item) => (
         <button
           className="rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50"
           key={item.id}
           onClick={() => onOpen(item)}
           type="button"
         >
-          <p className="font-medium text-sm">{item.name}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-medium text-sm">{item.name}</p>
+            {isHackathonFeaturedWorkflow(item.name) ? (
+              <Star
+                aria-label="Hackathon demo"
+                className="size-4 shrink-0 fill-amber-400 text-amber-400"
+              />
+            ) : null}
+          </div>
           <p className="mt-1 text-muted-foreground text-xs">
             {exampleMeta(item)}
           </p>
