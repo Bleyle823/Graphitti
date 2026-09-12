@@ -34,14 +34,14 @@ function processNewFormatReference(
   const fieldPath = dotIndex !== -1 ? rest.substring(dotIndex + 1) : "";
 
   if (!fieldPath) {
-    const nodeOutput = nodeOutputs[nodeId];
-    if (nodeOutput) {
-      return formatValue(nodeOutput.data);
+    const resolved = resolveNewFormatTemplateValue(nodeId, rest, nodeOutputs);
+    if (resolved !== undefined) {
+      return formatValue(resolved);
     }
     return match;
   }
 
-  const value = resolveFieldPath(nodeOutputs[nodeId]?.data, fieldPath);
+  const value = resolveNewFormatTemplateValue(nodeId, rest, nodeOutputs);
   if (value !== undefined && value !== null) {
     return formatValue(value);
   }
@@ -224,6 +224,8 @@ function resolveFieldPath(data: unknown, fieldPath: string): unknown {
       } else {
         current = undefined;
       }
+    } else if (Array.isArray(current) && /^\d+$/.test(trimmedPart)) {
+      current = current[Number.parseInt(trimmedPart, 10)];
     } else if (Array.isArray(current)) {
       // If current is an array and we're trying to access a field,
       // map over the array and extract that field from each element
@@ -445,6 +447,61 @@ export function formatTemplateForDisplay(template: string): string {
 /**
  * Check if a string contains template variables
  */
+function lookupNodeOutput(
+  nodeOutputs: NodeOutputs,
+  rawNodeId: string,
+  rest: string
+): { label: string; data: unknown } | undefined {
+  const sanitizedNodeId = rawNodeId.replace(/[^a-zA-Z0-9]/g, "_");
+  const byId = nodeOutputs[sanitizedNodeId] ?? nodeOutputs[rawNodeId];
+  if (byId) {
+    return byId;
+  }
+
+  const dotIndex = rest.indexOf(".");
+  const displayLabel =
+    dotIndex === -1 ? rest.trim() : rest.substring(0, dotIndex).trim();
+  for (const entry of Object.values(nodeOutputs)) {
+    if (entry.label === displayLabel) {
+      return entry;
+    }
+  }
+
+  return;
+}
+
+/**
+ * Resolve {{@nodeId:Label.field}} to a raw value (not stringified).
+ */
+export function resolveNewFormatTemplateValue(
+  rawNodeId: string,
+  rest: string,
+  nodeOutputs: NodeOutputs
+): unknown {
+  const output = lookupNodeOutput(nodeOutputs, rawNodeId, rest);
+  if (!output) {
+    return;
+  }
+
+  const dotIndex = rest.indexOf(".");
+  if (dotIndex === -1) {
+    return unwrapStandardizedOutput(output.data);
+  }
+
+  const fieldPath = rest.substring(dotIndex + 1);
+  return resolveFieldPath(output.data, fieldPath);
+}
+
+export function formatResolvedTemplateValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
 /**
  * Resolve a single template reference to its raw value (not stringified).
  * Supports {{@nodeId:Label.field}} and JSON literals.
@@ -461,19 +518,7 @@ export function resolveTemplateReference(
   const newFormat = trimmed.match(/^\{\{@([^:]+):([^}]+)\}\}$/);
   if (newFormat) {
     const [, rawNodeId, rest] = newFormat;
-    const sanitizedNodeId = rawNodeId.replace(/[^a-zA-Z0-9]/g, "_");
-    const output = nodeOutputs[sanitizedNodeId] ?? nodeOutputs[rawNodeId];
-    if (!output) {
-      return;
-    }
-
-    const dotIndex = rest.indexOf(".");
-    if (dotIndex === -1) {
-      return unwrapStandardizedOutput(output.data);
-    }
-
-    const fieldPath = rest.substring(dotIndex + 1);
-    return resolveFieldPath(output.data, fieldPath);
+    return resolveNewFormatTemplateValue(rawNodeId, rest, nodeOutputs);
   }
 
   if (trimmed.startsWith("{{") && trimmed.endsWith("}}")) {

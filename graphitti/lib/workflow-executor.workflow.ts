@@ -16,7 +16,11 @@ import {
 import type { StepContext } from "./steps/step-handler";
 import { triggerStep } from "./steps/trigger";
 import { getErrorMessageAsync } from "./utils";
-import { resolveTemplateReference } from "./utils/template";
+import {
+  formatResolvedTemplateValue,
+  resolveNewFormatTemplateValue,
+  resolveTemplateReference,
+} from "./utils/template";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
 // System actions that don't have plugins - maps to module import functions
@@ -117,66 +121,20 @@ export type WorkflowExecutionInput = {
 // biome-ignore lint/nursery/useMaxParams: Helper function needs all parameters for template replacement
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template variable replacement requires nested logic for standardized outputs
 function replaceTemplateVariable(
-  match: string,
   nodeId: string,
   rest: string,
   outputs: NodeOutputs,
   evalContext: Record<string, unknown>,
   varCounter: { value: number }
 ): string {
-  const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
-  const output = outputs[sanitizedNodeId];
-
-  if (!output) {
-    console.log("[Condition] Output not found for node:", sanitizedNodeId);
-    return match;
-  }
-
-  const dotIndex = rest.indexOf(".");
-  let value: unknown;
-
-  if (dotIndex === -1) {
-    value = output.data;
-  } else if (output.data === null || output.data === undefined) {
-    value = undefined;
-  } else {
-    const fieldPath = rest.substring(dotIndex + 1);
-    const fields = fieldPath.split(".");
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic data traversal
-    let current: any = output.data;
-
-    // For standardized outputs { success, data, error }, automatically look inside data
-    // unless explicitly accessing success/data/error
-    const firstField = fields[0];
-    if (
-      current &&
-      typeof current === "object" &&
-      "success" in current &&
-      "data" in current &&
-      firstField !== "success" &&
-      firstField !== "data" &&
-      firstField !== "error"
-    ) {
-      current = current.data;
-    }
-
-    for (const field of fields) {
-      if (current && typeof current === "object") {
-        current = current[field];
-      } else {
-        console.log("[Condition] Field access failed:", fieldPath);
-        value = undefined;
-        break;
-      }
-    }
-    if (value === undefined && current !== undefined) {
-      value = current;
-    }
-  }
+  const value = resolveNewFormatTemplateValue(nodeId, rest, outputs);
 
   const varName = `__v${varCounter.value}`;
   varCounter.value += 1;
   evalContext[varName] = value;
+  if (value === undefined) {
+    console.log("[Condition] Output not found for node:", nodeId);
+  }
   return varName;
 }
 
@@ -220,9 +178,8 @@ function evaluateConditionExpression(
 
       transformedExpression = transformedExpression.replace(
         templatePattern,
-        (match, nodeId, rest) => {
+        (_match, nodeId, rest) => {
           const varName = replaceTemplateVariable(
-            match,
             nodeId,
             rest,
             outputs,
@@ -328,79 +285,29 @@ function processTemplates(
 
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === "string") {
-      // Process template variables like {{@nodeId:Label.field}}
-      let processedValue = value;
+      const trimmed = value.trim();
+      const singleRef = trimmed.match(/^\{\{@([^:]+):([^}]+)\}\}$/);
+      if (singleRef) {
+        const resolved = resolveNewFormatTemplateValue(
+          singleRef[1],
+          singleRef[2],
+          outputs
+        );
+        processed[key] =
+          resolved === undefined
+            ? value
+            : formatResolvedTemplateValue(resolved);
+        continue;
+      }
+
       const templatePattern = /\{\{@([^:]+):([^}]+)\}\}/g;
-      processedValue = processedValue.replace(
-        templatePattern,
-        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template processing requires nested logic
-        (match, nodeId, rest) => {
-          const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
-          const output = outputs[sanitizedNodeId];
-          if (!output) {
-            return match;
-          }
-
-          const dotIndex = rest.indexOf(".");
-          if (dotIndex === -1) {
-            // No field path, return the entire output data
-            const data = output.data;
-            if (data === null || data === undefined) {
-              // Return empty string for null/undefined data (e.g., from disabled nodes)
-              return "";
-            }
-            if (typeof data === "object") {
-              return JSON.stringify(data);
-            }
-            return String(data);
-          }
-
-          // If data is null/undefined, return empty string instead of trying to access fields
-          if (output.data === null || output.data === undefined) {
-            return "";
-          }
-
-          const fieldPath = rest.substring(dotIndex + 1);
-          const fields = fieldPath.split(".");
-          // biome-ignore lint/suspicious/noExplicitAny: Dynamic output data traversal
-          let current: any = output.data;
-
-          // For standardized outputs { success, data, error }, automatically look inside data
-          // unless explicitly accessing success/data/error
-          const firstField = fields[0];
-          if (
-            current &&
-            typeof current === "object" &&
-            "success" in current &&
-            "data" in current &&
-            firstField !== "success" &&
-            firstField !== "data" &&
-            firstField !== "error"
-          ) {
-            current = current.data;
-          }
-
-          for (const field of fields) {
-            if (current && typeof current === "object") {
-              current = current[field];
-            } else {
-              // Field access failed, return empty string
-              return "";
-            }
-          }
-
-          // Convert value to string, using JSON.stringify for objects/arrays
-          if (current === null || current === undefined) {
-            return "";
-          }
-          if (typeof current === "object") {
-            return JSON.stringify(current);
-          }
-          return String(current);
+      processed[key] = value.replace(templatePattern, (match, nodeId, rest) => {
+        const resolved = resolveNewFormatTemplateValue(nodeId, rest, outputs);
+        if (resolved === undefined) {
+          return match;
         }
-      );
-
-      processed[key] = processedValue;
+        return formatResolvedTemplateValue(resolved);
+      });
     } else {
       processed[key] = value;
     }

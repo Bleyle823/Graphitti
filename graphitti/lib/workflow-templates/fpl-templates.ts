@@ -149,7 +149,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             gameweekId: "{{@fpl-prev-gw:Get Previous Gameweek.events.0.id}}",
             gameweekName:
               "{{@fpl-prev-gw:Get Previous Gameweek.events.0.name}}",
-            leagueId: "{{@fpl-standings:Get League Standings.league.id}}",
+            leagueId: "962707",
           },
           status: "idle",
           description:

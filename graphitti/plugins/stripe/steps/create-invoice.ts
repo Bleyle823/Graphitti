@@ -4,6 +4,7 @@ import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import type { StripeCredentials } from "../credentials";
+import { normalizeStripeCustomerField } from "../resolve-customer-fields";
 import { createStripeCustomer } from "./create-customer";
 
 const STRIPE_API_URL = "https://api.stripe.com/v1";
@@ -58,26 +59,16 @@ export type CreateInvoiceInput = StepInput &
     integrationId?: string;
   };
 
-function isMissingCustomerId(customerId?: string): boolean {
-  const trimmed = customerId?.trim() ?? "";
-  if (!trimmed || trimmed === "undefined") {
-    return true;
-  }
-  if (trimmed.includes("{{")) {
-    return true;
-  }
-  return false;
-}
-
 async function resolveCustomerId(
   input: CreateInvoiceCoreInput,
   credentials: StripeCredentials
 ): Promise<{ ok: true; customerId: string } | ReturnType<typeof fail>> {
-  if (!isMissingCustomerId(input.customerId)) {
-    return { ok: true, customerId: input.customerId!.trim() };
+  const customerId = normalizeStripeCustomerField(input.customerId);
+  if (customerId) {
+    return { ok: true, customerId };
   }
 
-  const email = input.email?.trim();
+  const email = normalizeStripeCustomerField(input.email);
   if (!email) {
     return fail(
       "Customer ID is required, or provide email (and optional name) to create a Stripe customer before invoicing"

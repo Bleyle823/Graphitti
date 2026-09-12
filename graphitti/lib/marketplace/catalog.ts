@@ -125,6 +125,13 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
+  "Stripe invoice by email (Privy USDC)": {
+    slug: "stripe-invoice-by-email-privy-usdc",
+    category: "stripe",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
   "Cap-aware scheduled payroll": {
     slug: "cap-aware-scheduled-payroll",
     category: "privy",
@@ -216,6 +223,13 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
+  "Org USDC waterline keeper": {
+    slug: "org-usdc-waterline-keeper",
+    category: "circle",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
 };
 
 /** Hackathon demo workflows shown with a star in Examples and Hub. */
@@ -226,6 +240,7 @@ export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
   "Privy Gasless Payroll",
   "Uniswap V3 large swap alert (subgraph)",
   "Aave Uniswap USDC keeper",
+  "Org USDC waterline keeper",
 ] as const;
 
 export function isHackathonFeaturedWorkflow(name: string): boolean {

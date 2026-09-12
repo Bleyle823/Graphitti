@@ -85,6 +85,10 @@ async function classicStandingsHandler(input: FplStepInput) {
   );
 }
 
+export async function fetchClassicStandings(leagueId: string) {
+  return classicStandingsHandler({ leagueId });
+}
+
 async function h2hStandingsHandler(input: FplStepInput) {
   const leagueId = requireValue(input.leagueId, "League ID");
   if (!leagueId.ok) {

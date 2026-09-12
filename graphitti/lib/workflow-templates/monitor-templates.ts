@@ -506,7 +506,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "April 2026: a forged LayerZero message released ~116,500 rsETH from the Ethereum OFT adapter with no matching burn on the source chain. Circulating rsETH jumped while LRT vault collateral did not — the same supply-vs-backing invariant this workflow tracks. Substreams SQL sinks write backing_snapshots to Supabase; every mainnet block this workflow reads the latest row and Telegram-alerts when should_alert is true (vault or bridge deviation > 50 bps), within ~12s before unbacked rsETH is reused as lending collateral. 1) Supabase in Project Integrations. 2) Bind Supabase on Get latest row. 3) Set Telegram chat ID on Send Telegram Alert. 4) Deploy. See substreams/README.md.",
+            text: "April 2026: a forged LayerZero message released ~116,500 rsETH from the Ethereum OFT adapter with no matching burn on the source chain. Circulating rsETH jumped while LRT vault collateral did not — the same supply-vs-backing invariant this workflow tracks. Substreams SQL sinks write backing_snapshots to Supabase; every mainnet block this workflow reads the latest row. True: Telegram unbacked-mint alert. False: Telegram backing-OK heartbeat so the run always completes. 1) Supabase in Project Integrations. 2) Bind Supabase on Get latest row. 3) Set Telegram chat ID on both Telegram nodes. 4) Deploy.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -565,7 +565,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           },
           status: "idle",
           description:
-            "Routes to alert when should_alert is true (vault or bridge deviation > 50 bps)",
+            "Routes to an unbacked-mint Telegram alert when should_alert is true. False still finishes with a backing-OK Telegram report.",
         },
       },
       {
@@ -579,7 +579,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "telegram/send-message",
             chatId: "YOUR_TELEGRAM_CHAT_ID",
             message:
-              "KELP rsETH UNBACKED MINT DETECTED\n\nBlock: {{@rseth-sb-query:Get latest row.block_number}}\nTimestamp: {{@rseth-sb-query:Get latest row.timestamp}}\nTotal supply: {{@rseth-sb-query:Get latest row.total_supply}}\nTotal backing: {{@rseth-sb-query:Get latest row.total_backing}}\nExcess: {{@rseth-sb-query:Get latest row.excess}}\nDeviation bps: {{@rseth-sb-query:Get latest row.deviation_bps}}\nBridge deviation bps: {{@rseth-sb-query:Get latest row.bridge_deviation_bps}}\nEffective supply: {{@rseth-sb-query:Get latest row.effective_supply}}",
+              "KELP rsETH UNBACKED MINT DETECTED\n\nBlock: {{@rseth-sb-query:Get latest row.block_number}}\nTimestamp: {{@rseth-sb-query:Get latest row.timestamp}}\nTotal supply: {{@rseth-sb-query:Get latest row.total_supply}}\nTotal backing: {{@rseth-sb-query:Get latest row.total_backing}}\nExcess: {{@rseth-sb-query:Get latest row.excess}}\nDeviation bps: {{@rseth-sb-query:Get latest row.deviation_bps}}\nBridge deviation bps: {{@rseth-sb-query:Get latest row.bridge_deviation_bps}}\nEffective supply: {{@rseth-sb-query:Get latest row.effective_supply}}\nAction: pause rsETH as collateral until backing is restored.",
             parseMode: "none",
           },
           status: "idle",
@@ -598,7 +598,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "telegram/send-message",
             chatId: "YOUR_TELEGRAM_CHAT_ID",
             message:
-              "Kelp rsETH backing within threshold\n\nBlock: {{@rseth-sb-query:Get latest row.block_number}}\nDeviation: {{@rseth-sb-query:Get latest row.deviation_bps}} bps (limit {{@rseth-sb-query:Get latest row.threshold_bps}} bps)\nTotal supply: {{@rseth-sb-query:Get latest row.total_supply}}\nTotal backing: {{@rseth-sb-query:Get latest row.total_backing}}\nNo alert required this block.",
+              "Kelp rsETH backing within threshold\n\nBlock: {{@rseth-sb-query:Get latest row.block_number}}\nTimestamp: {{@rseth-sb-query:Get latest row.timestamp}}\nDeviation: {{@rseth-sb-query:Get latest row.deviation_bps}} bps (limit {{@rseth-sb-query:Get latest row.threshold_bps}} bps)\nBridge deviation: {{@rseth-sb-query:Get latest row.bridge_deviation_bps}} bps\nTotal supply: {{@rseth-sb-query:Get latest row.total_supply}}\nTotal backing: {{@rseth-sb-query:Get latest row.total_backing}}\nNo unbacked mint this block. Monitor run completed.",
             parseMode: "none",
           },
           status: "idle",
