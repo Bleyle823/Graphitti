@@ -205,7 +205,7 @@ describe("starred workflow templates", () => {
       (node) => node.data.config?.actionType === "stripe/create-invoice"
     );
     expect(invoice?.data.config?.email).toBeTruthy();
-    expect(invoice?.data.config?.customerId).toBeFalsy();
+    expect(invoice?.data.config?.customerId).toMatch(/^cus_/);
   });
 
   it("demo conditions expose false branches with Telegram or transfer follow-ups", () => {
@@ -248,6 +248,26 @@ describe("starred workflow templates", () => {
         "false"
       )
     ).toBe(true);
+  });
+
+  it("Arc DeFi treasury readiness is read-only Circle and Arc with both condition branches", () => {
+    const arcdefi = requireTemplate("Arc DeFi treasury readiness");
+    const types = actionTypes(arcdefi);
+    expect(types).toContain("circle/get-usdc-balance");
+    expect(types).toContain("circle/get-domains");
+    expect(types).toContain("arc/estimate-bridge");
+    expect(types).toContain("arc/get-usdc-erc20-balance");
+    expect(types).toContain("arc/estimate-swap");
+    expect(types).not.toContain("code/run-code");
+    expect(hasEdge(arcdefi, "arcdefi-ready", "arcdefi-swap-estimate", "true")).toBe(
+      true
+    );
+    expect(
+      hasEdge(arcdefi, "arcdefi-ready", "arcdefi-telegram-fund", "false")
+    ).toBe(true);
+    expect(hasEdge(arcdefi, "arcdefi-swap-estimate", "arcdefi-telegram-ready")).toBe(
+      true
+    );
   });
 
   it("org USDC waterline keeper telegrams on both funded branches", () => {
@@ -294,6 +314,10 @@ describe("starred workflow templates", () => {
       {
         name: "Org USDC waterline keeper",
         conditionId: "waterline-funded",
+      },
+      {
+        name: "Arc DeFi treasury readiness",
+        conditionId: "arcdefi-ready",
       },
     ];
 

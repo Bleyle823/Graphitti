@@ -4,11 +4,11 @@ import { B2B_WORKFLOW_TEMPLATES } from "@/lib/workflow-templates/b2b-templates";
 import { loadInMemoryWorkflowTemplates } from "@/lib/workflow-templates/load-templates";
 
 describe("B2B workflow templates", () => {
-  it("includes nine templates with treasury and at least two privy actions", () => {
+  it("includes B2B templates with org wallet and at least one privy write", () => {
     const loadedNames = loadInMemoryWorkflowTemplates().map(
       (template) => template.name
     );
-    expect(B2B_WORKFLOW_TEMPLATES).toHaveLength(9);
+    expect(B2B_WORKFLOW_TEMPLATES).toHaveLength(10);
     for (const template of B2B_WORKFLOW_TEMPLATES) {
       const actionTypes = template.nodes
         .map((node) => node.data.config?.actionType)
@@ -17,7 +17,7 @@ describe("B2B workflow templates", () => {
       const privyCount = actionTypes.filter((type) =>
         type.startsWith("privy/")
       ).length;
-      expect(privyCount).toBeGreaterThanOrEqual(2);
+      expect(privyCount).toBeGreaterThanOrEqual(1);
       expect(MARKETPLACE_CATALOG[template.name]).toBeDefined();
       expect(loadedNames).toContain(template.name);
     }

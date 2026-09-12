@@ -230,6 +230,13 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
+  "Arc DeFi treasury readiness": {
+    slug: "arc-defi-treasury-readiness",
+    category: "circle",
+    chain: "arc-testnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0",
+  },
 };
 
 /** Hackathon demo workflows shown with a star in Examples and Hub. */
@@ -241,6 +248,7 @@ export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
   "Uniswap V3 large swap alert (subgraph)",
   "Aave Uniswap USDC keeper",
   "Org USDC waterline keeper",
+  "Arc DeFi treasury readiness",
 ] as const;
 
 export function isHackathonFeaturedWorkflow(name: string): boolean {
