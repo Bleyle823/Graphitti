@@ -19,7 +19,10 @@ import {
   workflowExecutionsRelations,
   workflows,
 } from "./db/schema";
-import { sendOrganizationInvitationEmail } from "./email/send-organization-invitation";
+import {
+  rememberInviteEmailResult,
+  sendOrganizationInvitationEmail,
+} from "./email/send-organization-invitation";
 import { bindOrgWalletToMemberWorkflows } from "./privy/bind-org-wallet-workflows";
 import { ensureOrgTreasury } from "./privy/ensure-org-treasury";
 
@@ -162,6 +165,27 @@ function getTrustedOrigins(): string[] {
   return [...origins];
 }
 
+/**
+ * Invite links must target the deployment the inviter is using. A shared
+ * NEXT_PUBLIC_APP_URL would send preview invites to production, where the
+ * accept route may not exist yet.
+ */
+function resolveAppOrigin(request?: Request): string {
+  const forwardedHost = request?.headers.get("x-forwarded-host");
+  const host = forwardedHost ?? request?.headers.get("host");
+  if (host) {
+    const proto =
+      request?.headers.get("x-forwarded-proto") ??
+      (isLocalhostUrl(host) ? "http" : "https");
+    return `${proto}://${host}`.replace(/\/$/, "");
+  }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    return appUrl.replace(/\/$/, "");
+  }
+  return getBaseURL();
+}
+
 async function provisionOrganizationTreasury(input: {
   organizationId: string;
   organizationName: string;
@@ -220,21 +244,22 @@ const plugins = [
       admin: adminRole,
       member: memberRole,
     },
-    async sendInvitationEmail(data) {
-      const base = process.env.NEXT_PUBLIC_APP_URL ?? getBaseURL();
+    invitationExpiresIn: 60 * 60 * 24 * 7,
+    cancelPendingInvitationsOnReInvite: true,
+    async sendInvitationEmail(data, request) {
       const result = await sendOrganizationInvitationEmail({
         to: data.email,
         inviterName: data.inviter.user.name,
         orgName: data.organization.name,
-        acceptUrl: `${base}/accept-invitation?invitationId=${data.id}`,
+        acceptUrl: `${resolveAppOrigin(request)}/accept-invitation?invitationId=${data.id}`,
       });
+      rememberInviteEmailResult(data.id, result);
+      // Delivery failure must not void the invitation: the row stays valid and
+      // an admin can share the accept link by hand from org settings.
       if (!result.sent) {
-        const message =
-          result.reason === "email_not_configured"
-            ? "Invitation email is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL on the server."
-            : `Invitation email failed: ${result.reason}`;
-        console.error("[invite]", message);
-        throw new Error(message);
+        console.warn(
+          `[invite] email not delivered to ${data.email} (${result.reason}): ${result.detail}`
+        );
       }
     },
     organizationHooks: {
@@ -250,6 +275,11 @@ const plugins = [
         });
       },
       async afterAddMember(data) {
+        await bindOrgWalletToMemberWorkflows(data.organization.id);
+      },
+      // afterAddMember does not fire when a member joins through an
+      // invitation, so the org wallet has to be bound here as well.
+      async afterAcceptInvitation(data) {
         await bindOrgWalletToMemberWorkflows(data.organization.id);
       },
     },

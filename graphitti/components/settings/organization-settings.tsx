@@ -70,6 +70,18 @@ function canManageMembers(role: string | null | undefined): boolean {
   return role === "owner" || role === "admin";
 }
 
+function inviteLink(invitationId: string): string {
+  return `${window.location.origin}/accept-invitation?invitationId=${encodeURIComponent(invitationId)}`;
+}
+
+function copyInviteLink(invitationId: string): void {
+  const link = inviteLink(invitationId);
+  navigator.clipboard
+    .writeText(link)
+    .then(() => toast.success("Invite link copied"))
+    .catch(() => toast.error(`Copy failed. Link: ${link}`));
+}
+
 function memberLabel(member: MemberRow): string {
   return (
     member.user?.name ||
@@ -235,6 +247,12 @@ function ActiveOrgPanel({
       {invitations.length > 0 ? (
         <div className="space-y-2">
           <h3 className="font-medium text-sm">Pending invitations</h3>
+          <p className="text-muted-foreground text-xs">
+            Copy the link if email does not arrive. Resend&apos;s
+            onboarding@resend.dev address can only deliver to the Resend
+            account owner until you verify a domain. Teammates must open the
+            link and continue with the invited email.
+          </p>
           {invitations.map((invitation) => (
             <div
               className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm"
@@ -244,15 +262,24 @@ function ActiveOrgPanel({
                 {invitation.email} · {invitation.role ?? "member"} ·{" "}
                 {invitation.status ?? "pending"}
               </span>
-              {canManage ? (
+              <div className="flex items-center gap-2">
                 <Button
-                  onClick={() => start(onCancelInvitation(invitation.id))}
+                  onClick={() => copyInviteLink(invitation.id)}
                   size="sm"
                   variant="outline"
                 >
-                  Cancel
+                  Copy link
                 </Button>
-              ) : null}
+                {canManage ? (
+                  <Button
+                    onClick={() => start(onCancelInvitation(invitation.id))}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    Cancel
+                  </Button>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
@@ -304,16 +331,51 @@ export function OrganizationSettings(): React.ReactElement {
     setInviting(true);
     const email = inviteEmail.trim();
     try {
-      const result = await authClient.organization.inviteMember({
-        email,
-        role: inviteRole as "member" | "admin" | "owner",
-        organizationId: activeOrgId,
+      const response = await fetch("/api/org/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          role: inviteRole,
+          organizationId: activeOrgId,
+        }),
       });
-      if (result.error) {
-        throw new Error(result.error.message ?? "Failed to invite member");
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        invitationId?: string;
+        acceptUrl?: string;
+        email?: {
+          sent: boolean;
+          reason?: string;
+          detail?: string;
+        };
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to invite member");
       }
       setInviteEmail("");
-      toast.success(`Invitation sent to ${email}`);
+      if (payload.acceptUrl) {
+        await navigator.clipboard.writeText(payload.acceptUrl).catch(() => {
+          /* toast still explains how to copy from the list */
+        });
+      } else if (payload.invitationId) {
+        copyInviteLink(payload.invitationId);
+      }
+      if (payload.email?.sent) {
+        toast.success(`Invitation emailed to ${email}. Link also copied.`);
+      } else if (payload.email?.reason === "recipient_not_allowed") {
+        toast.warning(
+          `Invite created for ${email}. Resend can only email the account owner until you verify a sending domain. Link copied — send it to your teammate.`
+        );
+      } else if (payload.email?.reason === "not_configured") {
+        toast.warning(
+          `Invite created for ${email}. Email is not configured. Link copied.`
+        );
+      } else {
+        toast.warning(
+          `Invite created for ${email}. Email did not send${payload.email?.detail ? `: ${payload.email.detail}` : ""}. Link copied.`
+        );
+      }
       await loadMembers();
     } catch (error) {
       toast.error(
