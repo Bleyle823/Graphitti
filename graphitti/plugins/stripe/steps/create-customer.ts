@@ -1,6 +1,7 @@
 import "server-only";
 
 import { fetchCredentials } from "@/lib/credential-fetcher";
+import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import type { StripeCredentials } from "../credentials";
 
@@ -22,10 +23,6 @@ type StripeErrorResponse = {
   };
 };
 
-type CreateCustomerResult =
-  | { success: true; id: string; email: string }
-  | { success: false; error: string };
-
 export type CreateCustomerCoreInput = {
   email: string;
   name?: string;
@@ -39,23 +36,30 @@ export type CreateCustomerInput = StepInput &
     integrationId?: string;
   };
 
-async function stepHandler(
+type CreateCustomerResult =
+  | { success: true; data: { id: string; email: string } }
+  | ReturnType<typeof fail>;
+
+export async function createStripeCustomer(
   input: CreateCustomerCoreInput,
   credentials: StripeCredentials
 ): Promise<CreateCustomerResult> {
   const apiKey = credentials.STRIPE_SECRET_KEY;
 
   if (!apiKey) {
-    return {
-      success: false,
-      error:
-        "STRIPE_SECRET_KEY is not configured. Please add it in Project Integrations.",
-    };
+    return fail(
+      "STRIPE_SECRET_KEY is not configured. Please add it in Project Integrations."
+    );
+  }
+
+  const email = input.email?.trim();
+  if (!email) {
+    return fail("Email is required to create a Stripe customer");
   }
 
   try {
     const params = new URLSearchParams();
-    params.append("email", input.email);
+    params.append("email", email);
 
     if (input.name) {
       params.append("name", input.name);
@@ -76,10 +80,7 @@ async function stepHandler(
           params.append(`metadata[${key}]`, String(value));
         }
       } catch {
-        return {
-          success: false,
-          error: "Invalid metadata JSON format",
-        };
+        return fail("Invalid metadata JSON format");
       }
     }
 
@@ -94,23 +95,25 @@ async function stepHandler(
 
     if (!response.ok) {
       const errorData = (await response.json()) as StripeErrorResponse;
-      return {
-        success: false,
-        error:
-          errorData.error?.message ||
-          `HTTP ${response.status}: Failed to create customer`,
-      };
+      return fail(
+        errorData.error?.message ||
+          `HTTP ${response.status}: Failed to create customer`
+      );
     }
 
     const data = (await response.json()) as StripeCustomerResponse;
-    return { success: true, id: data.id, email: data.email };
+    return ok({ id: data.id, email: data.email });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      success: false,
-      error: `Failed to create customer: ${message}`,
-    };
+    return fail(`Failed to create customer: ${message}`);
   }
+}
+
+async function stepHandler(
+  input: CreateCustomerCoreInput,
+  credentials: StripeCredentials
+): Promise<CreateCustomerResult> {
+  return createStripeCustomer(input, credentials);
 }
 
 export async function createCustomerStep(
@@ -127,4 +130,3 @@ export async function createCustomerStep(
 createCustomerStep.maxRetries = 0;
 
 export const _integrationType = "stripe";
-

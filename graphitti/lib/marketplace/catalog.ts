@@ -209,6 +209,13 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
+  "Aave Uniswap USDC keeper": {
+    slug: "aave-uniswap-usdc-keeper",
+    category: "the-graph",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
 };
 
 /** Hackathon demo workflows shown with a star in Examples and Hub. */
@@ -218,6 +225,7 @@ export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
   "Stripe invoice to Privy USDC settlement",
   "Privy Gasless Payroll",
   "Uniswap V3 large swap alert (subgraph)",
+  "Aave Uniswap USDC keeper",
 ] as const;
 
 export function isHackathonFeaturedWorkflow(name: string): boolean {

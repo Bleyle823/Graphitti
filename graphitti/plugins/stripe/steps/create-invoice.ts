@@ -1,8 +1,10 @@
 import "server-only";
 
 import { fetchCredentials } from "@/lib/credential-fetcher";
+import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import type { StripeCredentials } from "../credentials";
+import { createStripeCustomer } from "./create-customer";
 
 const STRIPE_API_URL = "https://api.stripe.com/v1";
 
@@ -30,15 +32,19 @@ type LineItem = {
 type CreateInvoiceResult =
   | {
       success: true;
-      id: string;
-      number: string | null;
-      hostedInvoiceUrl: string | null;
-      status: string;
+      data: {
+        id: string;
+        number: string | null;
+        hostedInvoiceUrl: string | null;
+        status: string;
+      };
     }
-  | { success: false; error: string };
+  | ReturnType<typeof fail>;
 
 export type CreateInvoiceCoreInput = {
-  customerId: string;
+  customerId?: string;
+  email?: string;
+  name?: string;
   description?: string;
   lineItems: string;
   daysUntilDue?: number;
@@ -52,6 +58,42 @@ export type CreateInvoiceInput = StepInput &
     integrationId?: string;
   };
 
+function isMissingCustomerId(customerId?: string): boolean {
+  const trimmed = customerId?.trim() ?? "";
+  if (!trimmed || trimmed === "undefined") {
+    return true;
+  }
+  if (trimmed.includes("{{")) {
+    return true;
+  }
+  return false;
+}
+
+async function resolveCustomerId(
+  input: CreateInvoiceCoreInput,
+  credentials: StripeCredentials
+): Promise<{ ok: true; customerId: string } | ReturnType<typeof fail>> {
+  if (!isMissingCustomerId(input.customerId)) {
+    return { ok: true, customerId: input.customerId!.trim() };
+  }
+
+  const email = input.email?.trim();
+  if (!email) {
+    return fail(
+      "Customer ID is required, or provide email (and optional name) to create a Stripe customer before invoicing"
+    );
+  }
+
+  const created = await createStripeCustomer(
+    { email, name: input.name },
+    credentials
+  );
+  if (!created.success) {
+    return created;
+  }
+  return { ok: true, customerId: created.data.id };
+}
+
 async function stepHandler(
   input: CreateInvoiceCoreInput,
   credentials: StripeCredentials
@@ -59,34 +101,32 @@ async function stepHandler(
   const apiKey = credentials.STRIPE_SECRET_KEY;
 
   if (!apiKey) {
-    return {
-      success: false,
-      error:
-        "STRIPE_SECRET_KEY is not configured. Please add it in Project Integrations.",
-    };
+    return fail(
+      "STRIPE_SECRET_KEY is not configured. Please add it in Project Integrations."
+    );
   }
 
   let lineItems: LineItem[];
   try {
     lineItems = JSON.parse(input.lineItems) as LineItem[];
     if (!Array.isArray(lineItems) || lineItems.length === 0) {
-      return {
-        success: false,
-        error: "Line items must be a non-empty JSON array",
-      };
+      return fail("Line items must be a non-empty JSON array");
     }
   } catch {
-    return {
-      success: false,
-      error:
-        'Invalid line items JSON format. Expected: [{"description": "Item", "amount": 1000, "quantity": 1}]',
-    };
+    return fail(
+      'Invalid line items JSON format. Expected: [{"description": "Item", "amount": 1000, "quantity": 1}]'
+    );
   }
 
+  const customerResolved = await resolveCustomerId(input, credentials);
+  if (!("customerId" in customerResolved)) {
+    return customerResolved;
+  }
+  const customerId = customerResolved.customerId;
+
   try {
-    // Step 1: Create the invoice
     const invoiceParams = new URLSearchParams();
-    invoiceParams.append("customer", input.customerId);
+    invoiceParams.append("customer", customerId);
     invoiceParams.append(
       "collection_method",
       input.collectionMethod || "send_invoice"
@@ -113,10 +153,7 @@ async function stepHandler(
           invoiceParams.append(`metadata[${key}]`, String(value));
         }
       } catch {
-        return {
-          success: false,
-          error: "Invalid metadata JSON format",
-        };
+        return fail("Invalid metadata JSON format");
       }
     }
 
@@ -131,17 +168,14 @@ async function stepHandler(
 
     if (!invoiceResponse.ok) {
       const errorData = (await invoiceResponse.json()) as StripeErrorResponse;
-      return {
-        success: false,
-        error:
-          errorData.error?.message ||
-          `HTTP ${invoiceResponse.status}: Failed to create invoice`,
-      };
+      return fail(
+        errorData.error?.message ||
+          `HTTP ${invoiceResponse.status}: Failed to create invoice`
+      );
     }
 
     const invoice = (await invoiceResponse.json()) as StripeInvoiceResponse;
 
-    // Step 2: Add line items
     for (const item of lineItems) {
       const itemParams = new URLSearchParams();
       itemParams.append("invoice", invoice.id);
@@ -161,16 +195,13 @@ async function stepHandler(
 
       if (!itemResponse.ok) {
         const errorData = (await itemResponse.json()) as StripeErrorResponse;
-        return {
-          success: false,
-          error:
-            errorData.error?.message ||
-            `HTTP ${itemResponse.status}: Failed to add line item`,
-        };
+        return fail(
+          errorData.error?.message ||
+            `HTTP ${itemResponse.status}: Failed to add line item`
+        );
       }
     }
 
-    // Step 3: Finalize invoice if auto_advance is true
     let finalInvoice = invoice;
     if (input.autoAdvance !== "false") {
       const finalizeResponse = await fetch(
@@ -187,30 +218,24 @@ async function stepHandler(
       if (!finalizeResponse.ok) {
         const errorData =
           (await finalizeResponse.json()) as StripeErrorResponse;
-        return {
-          success: false,
-          error:
-            errorData.error?.message ||
-            `HTTP ${finalizeResponse.status}: Failed to finalize invoice`,
-        };
+        return fail(
+          errorData.error?.message ||
+            `HTTP ${finalizeResponse.status}: Failed to finalize invoice`
+        );
       }
 
       finalInvoice = (await finalizeResponse.json()) as StripeInvoiceResponse;
     }
 
-    return {
-      success: true,
+    return ok({
       id: finalInvoice.id,
       number: finalInvoice.number,
       hostedInvoiceUrl: finalInvoice.hosted_invoice_url,
       status: finalInvoice.status,
-    };
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      success: false,
-      error: `Failed to create invoice: ${message}`,
-    };
+    return fail(`Failed to create invoice: ${message}`);
   }
 }
 
@@ -228,4 +253,3 @@ export async function createInvoiceStep(
 createInvoiceStep.maxRetries = 0;
 
 export const _integrationType = "stripe";
-

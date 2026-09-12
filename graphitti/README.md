@@ -131,7 +131,7 @@ pnpm docker:logs  # tail Postgres logs
 - **Code**: Run Code
 - **Discord**: Send Discord Message
 - **fal.ai**: Generate Image, Generate Video, Upscale Image, Remove Background, Image to Image
-- **Fantasy Premier League**: Search players, Get player, Get live scores, Get fixtures, Get teams, Get gameweeks, Get event winners, Get dream team, Get manager, Get manager history, Get manager picks, Get manager transfers, Get classic standings, Get H2H standings
+- **Fantasy Premier League**: Search players, Get player, Get live scores, Get fixtures, Get teams, Get gameweeks, Get event winners, Get dream team, Get manager, Get manager history, Get manager picks, Get manager transfers, Get classic standings, Rank top two, Get H2H standings
 - **Firecrawl**: Scrape URL, Search Web
 - **GitHub**: Create Issue, List Issues, Get Issue, Update Issue
 - **Hyperliquid**: Get Clearinghouse State, Get Vault Details, Get Validator Summaries, Get Funding History, Get Spot Deploy State, Get Referral State, Get Sub-Accounts, Get Active Asset Data
