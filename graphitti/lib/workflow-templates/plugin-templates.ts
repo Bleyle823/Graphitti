@@ -931,6 +931,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             actionType: "circle/get-usdc-balance",
             network: "base-sepolia",
             address: "{{@waterline-org-wallet:Get org wallet.address}}",
+            tokenAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
           },
           status: "idle",
           description: "Base Sepolia USDC on the org treasury address",
@@ -945,8 +946,7 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           type: "action",
           config: {
             actionType: "Condition",
-            condition:
-              "{{@waterline-balance:Get org USDC.balance}} > 0",
+            condition: "{{@waterline-balance:Get org USDC.balance}} > 0",
           },
           status: "idle",
           description:

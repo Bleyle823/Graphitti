@@ -5,6 +5,7 @@ const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 const STRIPE_DEMO_CLIENT_EMAIL = "bleyleosewe19@gmail.com";
 const STRIPE_DEMO_CLIENT_NAME = "Client Co";
+const STRIPE_DEMO_CUSTOMER_ID = "cus_VFUcvpsAXZVK51";
 const STRIPE_DEMO_LINE_ITEMS =
   '[{"description": "Contractor deliverable", "amount": 25000, "quantity": 1}]';
 const STRIPE_DEMO_CONTRACTOR_ADDRESS =
@@ -524,6 +525,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         "Create Stripe invoice",
         {
           actionType: "stripe/create-invoice",
+          customerId: STRIPE_DEMO_CUSTOMER_ID,
           email: STRIPE_DEMO_CLIENT_EMAIL,
           name: STRIPE_DEMO_CLIENT_NAME,
           description: "Agency services",
@@ -574,8 +576,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         {
           actionType: "telegram/send-message",
           chatId: "YOUR_TELEGRAM_CHAT_ID",
-          message:
-            `Stripe invoice payout held\n\nInvoice was not ready for onchain settlement (missing or invalid invoice id). No USDC transfer sent.\nCustomer: ${STRIPE_DEMO_CLIENT_EMAIL}`,
+          message: `Stripe invoice payout held\n\nInvoice was not ready for onchain settlement (missing or invalid invoice id). No USDC transfer sent.\nCustomer: ${STRIPE_DEMO_CLIENT_EMAIL}`,
           parseMode: "none",
         }
       ),
@@ -608,6 +609,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         "Create Stripe invoice",
         {
           actionType: "stripe/create-invoice",
+          customerId: STRIPE_DEMO_CUSTOMER_ID,
           email: STRIPE_DEMO_CLIENT_EMAIL,
           name: STRIPE_DEMO_CLIENT_NAME,
           description: "Demo services",

@@ -20,10 +20,18 @@ export const GRAPH_X402_HOSTS = [
   "api.thegraph.com",
 ];
 
+/** Circle USDC on Base Sepolia (6 decimals). */
+export const BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+
+export function normalizeCircleNetwork(network: string): string {
+  return network.trim().toLowerCase().replace(/_/g, "-");
+}
+
 export const TOKEN_ADDRESSES = {
   USDC: {
     ethereum: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     sepolia: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "base-sepolia": BASE_SEPOLIA_USDC,
     base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     arbitrum: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     optimism: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
@@ -111,7 +119,8 @@ export function lookupToken(
   network: string
 ): { address: string; decimals: number; nativeDecimals?: number } | undefined {
   const table = TOKEN_ADDRESSES[symbol] as Record<string, string>;
-  const address = table[network];
+  const normalized = normalizeCircleNetwork(network);
+  const address = table[normalized] ?? table[network];
   if (!address) {
     return;
   }
