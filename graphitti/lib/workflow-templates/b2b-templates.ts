@@ -467,6 +467,146 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       edge("eb6", "large-intent", "ticket-batch"),
     ],
   },
+  {
+    name: "Stripe invoice to Privy USDC settlement",
+    description:
+      "Create a Stripe invoice for a client, map the payout to a contractor wallet, and settle in USDC from the org Privy treasury with a Telegram confirmation.",
+    nodes: [
+      trigger("trigger-stripe-settle", "Demo invoice run", {
+        triggerType: "Manual",
+      }),
+      {
+        id: "note-stripe-settle",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 280,
+        height: 200,
+        position: { x: -300, y: 160 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Connect Stripe, Privy, and Telegram. Edit contractor address and amount in Map invoice payout. Set chat ID on Send Telegram confirmation. For production, switch the trigger to Webhook on invoice.paid. Create an org treasury before running.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "image-stripe-settle",
+        type: "image",
+        dragHandle: ".canvas-image-drag-handle",
+        width: 240,
+        height: 120,
+        position: { x: -300, y: 380 },
+        data: {
+          label: "Image",
+          type: "image",
+          config: {
+            src: "/protocols/Stripe wordmark - Blurple - Small.png",
+            alt: "Stripe",
+          },
+          status: "idle",
+        },
+      },
+      action(
+        "stripe-settle-customer",
+        { x: 260, y: 200 },
+        "Create Stripe customer",
+        {
+          actionType: "stripe/create-customer",
+          email: "client@example.com",
+          name: "Client Co",
+        }
+      ),
+      action(
+        "stripe-settle-invoice",
+        { x: 520, y: 200 },
+        "Create Stripe invoice",
+        {
+          actionType: "stripe/create-invoice",
+          customerId: "{{@stripe-settle-customer:Create Stripe customer.id}}",
+          description: "Agency services",
+          lineItems:
+            '[{"description": "Contractor deliverable", "amount": 25000, "quantity": 1}]',
+        }
+      ),
+      action("map-invoice-payout", { x: 780, y: 200 }, "Map invoice payout", {
+        actionType: "code/run-code",
+        code: `const contractorAddress = "0x0000000000000000000000000000000000000004";
+const amountUsdc = "250";
+const invoiceId = "{{@stripe-settle-invoice:Create Stripe invoice.id}}";
+const invoiceNumber = "{{@stripe-settle-invoice:Create Stripe invoice.number}}";
+const valid =
+  contractorAddress.startsWith("0x") &&
+  contractorAddress.length === 42 &&
+  Number(amountUsdc) > 0;
+return {
+  contractorAddress: contractorAddress,
+  amountUsdc: amountUsdc,
+  invoiceId: invoiceId,
+  invoiceNumber: invoiceNumber,
+  valid: valid,
+};`,
+      }),
+      action(
+        "get-wallet-stripe-settle",
+        { x: 1040, y: 200 },
+        "Get org wallet",
+        {
+          actionType: "treasury/get-org-wallet",
+        }
+      ),
+      action(
+        "privy-wallet-stripe-settle",
+        { x: 1300, y: 200 },
+        "Get Privy wallet",
+        {
+          actionType: "privy/get-wallet",
+          walletId: "{{@get-wallet-stripe-settle:Get org wallet.walletId}}",
+        }
+      ),
+      action("valid-stripe-settle", { x: 1560, y: 200 }, "Payout valid?", {
+        actionType: "Condition",
+        condition:
+          "{{@map-invoice-payout:Map invoice payout.result.valid}} === true",
+      }),
+      action("pay-stripe-settle", { x: 1820, y: 200 }, "Pay contractor USDC", {
+        actionType: "privy/wallet-transfer",
+        walletId: "{{@get-wallet-stripe-settle:Get org wallet.walletId}}",
+        sourceChain: "base_sepolia",
+        sourceAsset: "usdc",
+        amount: "{{@map-invoice-payout:Map invoice payout.result.amountUsdc}}",
+        destinationAddress:
+          "{{@map-invoice-payout:Map invoice payout.result.contractorAddress}}",
+        useIntent: "false",
+      }),
+      action("telegram-stripe-settle", { x: 2080, y: 200 }, "Send Telegram confirmation", {
+        actionType: "telegram/send-message",
+        chatId: "YOUR_TELEGRAM_CHAT_ID",
+        message:
+          "Stripe invoice {{@map-invoice-payout:Map invoice payout.result.invoiceNumber}} settled onchain\nInvoice ID: {{@map-invoice-payout:Map invoice payout.result.invoiceId}}\nPayout status: {{@pay-stripe-settle:Pay contractor USDC.status}}",
+        parseMode: "none",
+      }),
+    ],
+    edges: [
+      edge("ess1", "trigger-stripe-settle", "stripe-settle-customer"),
+      edge("ess2", "stripe-settle-customer", "stripe-settle-invoice"),
+      edge("ess3", "stripe-settle-invoice", "map-invoice-payout"),
+      edge("ess4", "map-invoice-payout", "get-wallet-stripe-settle"),
+      edge("ess5", "get-wallet-stripe-settle", "privy-wallet-stripe-settle"),
+      edge("ess6", "privy-wallet-stripe-settle", "valid-stripe-settle"),
+      {
+        id: "ess7",
+        source: "valid-stripe-settle",
+        target: "pay-stripe-settle",
+        sourceHandle: "true",
+      },
+      edge("ess8", "pay-stripe-settle", "telegram-stripe-settle"),
+    ],
+  },
 ];
 
 export const B2B_WORKFLOW_TEMPLATE_NAMES = B2B_WORKFLOW_TEMPLATES.map(

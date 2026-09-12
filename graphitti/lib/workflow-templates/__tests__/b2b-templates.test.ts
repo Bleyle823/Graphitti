@@ -4,11 +4,11 @@ import { B2B_WORKFLOW_TEMPLATES } from "@/lib/workflow-templates/b2b-templates";
 import { loadInMemoryWorkflowTemplates } from "@/lib/workflow-templates/load-templates";
 
 describe("B2B workflow templates", () => {
-  it("includes eight templates with treasury and at least two privy actions", () => {
+  it("includes nine templates with treasury and at least two privy actions", () => {
     const loadedNames = loadInMemoryWorkflowTemplates().map(
       (template) => template.name
     );
-    expect(B2B_WORKFLOW_TEMPLATES).toHaveLength(8);
+    expect(B2B_WORKFLOW_TEMPLATES).toHaveLength(9);
     for (const template of B2B_WORKFLOW_TEMPLATES) {
       const actionTypes = template.nodes
         .map((node) => node.data.config?.actionType)

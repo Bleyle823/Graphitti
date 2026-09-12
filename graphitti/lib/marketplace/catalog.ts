@@ -118,6 +118,13 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
+  "Stripe invoice to Privy USDC settlement": {
+    slug: "stripe-invoice-privy-usdc-settlement",
+    category: "stripe",
+    chain: "base-sepolia",
+    workflowType: "write",
+    priceUsdcPerCall: "0",
+  },
   "Cap-aware scheduled payroll": {
     slug: "cap-aware-scheduled-payroll",
     category: "privy",
@@ -167,8 +174,8 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
-  "FPL League Top Three USDC Payouts": {
-    slug: "fpl-league-top-three-payouts",
+  "FPL League Top Two USDC Payouts": {
+    slug: "fpl-league-top-two-payouts",
     category: "fantasy-premier-league",
     chain: "arc-testnet",
     workflowType: "write",
@@ -203,6 +210,32 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     priceUsdcPerCall: "0",
   },
 };
+
+/** Hackathon demo workflows shown with a star in Examples and Hub. */
+export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
+  "FPL League Top Two USDC Payouts",
+  "Kelp rsETH Backing Monitor",
+  "Stripe invoice to Privy USDC settlement",
+  "Privy Gasless Payroll",
+] as const;
+
+export function isHackathonFeaturedWorkflow(name: string): boolean {
+  return (HACKATHON_FEATURED_WORKFLOW_NAMES as readonly string[]).includes(
+    name
+  );
+}
+
+export function compareFeaturedWorkflowFirst(
+  a: { name: string },
+  b: { name: string }
+): number {
+  const aFeatured = isHackathonFeaturedWorkflow(a.name);
+  const bFeatured = isHackathonFeaturedWorkflow(b.name);
+  if (aFeatured !== bFeatured) {
+    return aFeatured ? -1 : 1;
+  }
+  return a.name.localeCompare(b.name);
+}
 
 export function catalogMetaForTemplate(
   template: WorkflowTemplate

@@ -115,6 +115,26 @@ async function main(): Promise<void> {
       ),
     });
 
+    if (listOnly && catalog) {
+      const { ne } = await import("drizzle-orm");
+      await db
+        .update(workflows)
+        .set({
+          isListed: false,
+          listedSlug: null,
+          visibility: "private",
+          updatedAt: new Date(),
+        })
+        .where(
+          existing
+            ? and(
+                eq(workflows.listedSlug, catalog.slug),
+                ne(workflows.id, existing.id)
+              )
+            : eq(workflows.listedSlug, catalog.slug)
+        );
+    }
+
     if (existing) {
       await db
         .update(workflows)
