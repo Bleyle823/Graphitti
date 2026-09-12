@@ -524,7 +524,7 @@ export const MONITOR_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Image",
           type: "image",
           config: {
-            src: "https://pngup.com/Etdf/Black%20and%20White%20Minimalist%20%20Digital%20Marketing%20Portfolio%20Presentation.png",
+            src: "/Black and White Minimalist  Digital Marketing Portfolio Presentation.png",
             alt: "Kelp rsETH backing monitor",
           },
           status: "idle",
