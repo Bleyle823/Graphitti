@@ -1,48 +1,105 @@
+<p align="center">
+  <img src="../docs/images/brand/graphitti-workflows-cover.png" alt="Graphitti Workflows" width="720" />
+</p>
+
 # Graphitti app
 
-Next.js workflow builder: canvas, Privy treasury, marketplace (Arc USDC x402), and protocol plugins. Product overview, architecture, workflows, and integration evidence live in the [repository README](../README.md).
+Next.js workflow builder and execution layer for **Privy** treasuries, **The Graph** data, **Arc / Circle** USDC flows, and the **Gateway x402** marketplace.
 
-**Production:** [graphitti-five.vercel.app](https://graphitti-five.vercel.app)
+| | |
+| --- | --- |
+| Production | [graphitti-five.vercel.app](https://graphitti-five.vercel.app) |
+| Product overview and onchain evidence | [Repository README](../README.md) |
+| Run starred examples (env vars, Telegram chat id, Stripe `cus_`, placeholders) | [Featured workflows](../docs/workflows/featured-workflows.mdx) |
+| Agent MCP packages | [`@graphitti/graph-core`](../ecosystem-agent-plugins/the-graph/graph-core), [`@graphitti/privy-core`](../ecosystem-agent-plugins/privy/privy-core) |
 
-## Prerequisites
-
-- Node.js 18+
-- Docker Desktop (local Postgres)
-- pnpm
-
-## Environment
-
-```bash
-cp .env.example .env.local
-```
-
-Minimum:
-
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/workflow
-BETTER_AUTH_SECRET=   # openssl rand -base64 32
-BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-INTEGRATION_ENCRYPTION_KEY=   # openssl rand -hex 32
-```
-
-Optional keys (Privy, The Graph, Circle, Arc, Stripe, AI Gateway, OAuth) are documented in `.env.example`.
+Payroll and org treasury settle on **Base Sepolia USDC**. Marketplace and FPL payouts use **Arc Testnet** (`eip155:5042002`). Featured Uniswap demos use **subgraph reads only**, not on-chain router swaps.
 
 ## Run locally
 
 ```bash
+cp .env.example .env.local   # fill sponsor keys below + auth/database minimums
 pnpm install
-pnpm setup    # Docker Postgres + db push
+pnpm setup
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Minimum auth/database variables are in `.env.example`. For starred workflows, configure **Project Integrations** in the app (Stripe, Telegram, Supabase, Circle) and the server env keys in the table below.
 
-```bash
-pnpm docker:up
-pnpm docker:down
-pnpm docker:logs
-```
+## Sponsor plugins in this app
+
+Canvas plugins and primary code paths used in shipped examples:
+
+### Privy
+
+Execution layer: embedded wallet, org treasury, policies, payee allowlist, wallet-actions, transfer intents, sponsored transactions.
+
+| Example workflows | Plugin actions |
+| --- | --- |
+| Payroll batch with intent fallback, Stripe invoice to Privy USDC settlement, Privy Gasless Payroll, Org USDC waterline keeper, Aave Uniswap USDC keeper | `privy/wallet-transfer`, `privy/create-transfer-intent`, `privy/get-intent`, `privy/transfer`, `treasury/get-org-wallet`, `treasury/list-payees` |
+
+| Env / setup | Source |
+| --- | --- |
+| `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY` | [Privy Dashboard](https://dashboard.privy.io) |
+| Org treasury | App **Treasury** (create org, fund, payees, approve intents) |
+
+Code: [`plugins/privy/`](plugins/privy), [`lib/privy/provision-org-treasury.ts`](lib/privy/provision-org-treasury.ts), [`lib/privy/policy-rules.ts`](lib/privy/policy-rules.ts)
+
+### The Graph
+
+Gateway GraphQL subgraph queries, Substreams registry, Kelp monitor via Supabase SQL sink (see [`../substreams/`](../substreams/)).
+
+| Example workflows | Plugin actions |
+| --- | --- |
+| Uniswap V3 large swap alert (subgraph), Aave Uniswap USDC keeper, Kelp rsETH Backing Monitor | `the-graph/query-subgraph`, `supabase/get-latest-row` |
+
+| Env / setup | Source |
+| --- | --- |
+| `THEGRAPH_API_KEY` | [Subgraph Studio](https://thegraph.com/studio/) |
+| Supabase URL + anon key | Project Integrations; Kelp table `backing_snapshots` |
+
+Code: [`plugins/the-graph/`](plugins/the-graph/), [`lib/the-graph/kelp-substreams-deployments.ts`](lib/the-graph/kelp-substreams-deployments.ts)
+
+### Arc and Circle
+
+Arc Testnet USDC (native 18-decimal and ERC-20 6-decimal), CCTP, App Kit genesis helpers, StableFX, Gateway **x402** marketplace settlement (`GatewayWalletBatched`).
+
+| Example workflows | Plugin actions |
+| --- | --- |
+| Arc DeFi treasury readiness, FPL League Top Two USDC Payouts, marketplace pay | `arc/send-on-arc`, `arc/estimate-bridge`, `arc/get-usdc-erc20-balance`, `circle/get-domains`, `circle/get-usdc-balance`, `circle/pay-x402`, `circle/settle-x402` |
+
+| Env / setup | Source |
+| --- | --- |
+| `CIRCLE_API_KEY`, optional `CIRCLE_ENTITY_SECRET` | [Circle Developer Console](https://developers.circle.com/) |
+| `PRIVATE_KEY` | Arc Testnet USDC buyer for marketplace / Gateway deposit (see `.env.example`) |
+| Gateway verifier (Arc Testnet) | `0x0077777d7EBA4688BDeF3E311b846F25870A19B9` |
+
+Code: [`lib/arc/app-kit-flows.ts`](lib/arc/app-kit-flows.ts), [`lib/marketplace/x402.ts`](lib/marketplace/x402.ts), [`plugins/arc/`](plugins/arc/), [`plugins/circle/`](plugins/circle/)
+
+### Supporting integrations (examples)
+
+| Integration | Used for | Config |
+| --- | --- | --- |
+| Stripe | Stripe invoice to Privy USDC settlement | Project Integrations `sk_test_...`; invoice node `customerId` (`cus_...`) from [Stripe Customers](https://dashboard.stripe.com/customers) |
+| Telegram | Alerts on most starred graphs | `TELEGRAM_BOT_TOKEN` + **chat id** on each node ([BotFather](https://t.me/BotFather), `getUpdates`) |
+| Supabase | Kelp backing rows | Anon key + `backing_snapshots` ([plugin doc](../docs/plugins/supabase.mdx)) |
+| Fantasy Premier League | FPL Arc payouts | Public reads; set **league id** and roster JSON on template nodes |
+
+## Starred workflow gallery
+
+These templates are pinned first in the app gallery:
+
+1. Uniswap V3 large swap alert (subgraph) — The Graph  
+2. Kelp rsETH Backing Monitor (Substreams → Supabase) — The Graph + Supabase  
+3. Arc DeFi treasury readiness — Arc + Circle  
+4. FPL League Top Two USDC Payouts — Arc + FPL  
+5. Payroll batch with intent fallback — Privy  
+6. Stripe invoice to Privy USDC settlement — Privy + Stripe  
+7. Privy Gasless Payroll — Privy  
+8. Aave Uniswap USDC keeper — The Graph + Privy  
+9. Org USDC waterline keeper — Privy + Circle  
+
+If Telegram or notification nodes still show `YOUR_TELEGRAM_CHAT_ID`, upstream Graph / Privy / Arc steps can still succeed; see the [featured workflows guide](../docs/workflows/featured-workflows.mdx) for placeholder behavior.
 
 ## Scripts
 
@@ -51,86 +108,7 @@ pnpm dev
 pnpm build
 pnpm type-check
 pnpm fix
-pnpm db:generate
-pnpm db:push
-pnpm db:studio
 ```
-
-Privy rehearsal helper (requires credentials): `pnpm exec tsx scripts/verify-privy-transactions.ts`
-
-## Ecosystem agent plugins
-
-Published npm catalogs and MCP servers:
-
-- [`@graphitti/graph-core`](https://www.npmjs.com/package/@graphitti/graph-core)
-- [`@graphitti/privy-core`](https://www.npmjs.com/package/@graphitti/privy-core)
-
-See [ecosystem-agent-plugins/README.md](../ecosystem-agent-plugins/README.md).
-
-## Workflow nodes
-
-### Triggers
-
-- Webhook, Schedule, Manual, Database Event, Block (with KeeperHub where required)
-
-### Actions
-
-<!-- PLUGINS:START - Do not remove. Auto-generated by discover-plugins -->
-- **Aave V3**: Aave V3: Supply Asset, Aave V3: Withdraw Asset, Aave V3: Borrow Asset, Aave V3: Repay Debt, Aave V3: Set Asset as Collateral, Aave V3: Get User Account Data, Aave V3: Get User Reserve Data
-- **Aave V4**: Aave V4: Supply Asset, Aave V4: Withdraw Asset, Aave V4: Borrow Asset, Aave V4: Repay Debt, Aave V4: Set Asset as Collateral, Aave V4: Get Reserve ID, Aave V4: Get User Supplied Assets, Aave V4: Get User Debt, Aave V4: Get User Account Data
-- **Aerodrome**: Aerodrome: Get Pool Reserves, Aerodrome: Get Pool Address, Aerodrome: Swap Exact Tokens, Aerodrome: Add Liquidity, Aerodrome: Remove Liquidity, Aerodrome: Get Total Voting Weight, Aerodrome: Check Gauge Status, Aerodrome: Get Gauge for Pool, Aerodrome: Vote on Gauges, Aerodrome: Reset Votes, Aerodrome: Claim Gauge Rewards, Aerodrome: Get Total Pool Count, Aerodrome: Get veNFT Voting Power, Aerodrome: Get Lock Details, Aerodrome: Create veAERO Lock, Aerodrome: Increase Lock Amount, Aerodrome: Increase Lock Duration, Aerodrome: Withdraw Expired Lock, Aerodrome: Get Expected Output, Aerodrome: Get AERO Balance, Aerodrome: Approve AERO
-- **Ajna**: Ajna: Get Auction Status, Ajna: Get HPB Index, Ajna: Get Pool LUP, Ajna: Get Pool HTP, Ajna: Get Borrower Info, Ajna: Price to Bucket Index, Ajna: Bucket Index to Price, Ajna: cbBTC/usBTCd Kicker Info, Ajna: cbBTC/usBTCd Auction Info, Ajna: cbBTC/usBTCd Bucket Info, Ajna: cbBTC/usBTCd Inflator Info, Ajna: cbBTC/usBTCd Kick, Ajna: cbBTC/usBTCd Bucket Take, Ajna: cbBTC/usBTCd Settle, Ajna: cbBTC/usBTCd Withdraw Bonds, Ajna: cbBTC/usBTCd Update Interest, Ajna: cbBTC/usBTCd Deposit Index, Ajna: usBTCd/webmx Kicker Info, Ajna: usBTCd/webmx Auction Info, Ajna: usBTCd/webmx Bucket Info, Ajna: usBTCd/webmx Inflator Info, Ajna: usBTCd/webmx Kick, Ajna: usBTCd/webmx Bucket Take, Ajna: usBTCd/webmx Settle, Ajna: usBTCd/webmx Withdraw Bonds, Ajna: usBTCd/webmx Update Interest, Ajna: usBTCd/webmx Deposit Index, Ajna: cbBTC/usBTCd Is Paused, Ajna: cbBTC/usBTCd Get Buckets, Ajna: cbBTC/usBTCd Total Assets, Ajna: cbBTC/usBTCd LP to Value, Ajna: cbBTC/usBTCd Drain Bucket, Ajna: cbBTC/usBTCd Move Liquidity, Ajna: cbBTC/usBTCd Move From Buffer, Ajna: cbBTC/usBTCd Move To Buffer, Ajna: usBTCd/webmx Is Paused, Ajna: usBTCd/webmx Get Buckets, Ajna: usBTCd/webmx Total Assets, Ajna: usBTCd/webmx LP to Value, Ajna: usBTCd/webmx Drain Bucket, Ajna: usBTCd/webmx Move Liquidity, Ajna: usBTCd/webmx Move From Buffer, Ajna: usBTCd/webmx Move To Buffer, Ajna: cbBTC/usBTCd Buffer Ratio, Ajna: cbBTC/usBTCd Min Bucket Index, Ajna: usBTCd/webmx Buffer Ratio, Ajna: usBTCd/webmx Min Bucket Index, Ajna: cbBTC/usBTCd Buffer Total, Ajna: usBTCd/webmx Buffer Total
-- **Chainlink**: Chainlink: CCIP Get Fee, Chainlink: CCIP Send, Chainlink: CCIP-BnM Drip (Testnet), Chainlink: CCIP Approve Bridge Token, Chainlink: CCIP Check Bridge Token Balance, Chainlink: CCIP Check Bridge Token Allowance, Chainlink: CCIP Approve Fee Token, Chainlink: CCIP Check Fee Token Balance, Chainlink: CCIP Check Fee Token Allowance, Chainlink: Get ETH/USD Latest Round Data, Chainlink: Get ETH/USD Decimals, Chainlink: Get BTC/USD Latest Round Data, Chainlink: Get BTC/USD Decimals, Chainlink: Get LINK/USD Latest Round Data, Chainlink: Get LINK/USD Decimals, Chainlink: Get USDC/USD Latest Round Data, Chainlink: Get USDC/USD Decimals, Chainlink: Get DAI/USD Latest Round Data, Chainlink: Get DAI/USD Decimals, Chainlink: Get USDT/USD Latest Round Data, Chainlink: Get USDT/USD Decimals, Chainlink: Get LINK/ETH Latest Round Data, Chainlink: Get LINK/ETH Decimals, Chainlink: Get BTC/ETH Latest Round Data, Chainlink: Get BTC/ETH Decimals, Chainlink: Get Latest Round Data (Custom Feed), Chainlink: Get Round Data (Custom Feed), Chainlink: Get Latest Answer (Custom Feed), Chainlink: Get Decimals (Custom Feed), Chainlink: Get Description (Custom Feed), Chainlink: Get Version (Custom Feed)
-- **Chronicle**: Chronicle: Read ETH/USD Value, Chronicle: Read ETH/USD Value with Age, Chronicle: Read BTC/USD Value, Chronicle: Read BTC/USD Value with Age, Chronicle: Read DAI/USD Value, Chronicle: Read DAI/USD Value with Age, Chronicle: Read USDC/USD Value, Chronicle: Read USDC/USD Value with Age, Chronicle: Read USDT/USD Value, Chronicle: Read USDT/USD Value with Age, Chronicle: Read LINK/USD Value, Chronicle: Read LINK/USD Value with Age, Chronicle: Read Oracle Value (Custom), Chronicle: Try Read Oracle Value (Custom), Chronicle: Read Oracle Value with Age (Custom), Chronicle: Try Read Oracle Value with Age (Custom), Chronicle: Whitelist on Oracle (Self)
-- **Compound V3**: Compound V3: Supply Asset, Compound V3: Withdraw Asset, Compound V3: Get Base Balance, Compound V3: Get Collateral Balance, Compound V3: Get Borrow Balance, Compound V3: Get Utilization, Compound V3: Get Supply Rate, Compound V3: Get Borrow Rate, Compound V3: Get Total Supply, Compound V3: Get Total Borrow, Compound V3: Is Liquidatable, Compound V3: Get Number of Assets
-- **CoW Swap**: CoW Swap: Get Domain Separator, CoW Swap: Get Vault Relayer, CoW Swap: Get Order Fill Amount, CoW Swap: Get Pre-Signature Status, CoW Swap: Set Pre-Signature, CoW Swap: Invalidate Order, CoW Swap: Check Conditional Order, CoW Swap: Get Cabinet Value, CoW Swap: Remove Conditional Order, CoW Swap: Create Conditional Order, Get Quote, Get Order Status, Create Order, Cancel Order, Get Account Orders, Get Trades
-- **Curve**: Curve: Get Expected Output, Curve: Get Virtual Price, Curve: Get Coin Address, Curve: Get Pool Balance, Curve: Calculate Withdraw One Coin, Curve: Exchange Tokens, Curve: Remove Liquidity (Single Coin), Curve: Get CRV Balance, Curve: Approve CRV, Curve: Transfer CRV
-- **Ethena**: Ethena: Vault Underlying Asset, Ethena: Vault Total Assets, Ethena: Vault Total Supply, Ethena: Vault Share Balance, Ethena: Convert Assets to Shares, Ethena: Convert Shares to Assets, Ethena: Max Vault Deposit, Ethena: Preview Vault Deposit, Ethena: Vault Deposit, Ethena: Max Vault Mint, Ethena: Preview Vault Mint, Ethena: Vault Mint, Ethena: Max Vault Withdraw, Ethena: Preview Vault Withdraw, Ethena: Vault Withdraw, Ethena: Max Vault Redeem, Ethena: Preview Vault Redeem, Ethena: Vault Redeem, Ethena: Cooldown Assets, Ethena: Cooldown Shares, Ethena: Get Cooldown Duration, Ethena: Get Cooldown Status, Ethena: Unstake (Claim After Cooldown), Ethena: Get USDe Balance, Ethena: Approve USDe Spending, Ethena: Get ENA Balance
-- **Frax Ether V2**: Frax Ether V2: Mint frxETH, Frax Ether V2: Mint frxETH to Recipient, Frax Ether V2: Mint and Stake into sfrxETH, Frax Ether V2: Check Mint Pause Status
-- **Lido**: Lido: Wrap stETH to wstETH, Lido: Unwrap wstETH to stETH, Lido: Get stETH by wstETH, Lido: Get wstETH by stETH, Lido: stETH Per Token (Exchange Rate), Lido: wstETH Per stETH (Inverse Rate), Lido: Get wstETH Balance, Lido: Get wstETH Total Supply, Lido: Get stETH Balance, Lido: Approve stETH Spending
-- **Morpho**: Morpho: Get Position, Morpho: Get Market, Morpho: Get Market Params, Morpho: Check Authorization, Morpho: Set Authorization, Morpho: Flash Loan, Morpho: Supply, Morpho: Withdraw, Morpho: Supply Collateral, Morpho: Borrow, Morpho: Repay, Morpho: Withdraw Collateral, Morpho: Liquidate, Morpho: Accrue Interest, Morpho: Vault Deposit, Morpho: Vault Mint, Morpho: Vault Withdraw, Morpho: Vault Redeem, Morpho: Vault Underlying Asset, Morpho: Vault Total Assets, Morpho: Vault Total Supply, Morpho: Vault Share Balance, Morpho: Convert Shares to Assets, Morpho: Convert Assets to Shares, Morpho: Preview Vault Deposit, Morpho: Preview Vault Mint, Morpho: Preview Vault Withdraw, Morpho: Preview Vault Redeem, Morpho: Max Vault Deposit, Morpho: Max Vault Mint, Morpho: Max Vault Withdraw, Morpho: Max Vault Redeem
-- **Pendle Finance**: Pendle Finance: Mint PT and YT from SY, Pendle Finance: Redeem PT and YT to SY, Pendle Finance: Get vePENDLE Balance, Pendle Finance: Get vePENDLE Total Supply, Pendle Finance: Get vePENDLE Lock Position, Pendle Finance: Get Market Expiry, Pendle Finance: Is Market Expired, Pendle Finance: Get LP Balance, Pendle Finance: Get Active LP Balance, Pendle Finance: Get PT Balance, Pendle Finance: Is PT Expired, Pendle Finance: Get YT Balance, Pendle Finance: Get SY Balance, Pendle Finance: Get SY Exchange Rate
-- **Rocket Pool**: Rocket Pool: Get rETH Exchange Rate, Rocket Pool: Get rETH Balance, Rocket Pool: Get rETH Total Supply, Rocket Pool: Get Total ETH Collateral, Rocket Pool: Burn rETH for ETH, Rocket Pool: Deposit ETH for rETH
-- **Safe**: Safe: Get Owners, Safe: Get Threshold, Safe: Is Owner, Safe: Get Nonce, Safe: Is Module Enabled, Safe: Get Modules Paginated, Get Pending Transactions
-- **Sky**: Sky: Vault Deposit, Sky: Vault Mint, Sky: Vault Withdraw, Sky: Vault Redeem, Sky: Vault Underlying Asset, Sky: Vault Total Assets, Sky: Vault Total Supply, Sky: Vault Share Balance, Sky: Convert Shares to Assets, Sky: Convert Assets to Shares, Sky: Preview Vault Deposit, Sky: Preview Vault Mint, Sky: Preview Vault Withdraw, Sky: Preview Vault Redeem, Sky: Max Vault Deposit, Sky: Max Vault Mint, Sky: Max Vault Withdraw, Sky: Max Vault Redeem, Sky: stUSDS Vault Deposit, Sky: stUSDS Vault Mint, Sky: stUSDS Vault Withdraw, Sky: stUSDS Vault Redeem, Sky: stUSDS Vault Underlying Asset, Sky: stUSDS Vault Total Assets, Sky: stUSDS Vault Total Supply, Sky: stUSDS Vault Share Balance, Sky: stUSDS Convert Shares to Assets, Sky: stUSDS Convert Assets to Shares, Sky: stUSDS Preview Vault Deposit, Sky: stUSDS Preview Vault Mint, Sky: stUSDS Preview Vault Withdraw, Sky: stUSDS Preview Vault Redeem, Sky: stUSDS Max Vault Deposit, Sky: stUSDS Max Vault Mint, Sky: stUSDS Max Vault Withdraw, Sky: stUSDS Max Vault Redeem, Sky: Get USDS Balance, Sky: Approve USDS Spending, Sky: Get DAI Balance, Sky: Approve DAI Spending, Sky: Get SKY Balance, Sky: Convert DAI to USDS, Sky: Convert USDS to DAI, Sky: Convert MKR to SKY
-- **Spark**: Spark: Supply Asset, Spark: Withdraw Asset, Spark: Borrow Asset, Spark: Repay Debt, Spark: Set Asset as Collateral, Spark: Get User Account Data, Spark: Get User Reserve Data, Spark: Vault Deposit, Spark: Vault Mint, Spark: Vault Withdraw, Spark: Vault Redeem, Spark: Vault Underlying Asset, Spark: Vault Total Assets, Spark: Vault Total Supply, Spark: Vault Share Balance, Spark: Convert Shares to Assets, Spark: Convert Assets to Shares, Spark: Preview Vault Deposit, Spark: Preview Vault Mint, Spark: Preview Vault Withdraw, Spark: Preview Vault Redeem, Spark: Max Vault Deposit, Spark: Max Vault Mint, Spark: Max Vault Withdraw, Spark: Max Vault Redeem
-- **Superfluid**: Superfluid: Open Money Stream, Superfluid: Update Stream Rate, Superfluid: Close Money Stream, Superfluid: Read Flow Between Two Addresses, Superfluid: Read CFA Net Flow Rate of an Address, Superfluid: Grant Flow-Operator Permissions, Superfluid: Create Distribution Pool, Superfluid: Set Member Units in a Pool, Superfluid: Instant Distribution to a Pool, Superfluid: Stream Into a Pool, Superfluid: Connect to a Pool (Member Opt-In), Superfluid: Read Net Flow Rate of an Address, Superfluid: Wrap to SuperToken, Superfluid: Unwrap from SuperToken, Superfluid: Get SuperToken Balance, Superfluid: Get Underlying ERC-20 Address
-- **Uniswap V3**: Uniswap V3: Get Pool Address, Uniswap V3: Get Position Details, Uniswap V3: Get Position Count, Uniswap V3: Get Position Owner, Uniswap V3: Approve Position Transfer, Uniswap V3: Transfer Position NFT, Uniswap V3: Burn Empty Position, Uniswap V3: Swap Exact Input, Uniswap V3: Swap Exact Output, Uniswap V3: Quote Exact Input, Uniswap V3: Quote Exact Output
-- **Wrapped**: Wrapped: Wrap Native Token, Wrapped: Unwrap Wrapped Token, Wrapped: Check Wrapped Token Balance
-- **Yearn V3**: Yearn V3: Vault Deposit, Yearn V3: Vault Mint, Yearn V3: Vault Withdraw, Yearn V3: Vault Redeem, Yearn V3: Vault Underlying Asset, Yearn V3: Vault Total Assets, Yearn V3: Vault Total Supply, Yearn V3: Vault Share Balance, Yearn V3: Convert Shares to Assets, Yearn V3: Convert Assets to Shares, Yearn V3: Preview Vault Deposit, Yearn V3: Preview Vault Mint, Yearn V3: Preview Vault Withdraw, Yearn V3: Preview Vault Redeem, Yearn V3: Max Vault Deposit, Yearn V3: Max Vault Mint, Yearn V3: Max Vault Withdraw, Yearn V3: Max Vault Redeem, Yearn V3: Price Per Share, Yearn V3: Total Idle Assets, Yearn V3: Total Debt, Yearn V3: Is Vault Shutdown, Yearn V3: API Version, Yearn V3: Profit Max Unlock Time, Yearn V3: Full Profit Unlock Date, Yearn V3: Vault Accountant, Yearn V3: Deposit Limit, Yearn V3: Role Manager, Yearn V3: Use Default Queue, Yearn V3: Minimum Total Idle, Yearn V3: Vault Decimals
-- **AI Gateway**: Generate Text, Generate Image
-- **Arc**: Bridge USDC, Retry bridge, Estimate bridge, Swap on Arc, Swap and bridge, Get swap status, Estimate swap, Send on Arc, Estimate send, UB deposit, UB deposit for, UB spend, UB add delegate, UB remove delegate, UB delegate status, UB initiate remove fund, UB complete remove fund, UB get balances, Estimate spend, Get token rates, Get supported chains, Get Arc config, List genesis addresses, Get native USDC balance, Get USDC ERC-20 balance, Get EURC balance, Estimate USDC gas, Wait finality, Decode system emitter, Attach memo, Deploy on Arc, Read contract, Write contract, ERC-8004 register, ERC-8183 create job, USYC info, StableFX quote, StableFX execute, StableFX status
-- **Blob**: Put Blob, List Blobs
-- **Blockscout**: Get Address Balance, Get Address Info, Get Address Counters, Get Transaction, Get Token Info
-- **Circle**: Create wallet set, Create wallet, Get wallet, List wallets, List balances, Create transfer, Get transaction, Sign typed data, Deposit for burn, Get Iris attestation, Receive mint, Get domains, Get Gateway balances, Create Gateway transfer, Deposit to Gateway, Get nanopayment balance, Check x402 support, Pay x402, Settle x402, Discover agent services, Withdraw from Gateway, Import contract, List contracts, Get contract, Update contract, Query contract, Deploy bytecode, Deploy template, Estimate deploy fee, Create event monitor, List event monitors, Update event monitor, Delete event monitor, List event logs, Lookup token address, Get USDC balance, Get EURC balance, Transfer USDC, Transfer EURC, Approve USDC, Check USDC allowance, Mint ping, Mint get balances, Mint create transfer, Mint get transfer, Mint list transfers, Create payment intent, Get payment intent, List payments, Create payout, Get payout
-- **Clerk**: Get User, Create User, Update User, Delete User
-- **Code**: Run Code
-- **Discord**: Send Discord Message
-- **fal.ai**: Generate Image, Generate Video, Upscale Image, Remove Background, Image to Image
-- **Fantasy Premier League**: Search players, Get player, Get live scores, Get fixtures, Get teams, Get gameweeks, Get event winners, Get dream team, Get manager, Get manager history, Get manager picks, Get manager transfers, Get classic standings, Rank top two, Get H2H standings
-- **Firecrawl**: Scrape URL, Search Web
-- **GitHub**: Create Issue, List Issues, Get Issue, Update Issue
-- **Hyperliquid**: Get Clearinghouse State, Get Vault Details, Get Validator Summaries, Get Funding History, Get Spot Deploy State, Get Referral State, Get Sub-Accounts, Get Active Asset Data
-- **Linear**: Create Ticket, Find Issues
-- **Math**: Aggregate
-- **Perplexity**: Search Web, Ask Question, Research Topic
-- **Privy**: Get user, List wallets, Create wallet, Get wallet, Send sponsored transaction, Sign message, Sign typed data, Transfer, Get transaction, Wallet transfer (USDC), Wallet swap, Create policy, Create key quorum, Create transfer intent, Get intent
-- **Resend**: Send Email
-- **Email**: Send Email
-- **Slack**: Send Slack Message
-- **Stripe**: Create Customer, Get Customer, Create Invoice
-- **Supabase**: Get latest row, Query table
-- **Superagent**: Guard, Redact
-- **Telegram**: Send Telegram Message
-- **The Graph**: Search subgraphs, Recommend subgraph, Get subgraph detail, Get schema, Find subgraphs by contract, Query subgraph, Get indexing status, Query lending snapshot, Get token balances, Get token transfers, Get token holders, Get DEX swaps, Get NFT activity, Search Substreams packages, Get package, Get default endpoint, Query Substreams entity, Resolve Substreams package, Substreams webhook setup, Get Substreams stream status, Get subscription, Get usage summary, Get bill preview, Get active connections, List hosted deployments, Get deployment state, Get deployment events, Get deployment logs
-- **Treasury**: Get org wallet, List payees, Get personal wallet
-- **v0**: Create Chat, Send Message
-- **Web3**: Get Native Token Balance, Get ERC20 Token Balance, Transfer Native Token, Transfer ERC20 Token, Read Contract, Get Transaction, Decode Calldata, Assess Transaction Risk, Query Contract Events, Query Transaction History, Batch Read Contract, Batch Write Contract, Approve ERC20 Token, Check ERC20 Allowance, Write Contract
-- **Webflow**: List Sites, Get Site, Publish Site
-- **Webhook**: Send Webhook
-<!-- PLUGINS:END -->
-
-Built on [Workflow DevKit](https://useworkflow.dev) with `"use workflow"` code export, Better Auth, Drizzle, and React Flow.
 
 ## License
 

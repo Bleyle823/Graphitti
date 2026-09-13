@@ -1,0 +1,292 @@
+---
+title: Featured example workflows
+description: Step-by-step guides to run starred templates for The Graph, Privy, Arc, Circle, Stripe, Telegram, and Supabase—with credential sources and placeholder troubleshooting.
+---
+
+Starred examples appear first in the workflow gallery and in **Saved workflows** after you connect a wallet. Use this page when you demo integrations or rehearse sponsor flows on [graphitti-five.vercel.app](https://graphitti-five.vercel.app) or locally.
+
+<CardGroup cols={2}>
+  <Card title="Browser basics" href="/getting-started/browser">
+    Connect wallet, open saved examples, run manual triggers.
+  </Card>
+  <Card title="Organization treasury" href="/treasury/overview">
+    Org wallet, payees, 10 USDC cap, intent approval.
+  </Card>
+</CardGroup>
+
+## Starred workflow list
+
+| Workflow | Primary integrations | Trigger |
+| --- | --- | --- |
+| Uniswap V3 large swap alert (subgraph) | The Graph, Telegram | Schedule (15 min) or switch to Manual |
+| Kelp rsETH Backing Monitor (Substreams → Supabase) | The Graph, Supabase, Telegram, KeeperHub | Ethereum block |
+| Arc DeFi treasury readiness | Circle, Arc, Treasury, Telegram | Manual |
+| FPL League Top Two USDC Payouts | FPL, Arc, Circle, Telegram | Manual |
+| Payroll batch with intent fallback | Privy, Treasury, Telegram | Manual |
+| Stripe invoice to Privy USDC settlement | Stripe, Privy, Treasury, Telegram | Manual |
+| Privy Gasless Payroll | Privy, Telegram | Schedule (monthly) |
+| Aave Uniswap USDC keeper | The Graph, Privy, Treasury, Telegram | Manual |
+| Org USDC waterline keeper | Privy, Treasury, Circle, Telegram | Manual |
+
+---
+
+## Setup once (all examples)
+
+<Steps>
+  <Step title="Sign in and connect wallet">
+    Click **Connect wallet**. Privy links your login wallet and provisions an embedded wallet for gasless steps (including Arc native USDC sends).
+  </Step>
+  <Step title="Open Project Integrations">
+    In the app, open **Project Integrations** (settings). Add each integration your workflow needs, then click **Test connection** before running.
+  </Step>
+  <Step title="Duplicate or use saved copy">
+    Pick a starred template from the gallery or **Saved workflows**. Duplicate if you want a personal copy to edit without changing the seed example.
+  </Step>
+  <Step title="Bind integrations on nodes">
+    For plugin steps, open the node inspector and select the integration you created (The Graph, Telegram, Stripe, Supabase, Circle, Privy). Unbound nodes fail at run time even when server env vars exist.
+  </Step>
+  <Step title="Run and read logs">
+    Click **Run** (or deploy for block/schedule triggers). Open the run log per node. A red Telegram node after green Graph/Privy steps usually means notification only—not a failed core integration.
+  </Step>
+</Steps>
+
+### Where credentials live
+
+| Credential | Where to set | How to obtain |
+| --- | --- | --- |
+| `THEGRAPH_API_KEY` | Vercel/host env or local `.env.local` | [Subgraph Studio](https://thegraph.com/studio/) → API key (32-char gateway key) |
+| `SUBSTREAMS_API_KEY` | Same | The Graph Market / Substreams access token if you use hosted Substreams actions |
+| Privy app | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY` | [Privy Dashboard](https://dashboard.privy.io) → App settings |
+| `CIRCLE_API_KEY` | Project Integrations **Circle** or env | [Circle Developer Console](https://developers.circle.com/) |
+| `STRIPE_SECRET_KEY` | Project Integrations **Stripe** | [Stripe Dashboard → API keys](https://dashboard.stripe.com/apikeys) (`sk_test_...` for demos) |
+| `TELEGRAM_BOT_TOKEN` | Project Integrations **Telegram** or env `TELEGRAM_BOT_TOKEN` | [@BotFather](https://t.me/BotFather) → `/newbot` |
+| Telegram **chat ID** | On each **Send Telegram** node (`chatId` field) | See [Telegram chat ID](#telegram-chat-id) below |
+| Stripe **customer ID** | **Create Stripe invoice** node (`customerId`) | See [Stripe customer ID](#stripe-customer-id) below |
+| Supabase | Project Integrations **Supabase** | [Project Settings → API](https://supabase.com/dashboard/project/_/settings/api): URL + anon key |
+| Org treasury | **Treasury** UI (not an env var) | Create org wallet, fund Base Sepolia USDC, add payees |
+
+Local development: copy `graphitti/.env.example` to `.env.local` and fill the rows above. Hosted app: platform Privy/Graph keys are on the deployment; per-user keys go through **Project Integrations**.
+
+---
+
+## Placeholders, warnings, and when to proceed anyway
+
+Templates ship with demo values so the graph is runnable on first open. Many flows **branch on conditions** so the run still **completes** even when a notification or payout path is skipped.
+
+### Common placeholder values
+
+| Placeholder | Where | If you leave it |
+| --- | --- | --- |
+| `YOUR_TELEGRAM_CHAT_ID` | Telegram action nodes | Telegram step errors (`chat not found` / invalid chat). **Earlier nodes can still succeed.** |
+| `cus_...` from template (Stripe) | Stripe invoice node | Invoice fails if that customer is not in **your** Stripe account. Use your own `cus_` or email-only invoice path. |
+| Demo payee addresses | Payroll / Stripe payout | Transfers fail policy or onchain if addresses are not on your payee book or wrong chain. |
+| FPL `leagueId` `962707` | FPL nodes | Works only for that league; change to your mini-league ID. |
+| FPL prize pool address | **Get Prize Pool USDC** | Must be the Arc wallet that holds pool USDC (often your embedded wallet address on Arc). |
+| Kelp / Supabase | **Get latest row** | Empty or error if SQL sink is not writing `backing_snapshots`. |
+
+### When the workflow still “worked” for a demo
+
+<AccordionGroup>
+  <Accordion title="Telegram failed but Graph / Privy / Arc succeeded">
+    If **Query subgraph**, **Get org wallet**, **wallet-transfer**, or **send-on-arc** show success in the log, the sponsor integration is proven. Telegram is optional for the demo. Either set `chatId` or ignore the red Telegram node and point reviewers to the successful upstream log lines.
+  </Accordion>
+  <Accordion title="Condition took the false branch (fund / hold / underfunded)">
+    Examples: **Arc DeFi** “fund source chain”, **FPL** underfunded pool, **Org waterline** hold, **Aave keeper** “refill held”. The workflow is designed to **finish on that branch** with a Telegram or log message and **no transfer**. That is success for a read-only or guardrail demo—proceed without forcing the true branch unless you need onchain payout proof.
+  </Accordion>
+  <Accordion title="Stripe invoice missing but you only care about Privy payout">
+    The template gates USDC on invoice id. For a Privy-only rehearsal, run **Payroll batch with intent fallback** instead, or fix Stripe customer id / secret key first.
+  </Accordion>
+  <Accordion title="Canvas shows sticky-note warnings">
+    Blue notes on the canvas list what to connect. They are not execution errors. You can run while notes still mention Telegram; only the Telegram node will fail until `chatId` is set.
+  </Accordion>
+  <Accordion title="Intent pending approval">
+    **Payroll batch** creates a 25 USDC intent above the 10 USDC auto cap. Open **Treasury → Pending intents → Approve** with the owner quorum. The 10 USDC leg may succeed while the intent stays `pending` until approved—that is expected.
+  </Accordion>
+</AccordionGroup>
+
+### Typical error messages
+
+| Message | Likely cause | Fix or proceed |
+| --- | --- | --- |
+| `THEGRAPH_API_KEY is not configured` | Missing gateway key | Add key to env or bind The Graph integration with key |
+| `TELEGRAM_BOT_TOKEN` / chat errors | Missing bot token or `YOUR_TELEGRAM_CHAT_ID` | Add token; set numeric chat id—or proceed if upstream ok |
+| `No org wallet` / treasury errors | Org not created | **Treasury → Create** org first |
+| `insufficient funds` / gas (Base Sepolia) | Org or embedded wallet empty | Fund treasury or embedded wallet with Base Sepolia USDC (+ ETH if user-pays gas) |
+| Privy policy rejected | Payee not allowlisted or over cap | Add payee in Treasury or use intent path |
+| Supabase `has_match: false` | No rows in `backing_snapshots` | Run Substreams SQL sink ([substreams README](https://github.com/Bleyle823/Graphitti/blob/main/substreams/README.md)) |
+| Stripe `No such customer` | Wrong `customerId` for your account | Create customer in Stripe; paste new `cus_` on node |
+
+---
+
+## Telegram chat ID
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token into **Project Integrations → Telegram**.
+2. Open a chat with your bot (or add it to a group and send a message).
+3. Call `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in a browser.
+4. Find `"chat":{"id":123456789}` in the JSON. Use that number on **every** Telegram node in the workflow (replace `YOUR_TELEGRAM_CHAT_ID`).
+5. For channels, use `@channelusername` if your bot is an admin, or the numeric `-100...` id from `getUpdates`.
+
+---
+
+## Stripe customer ID
+
+The **Stripe invoice to Privy USDC settlement** template ships with a demo `customerId` that only exists in the author’s Stripe account. For your account:
+
+1. Open [Stripe Dashboard → Customers](https://dashboard.stripe.com/customers).
+2. Create a customer (or pick one) and copy the ID (`cus_...`).
+3. Paste it on **Create Stripe invoice → Customer ID**, or clear `customerId` and rely on **Email** + **Name** fields—the step can create a customer when email is set and id is empty.
+4. Set **Project Integrations → Stripe** with `sk_test_...` for test mode.
+5. The demo **contractor address** on **Pay contractor USDC** must match a Treasury payee if policy requires allowlisting.
+
+---
+
+## The Graph workflows
+
+### Uniswap V3 large swap alert (subgraph)
+
+**Proves:** Gateway GraphQL against Uniswap V3 Ethereum (`5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`).
+
+<Steps>
+  <Step title="Integrations">
+    Add **The Graph** with Studio API key. Add **Telegram** (optional for core demo).
+  </Step>
+  <Step title="Edit nodes">
+    Bind The Graph on **Query Uniswap V3**. Set **chatId** on both Telegram nodes (alert + all-clear). Adjust `amountUSD_gt` in the GraphQL query if needed.
+  </Step>
+  <Step title="Run">
+    Change trigger to **Manual** for a one-click demo, or wait for the 15-minute schedule. Every run sends Telegram: swap alert if matches exist, all-clear otherwise.
+  </Step>
+</Steps>
+
+**Proceed anyway:** If Telegram fails, confirm **Query Uniswap V3** returns `data.swaps` in the log.
+
+### Aave Uniswap USDC keeper
+
+**Proves:** Two subgraph reads (Aave V3 Messari + Uniswap V3 pool) and optional Base Sepolia USDC payout from org treasury.
+
+<Steps>
+  <Step title="Treasury">
+    Create org treasury and fund Base Sepolia USDC.
+  </Step>
+  <Step title="Integrations">
+    The Graph, Privy/Treasury (implicit via org steps), Telegram.
+  </Step>
+  <Step title="Run">
+    Manual trigger. **Markets live?** condition: if TVL checks pass, sends 1 USDC keeper buffer; if not, **refill held** Telegram branch runs and **no transfer**—still a complete run.
+  </Step>
+</Steps>
+
+### Kelp rsETH Backing Monitor (Substreams → Supabase)
+
+**Proves:** Live `backing_snapshots` row + conditional alert (Substreams + Supabase + The Graph story).
+
+<Steps>
+  <Step title="Supabase">
+    Add URL + anon key. Table `backing_snapshots` must receive rows from Substreams SQL sinks (see repo `substreams/README.md`).
+  </Step>
+  <Step title="Workflow">
+    Bind **Supabase** on **Get latest row**. Set Telegram **chatId** on alert and heartbeat nodes.
+  </Step>
+  <Step title="Deploy">
+    Block trigger on Ethereum mainnet requires **KeeperHub** (or equivalent scheduler) after deploy—not only manual run.
+  </Step>
+  <Step title="Run">
+    On alert: `should_alert === true` → unbacked mint Telegram. On false: backing-OK heartbeat Telegram. **Both paths complete the workflow.**
+  </Step>
+</Steps>
+
+**Proceed anyway:** Manual run with empty table shows Supabase error on **Get latest row**; fix sink first. If Telegram fails after a successful row read, Substreams+Supabase path is still demonstrated.
+
+---
+
+## Privy and treasury workflows
+
+### Payroll batch with intent fallback
+
+**Proves:** Wallet-actions under cap (10 USDC), transfer intent above cap (25 USDC), Base Sepolia USDC.
+
+<Steps>
+  <Step title="Treasury">
+    Create org, set auto cap **10 USDC**, fund wallet, add demo payees matching template addresses (or edit node destinations to your payees).
+  </Step>
+  <Step title="Run">
+    Manual **Run payroll batch**. Approve pending intent in **Treasury** for the 25 USDC leg if required.
+  </Step>
+  <Step title="Telegram">
+    Optional report at end; set **chatId** or ignore Telegram errors.
+  </Step>
+</Steps>
+
+### Stripe invoice to Privy USDC settlement
+
+**Proves:** Stripe invoice + org **wallet-transfer** USDC on Base Sepolia.
+
+Follow [Stripe customer ID](#stripe-customer-id). Connect Stripe, Privy, Treasury, Telegram. Run **Demo invoice run**. False branch **Send payout held notice** still completes when invoice id is missing—use that to show guardrails, or fix Stripe to hit the payout branch.
+
+### Privy Gasless Payroll
+
+**Proves:** Privy **transfer** (sponsored) on Sepolia ETH to three contractors.
+
+Replace hardcoded `walletId` on pay nodes with a wallet from **List Privy Wallets** in your app. Set Telegram **chatId**. Scheduled monthly by default—switch trigger to Manual for demos.
+
+### Org USDC waterline keeper
+
+**Proves:** Circle USDC balance read + conditional org payout.
+
+Create treasury, fund above waterline in template condition, bind Circle on balance node. False branch sends “payout held” Telegram—valid completed run without transfer.
+
+---
+
+## Arc and Circle workflows
+
+### Arc DeFi treasury readiness
+
+**Proves:** Circle USDC balance (Base Sepolia), CCTP domains, Arc bridge estimate, Arc ERC-20 USDC balance—**no onchain writes**.
+
+<Steps>
+  <Step title="Integrations">
+    Circle, Arc, Treasury, Telegram.
+  </Step>
+  <Step title="Inspect">
+    **Base Sepolia USDC** must use network `base-sepolia` and org wallet address from **Get org wallet**.
+  </Step>
+  <Step title="Run">
+    Manual **DeFi readiness run**. Funded branch: swap estimate + GO Telegram. Unfunded branch: fund Telegram—**both are successful end states.**
+  </Step>
+</Steps>
+
+### FPL League Top Two USDC Payouts
+
+**Proves:** Public FPL reads + conditional Arc native USDC sends (5 / 3 USDC).
+
+<Steps>
+  <Step title="League">
+    In FPL web app, open your mini-league; copy league id from URL (`leagueId=`). Paste on **Get League Standings** and **Rank Top Two**.
+  </Step>
+  <Step title="Roster JSON">
+    On **Rank Top Two**, edit roster JSON: `team` names must match FPL entry names (emoji stripped), `address` = Arc recipient wallets.
+  </Step>
+  <Step title="Prize pool">
+    On **Get Prize Pool USDC**, set **address** to the Arc wallet that holds pool USDC (fund embedded wallet on Arc Testnet). Balance must cover `totalPrizeUsdc` (8 USDC default).
+  </Step>
+  <Step title="Run">
+    Manual run after gameweek. Underfunded branch sends Telegram and skips Arc sends—still completes.
+  </Step>
+</Steps>
+
+Arc sends use your **linked embedded wallet** via Privy sponsorship, not the prize-pool address field (that node is only a balance check).
+
+---
+
+## Quick rehearsal map (by sponsor)
+
+| Sponsor focus | Fastest starred workflow | Minimum setup |
+| --- | --- | --- |
+| The Graph | Uniswap V3 large swap alert | `THEGRAPH_API_KEY`, Manual run |
+| The Graph + Supabase | Kelp monitor | Supabase + sink rows (+ KeeperHub if deployed) |
+| Privy B2B | Payroll batch with intent fallback | Org treasury + fund + payees |
+| Privy + Stripe | Stripe invoice to Privy USDC | Stripe key + your `cus_` + treasury |
+| Arc / Circle | Arc DeFi treasury readiness | Treasury + Circle (Telegram optional) |
+| Arc payouts | FPL League Top Two | League id, roster, Arc-funded wallet |
+
+For integration field reference, see [Privy](/plugins/privy), [The Graph](/plugins/the-graph), [Circle](/plugins/circle), [Arc](/plugins/arc), [Supabase](/plugins/supabase), and [Treasury overview](/treasury/overview).
