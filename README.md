@@ -5,12 +5,6 @@
 
 Graphitti is the execution layer for businesses, users, and developers onchain: visual workflows that watch chain state (The Graph), send USDC (Privy and Arc), and sell the same graph per call over Circle Gateway x402.
 
-<p align="center">
-  <video src="docs/media/graphitti-workflow-demo.mp4" width="720" controls playsinline>
-    Your browser does not support embedded video. <a href="docs/media/graphitti-workflow-demo.mp4">Download the Graphitti workflow demo</a>.
-  </video>
-</p>
-
 
 
 | Link | URL |
