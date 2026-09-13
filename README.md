@@ -1,12 +1,17 @@
+
+<img width="2000" height="611" alt="logo wide" src="https://github.com/user-attachments/assets/af2bd4c7-3ef6-47fc-b53f-496aa17fbdbf" />
+
+# Graphitti
+
+Graphitti is the execution layer for businesses, users, and developers onchain: visual workflows that watch chain state (The Graph), send USDC (Privy and Arc), and sell the same graph per call over Circle Gateway x402.
+
 <p align="center">
   <video src="docs/media/graphitti-workflow-demo.mp4" width="720" controls playsinline>
     Your browser does not support embedded video. <a href="docs/media/graphitti-workflow-demo.mp4">Download the Graphitti workflow demo</a>.
   </video>
 </p>
 
-# Graphitti
 
-Graphitti is the execution layer for businesses, users, and developers onchain: visual workflows that watch chain state (The Graph), send USDC (Privy and Arc), and sell the same graph per call over Circle Gateway x402.
 
 | Link | URL |
 |------|-----|
