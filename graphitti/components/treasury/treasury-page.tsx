@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthorizationSignature } from "@privy-io/react-auth";
 import { Building2, Plus, Trash2, Wallet } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -310,6 +311,7 @@ export function TreasuryPage(): React.ReactElement {
   const [payeeAmount, setPayeeAmount] = useState("25");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const autoProvisionedOrgRef = useRef<string | null>(null);
+  const { generateAuthorizationSignature } = useAuthorizationSignature();
 
   const loadTreasury = useCallback(async (silent = false) => {
     if (!silent) {
@@ -600,12 +602,53 @@ export function TreasuryPage(): React.ReactElement {
     if (!data?.activeOrganizationId) {
       return;
     }
-    const response = await fetch(`/api/treasury/intents/${intentId}`, {
+    const encodedIntentId = encodeURIComponent(intentId);
+    const orgQuery = encodeURIComponent(data.activeOrganizationId);
+
+    const prepResponse = await fetch(
+      `/api/treasury/intents/${encodedIntentId}?organizationId=${orgQuery}`
+    );
+    const prepResult = (await prepResponse.json()) as {
+      error?: string;
+      signInput?: {
+        timestamp: number;
+        version: 1;
+        method: "POST" | "PUT" | "PATCH" | "DELETE";
+        url: string;
+        body: unknown;
+        intent_id: string;
+        headers: { "privy-app-id": string };
+      };
+    };
+    if (!(prepResponse.ok && prepResult.signInput)) {
+      toast.error(prepResult.error ?? "Failed to prepare intent approval");
+      return;
+    }
+
+    const { signInput } = prepResult;
+    let signature: string;
+    try {
+      const signed = await generateAuthorizationSignature(signInput);
+      signature = signed.signature;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Privy could not sign this approval. Connect your wallet and try again."
+      );
+      return;
+    }
+
+    const response = await fetch(`/api/treasury/intents/${encodedIntentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organizationId: data.activeOrganizationId }),
+      body: JSON.stringify({
+        organizationId: data.activeOrganizationId,
+        signature,
+        timestamp: signInput.timestamp,
+      }),
     });
-    const result = await response.json();
+    const result = (await response.json()) as { error?: string };
     if (!response.ok) {
       toast.error(result.error ?? "Failed to approve intent");
       return;
@@ -618,14 +661,17 @@ export function TreasuryPage(): React.ReactElement {
     if (!data?.activeOrganizationId) {
       return;
     }
-    const response = await fetch(`/api/treasury/intents/${intentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        organizationId: data.activeOrganizationId,
-        action: "reject",
-      }),
-    });
+    const response = await fetch(
+      `/api/treasury/intents/${encodeURIComponent(intentId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: data.activeOrganizationId,
+          action: "reject",
+        }),
+      }
+    );
     const result = await response.json();
     if (!response.ok) {
       toast.error(result.error ?? "Failed to reject intent");
