@@ -198,7 +198,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           config: {
             actionType: "Condition",
             condition:
-              '{{@fpl-rank:Rank Top Two.ready}} === true && Number("{{@circle-balance:Get Prize Pool USDC.nativeBalance}}") >= Number("{{@fpl-rank:Rank Top Two.totalPrizeUsdc}}")',
+              "{{@fpl-rank:Rank Top Two.ready}} == true && Number({{@circle-balance:Get Prize Pool USDC.nativeBalance}}) >= Number({{@fpl-rank:Rank Top Two.totalPrizeUsdc}})",
           },
           status: "idle",
           description:

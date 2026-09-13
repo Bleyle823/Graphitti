@@ -96,6 +96,14 @@ const NUMBER_TOKEN_PATTERN = /^\d/;
 const LITERAL_TOKEN_PATTERN = /^(true|false|null|undefined)$/;
 const OPERATOR_TOKEN_PATTERN = /^(===|!==|==|!=|>=|<=|>|<|&&|\|\||!|\(|\))$/;
 const IDENTIFIER_TOKEN_PATTERN = /^[a-zA-Z_]\w*$/;
+const QUOTED_TEMPLATE_PATTERN = /(["'])(\{\{@[^}]+\}\})\1/g;
+const ALLOWED_IDENTIFIERS = new Set([
+  "Number",
+  "parseFloat",
+  "parseInt",
+  "Boolean",
+  "String",
+]);
 
 export type ValidationResult =
   | { valid: true }
@@ -257,7 +265,11 @@ function checkUnauthorizedIdentifiers(expression: string): ValidationResult {
     }
 
     // Check if it looks like an unauthorized identifier
-    if (IDENTIFIER_TOKEN_PATTERN.test(token) && !token.startsWith("__v")) {
+    if (
+      IDENTIFIER_TOKEN_PATTERN.test(token) &&
+      !token.startsWith("__v") &&
+      !ALLOWED_IDENTIFIERS.has(token)
+    ) {
       return {
         valid: false,
         error: `Unknown identifier "${token}" in condition. Use template variables like {{@nodeId:Label.field}} to reference workflow data.`,
@@ -316,9 +328,19 @@ export function validateConditionExpression(
 }
 
 /**
+ * Quotes around `{{@node:Label.field}}` stringify the generated variable name
+ * (`Number("__v0")` → NaN) instead of the resolved value. Strip them so
+ * `Number("{{@node:Label.amount}}")` becomes `Number({{@node:Label.amount}})`.
+ */
+export function unwrapQuotedConditionTemplates(expression: string): string {
+  return expression.replace(QUOTED_TEMPLATE_PATTERN, "$2");
+}
+
+/**
  * Check if a raw expression (before template replacement) looks safe
  * This is a quick pre-check before the more thorough validation
  */
+
 export function preValidateConditionExpression(
   expression: string
 ): ValidationResult {

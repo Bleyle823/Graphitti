@@ -3,10 +3,7 @@
  * This executor captures step executions through the workflow SDK for better observability
  */
 
-import {
-  preValidateConditionExpression,
-  validateConditionExpression,
-} from "@/lib/condition-validator";
+import { evaluateConditionExpression } from "@/lib/condition-eval";
 import {
   getActionLabel,
   getStepImporter,
@@ -116,116 +113,6 @@ export type WorkflowExecutionInput = {
 };
 
 /**
- * Helper to replace template variables in conditions
- */
-// biome-ignore lint/nursery/useMaxParams: Helper function needs all parameters for template replacement
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template variable replacement requires nested logic for standardized outputs
-function replaceTemplateVariable(
-  nodeId: string,
-  rest: string,
-  outputs: NodeOutputs,
-  evalContext: Record<string, unknown>,
-  varCounter: { value: number }
-): string {
-  const value = resolveNewFormatTemplateValue(nodeId, rest, outputs);
-
-  const varName = `__v${varCounter.value}`;
-  varCounter.value += 1;
-  evalContext[varName] = value;
-  if (value === undefined) {
-    console.log("[Condition] Output not found for node:", nodeId);
-  }
-  return varName;
-}
-
-type ConditionEvalResult = {
-  result: boolean;
-  resolvedValues: Record<string, unknown>;
-};
-
-/**
- * Evaluate condition expression with template variable replacement
- * Uses Function constructor to evaluate user-defined conditions dynamically
- *
- * Security: Expressions are validated before evaluation to prevent code injection.
- * Only comparison operators, logical operators, and whitelisted methods are allowed.
- */
-function evaluateConditionExpression(
-  conditionExpression: unknown,
-  outputs: NodeOutputs
-): ConditionEvalResult {
-  console.log("[Condition] Original expression:", conditionExpression);
-
-  if (typeof conditionExpression === "boolean") {
-    return { result: conditionExpression, resolvedValues: {} };
-  }
-
-  if (typeof conditionExpression === "string") {
-    // Pre-validate the expression before any processing
-    const preValidation = preValidateConditionExpression(conditionExpression);
-    if (!preValidation.valid) {
-      console.error("[Condition] Pre-validation failed:", preValidation.error);
-      console.error("[Condition] Expression was:", conditionExpression);
-      return { result: false, resolvedValues: {} };
-    }
-
-    try {
-      const evalContext: Record<string, unknown> = {};
-      const resolvedValues: Record<string, unknown> = {};
-      let transformedExpression = conditionExpression;
-      const templatePattern = /\{\{@([^:]+):([^}]+)\}\}/g;
-      const varCounter = { value: 0 };
-
-      transformedExpression = transformedExpression.replace(
-        templatePattern,
-        (_match, nodeId, rest) => {
-          const varName = replaceTemplateVariable(
-            nodeId,
-            rest,
-            outputs,
-            evalContext,
-            varCounter
-          );
-          // Store the resolved value with a readable key (the display text from the template)
-          resolvedValues[rest] = evalContext[varName];
-          return varName;
-        }
-      );
-
-      // Validate the transformed expression before evaluation
-      const validation = validateConditionExpression(transformedExpression);
-      if (!validation.valid) {
-        console.error("[Condition] Validation failed:", validation.error);
-        console.error("[Condition] Original expression:", conditionExpression);
-        console.error(
-          "[Condition] Transformed expression:",
-          transformedExpression
-        );
-        return { result: false, resolvedValues };
-      }
-
-      const varNames = Object.keys(evalContext);
-      const varValues = Object.values(evalContext);
-
-      // Safe to evaluate - expression has been validated
-      // Only contains: variables (__v0, __v1), operators, literals, and whitelisted methods
-      const evalFunc = new Function(
-        ...varNames,
-        `return (${transformedExpression});`
-      );
-      const result = evalFunc(...varValues);
-      return { result: Boolean(result), resolvedValues };
-    } catch (error) {
-      console.error("[Condition] Failed to evaluate condition:", error);
-      console.error("[Condition] Expression was:", conditionExpression);
-      return { result: false, resolvedValues: {} };
-    }
-  }
-
-  return { result: Boolean(conditionExpression), resolvedValues: {} };
-}
-
-/**
  * Execute a single action step with logging via stepHandler
  * IMPORTANT: Steps receive only the integration ID as a reference to fetch credentials.
  * This prevents credentials from being logged in Vercel's workflow observability.
@@ -256,6 +143,7 @@ async function executeActionStep(input: {
   // Special handling for Condition action - needs template evaluation
   if (actionType === "Condition") {
     const originalExpression = stepInput.condition;
+    console.log("[Condition] Original expression:", originalExpression);
     const { result: evaluatedCondition, resolvedValues } =
       evaluateConditionExpression(originalExpression, outputs);
     console.log("[Condition] Final result:", evaluatedCondition);
