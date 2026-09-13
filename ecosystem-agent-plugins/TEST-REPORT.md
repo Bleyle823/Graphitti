@@ -11,7 +11,7 @@ Scope: `@graphitti/graph-core`, `@graphitti/privy-core`, Eliza v2 adapters (`plu
 | **privy-core** | Privy credential validation, catalog gating, mocked Privy REST + Graphitti B2B, MCP contract | 8 tests, pass | 1 test (Privy list wallets) |
 | **plugin-the-graph** | One Eliza action per `graph_*` tool, v2 handler/callback, missing-key errors | 2 tests, pass | Same as graph-core live |
 | **plugin-privy** | One Eliza action per `privy_*` tool, v2 handler/callback | 1 test, pass | Same as privy-core live |
-| **eliza wrappers** | Re-export wiring from Graphitti repo into eliza-main | 2 tests, pass | Not required for sponsor proof |
+| **eliza wrappers** | Re-export wiring from Graphitti repo into eliza-main | 2 tests, pass | Optional (smoke only) |
 
 **Default monorepo command (no network):**
 
@@ -97,7 +97,7 @@ Last verified: **2026-09-13** — both wrapper tests passed.
 
 **Note:** A full `bun install` at eliza-main root may fail during upstream `postinstall` (`packages/core` `tsc6` / `consumer.mts` TS5112). Graphitti wrapper tests do not require that install to succeed; use targeted `bun run --cwd plugins/plugin-graphitti-* test` after Graphitti `pnpm build`.
 
-## Sponsor alignment
+## Integration mapping
 
 ### The Graph
 
@@ -129,4 +129,4 @@ bun run --cwd plugins/plugin-graphitti-privy test
 
 - [README](./README.md) — package map and npm publish
 - [ELIZA.md](./ELIZA.md) — elizaOS v2 wiring and OpenRouter env
-- [Root integration evidence](../README.md#evidence-by-integration) — sponsor-facing links and live proof tables
+- [Root integration evidence](../README.md#evidence-by-integration) — product links and live proof tables
