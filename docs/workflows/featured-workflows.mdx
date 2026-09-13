@@ -3,11 +3,13 @@ title: Featured example workflows
 description: Step-by-step guides to run starred templates for The Graph, Privy, Arc, Circle, Stripe, Telegram, and Supabase—with credential sources and placeholder troubleshooting.
 ---
 
-Starred examples appear first in the workflow gallery and in **Saved workflows** after you connect a wallet. Use this page when you demo integrations or rehearse sponsor flows on [graphitti-five.vercel.app](https://graphitti-five.vercel.app) or locally.
+Starred examples appear first in the workflow gallery and in **Saved workflows** after you connect a wallet. Use this page when you demo integrations or rehearse featured flows on [graphitti-five.vercel.app](https://graphitti-five.vercel.app) or locally.
+
+**Before onchain payouts:** see [Run workflows and fund wallets](/workflows/running-and-funding) for org treasury (Base Sepolia USDC) vs embedded wallet (Arc Testnet USDC), faucets, and gas reminders.
 
 <CardGroup cols={2}>
-  <Card title="Browser basics" href="/getting-started/browser">
-    Connect wallet, open saved examples, run manual triggers.
+  <Card title="Run and fund wallets" href="/workflows/running-and-funding">
+    Navigate the app, funding checklist, chain-specific USDC and gas.
   </Card>
   <Card title="Organization treasury" href="/treasury/overview">
     Org wallet, payees, 10 USDC cap, intent approval.
@@ -88,7 +90,7 @@ Templates ship with demo values so the graph is runnable on first open. Many flo
 
 <AccordionGroup>
   <Accordion title="Telegram failed but Graph / Privy / Arc succeeded">
-    If **Query subgraph**, **Get org wallet**, **wallet-transfer**, or **send-on-arc** show success in the log, the sponsor integration is proven. Telegram is optional for the demo. Either set `chatId` or ignore the red Telegram node and point reviewers to the successful upstream log lines.
+    If **Query subgraph**, **Get org wallet**, **wallet-transfer**, or **send-on-arc** show success in the log, the integration is proven. Telegram is optional for the demo. Either set `chatId` or ignore the red Telegram node and point reviewers to the successful upstream log lines.
   </Accordion>
   <Accordion title="Condition took the false branch (fund / hold / underfunded)">
     Examples: **Arc DeFi** “fund source chain”, **FPL** underfunded pool, **Org waterline** hold, **Aave keeper** “refill held”. The workflow is designed to **finish on that branch** with a Telegram or log message and **no transfer**. That is success for a read-only or guardrail demo—proceed without forcing the true branch unless you need onchain payout proof.
@@ -225,7 +227,7 @@ Follow [Stripe customer ID](#stripe-customer-id). Connect Stripe, Privy, Treasur
 
 ### Privy Gasless Payroll
 
-**Proves:** Privy **transfer** (sponsored) on Sepolia ETH to three contractors.
+**Proves:** Privy **transfer** (gasless) on Sepolia ETH to three contractors.
 
 Replace hardcoded `walletId` on pay nodes with a wallet from **List Privy Wallets** in your app. Set Telegram **chatId**. Scheduled monthly by default—switch trigger to Manual for demos.
 
@@ -274,13 +276,13 @@ Create treasury, fund above waterline in template condition, bind Circle on bala
   </Step>
 </Steps>
 
-Arc sends use your **linked embedded wallet** via Privy sponsorship, not the prize-pool address field (that node is only a balance check).
+Arc sends use your **linked embedded wallet** via Privy gasless mode, not the prize-pool address field (that node is only a balance check).
 
 ---
 
-## Quick rehearsal map (by sponsor)
+## Quick rehearsal map (by integration)
 
-| Sponsor focus | Fastest starred workflow | Minimum setup |
+| Integration focus | Fastest starred workflow | Minimum setup |
 | --- | --- | --- |
 | The Graph | Uniswap V3 large swap alert | `THEGRAPH_API_KEY`, Manual run |
 | The Graph + Supabase | Kelp monitor | Supabase + sink rows (+ KeeperHub if deployed) |

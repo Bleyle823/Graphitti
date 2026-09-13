@@ -10,13 +10,17 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@graphitti/graph-core": "workspace:^0.1.0"
+    "@graphitti/graph-core": "0.1.0"
   },
   "peerDependencies": {
     "@elizaos/core": ">=1.0.0"
   },
+  "peerDependenciesMeta": {
+    "@elizaos/core": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "@elizaos/core": "^1.0.0",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
     "vitest": "^3.0.5"

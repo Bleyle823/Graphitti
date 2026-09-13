@@ -10,7 +10,7 @@ Graphitti is the execution layer for businesses, users, and developers onchain: 
 | Link | URL |
 |------|-----|
 | App | [graphitti-five.vercel.app](https://graphitti-five.vercel.app) |
-| Docs | [Mintlify site](docs/) — run `mint dev` in `docs/` or open published docs from your deployment |
+| Docs | [Mintlify site](docs/) — `mint dev` in `docs/`; start with [Run workflows and fund wallets](docs/workflows/running-and-funding.mdx) |
 | Repository | [github.com/Bleyle823/Graphitti](https://github.com/Bleyle823/Graphitti) |
 | Demo video | [Workflow demo](docs/media/graphitti-workflow-demo.mp4) (embedded above) |
 | npm | [`@graphitti/graph-core`](https://www.npmjs.com/package/@graphitti/graph-core), [`@graphitti/privy-core`](https://www.npmjs.com/package/@graphitti/privy-core) |
@@ -45,7 +45,7 @@ flowchart LR
   data -->|conditions / alerts| privy
   data --> circle
   circle -->|Arc USDC / CCTP| privy
-  privy -->|wallet-actions / sponsored tx| BaseSepolia[Base Sepolia USDC payroll]
+  privy -->|wallet-actions / gasless tx| BaseSepolia[Base Sepolia USDC payroll]
   GW -->|marketplace PAYMENT-SIGNATURE| Org
 ```
 
@@ -73,7 +73,7 @@ Each template is available in the app workflow gallery. Problem, graph, and stac
 | **FPL League Top Two USDC Payouts** | Conditional USDC payouts to league top two when prize pool covers amounts | FPL reads, Arc `send-on-arc`, Condition |
 | **Payroll batch with intent fallback** | Transfers under policy cap via wallet-actions; larger amounts via intent + approval | Privy org treasury, policies, intents, Base Sepolia USDC |
 | **Stripe invoice to Privy USDC settlement** | Invoice paid in Stripe; settle to org treasury in USDC | Stripe, Privy wallet-actions |
-| **Privy Gasless Payroll** | Sponsored payroll transfers from org wallet | Privy sponsored transactions |
+| **Privy Gasless Payroll** | Gasless payroll transfers from org wallet | Privy gasless transactions |
 | **Aave Uniswap USDC keeper** | Keeper-style reads across Aave and Uniswap subgraph data | The Graph, protocol read nodes |
 | **Org USDC waterline keeper** | Monitor org USDC balance against a waterline | Treasury reads, Condition |
 
@@ -98,6 +98,16 @@ Privy is the execution layer: embedded wallets for users, organization treasurie
 - Payroll 10 USDC and 25 USDC intent template: [b2b-templates.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/lib/workflow-templates/b2b-templates.ts#L434-L457)
 - Stripe invoice to Privy USDC: [b2b-templates.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/lib/workflow-templates/b2b-templates.ts#L481-L554)
 - Eliza `plugin-privy`: [plugin-privy/src/index.ts](https://github.com/Bleyle823/Graphitti/blob/main/ecosystem-agent-plugins/privy/plugin-privy/src/index.ts#L70-L78)
+
+**Automated tests (2026-09-13)**
+
+| Suite | Scope | Result |
+|-------|--------|--------|
+| `ecosystem-agent-plugins` → `pnpm test` | `@graphitti/privy-core` catalog, MCP contract, mocked Privy REST + Graphitti B2B; `plugin-privy` Eliza v2 actions | **Pass** (9 tests in Privy stack) |
+| `ecosystem-agent-plugins` → `pnpm test:live` | Live `privy_list_wallets` against Privy API | **Pass** (local credentials) |
+| eliza-main → `@elizaos/plugin-graphitti-privy` | Wrapper re-export smoke test | **Pass** |
+
+Reproduce: [ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md). Full report also summarized in [README — Agent plugin test report](#agent-plugin-test-report).
 
 **Live proof**
 
@@ -160,6 +170,16 @@ Canvas actions query live subgraphs and Substreams packages. Agent packages reus
 - Kelp package slug: [kelp-substreams-deployments.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/lib/the-graph/kelp-substreams-deployments.ts#L15)
 - Eliza `plugin-the-graph`: [plugin-the-graph/src/index.ts](https://github.com/Bleyle823/Graphitti/blob/main/ecosystem-agent-plugins/the-graph/plugin-the-graph/src/index.ts#L70-L78)
 
+**Automated tests (2026-09-13)**
+
+| Suite | Scope | Result |
+|-------|--------|--------|
+| `ecosystem-agent-plugins` → `pnpm test` | `@graphitti/graph-core` Gateway key rules, Substreams tools, MCP `graph_*` list, mocked recommend/search; `plugin-the-graph` Eliza v2 handlers | **Pass** (10 tests in Graph stack) |
+| `ecosystem-agent-plugins` → `pnpm test:live` | Live `graph_search_subgraphs` (Studio Gateway, keyword `uniswap`) | **Pass** (local `THEGRAPH_API_KEY`) |
+| eliza-main → `@elizaos/plugin-graphitti-the-graph` | Wrapper re-export smoke test | **Pass** |
+
+Reproduce: [ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md). Full report also summarized in [README — Agent plugin test report](#agent-plugin-test-report).
+
 **Live proof**
 
 | Item | Value |
@@ -180,26 +200,89 @@ Canvas actions query live subgraphs and Substreams packages. Agent packages reus
 
 Uniswap **contract** swap actions exist in the protocol plugin pack; featured examples use **subgraph reads only**, not on-chain router execution.
 
+## Agent plugin test report
+
+Automated coverage for agent plugin integrations (The Graph + Privy). Detailed file-level inventory: **[ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md)**.
+
+### Summary (2026-09-13)
+
+| Package | Tools / actions | Offline tests | Live tests |
+|---------|-----------------|---------------|------------|
+| `@graphitti/graph-core` | 36 `graph_*` | 8 passed | 1 passed (Gateway subgraph search) |
+| `@graphitti/privy-core` | 35 `privy_*` | 8 passed | 1 passed (Privy list wallets) |
+| `plugin-the-graph` (Eliza v2) | 36 `GRAPH_*` | 2 passed | Uses graph-core live |
+| `plugin-privy` (Eliza v2) | 35 `PRIVY_*` | 1 passed | Uses privy-core live |
+| `@elizaos/plugin-graphitti-*` (eliza-main) | Re-exports above | 2 passed (smoke) | — |
+
+**Total default offline run:** 19 tests (`pnpm test` in `ecosystem-agent-plugins`).  
+**Optional live run:** 2 tests (`pnpm test:live`; requires local keys, same as `graphitti/.env.local`).
+
+### What the tests demonstrate
+
+- **The Graph:** Studio Gateway key validation, subgraph discovery and recommendation (unit + mocked GraphQL), Substreams tool surface in MCP and Eliza, live subgraph search rehearsal.
+- **Privy:** App credential validation, server wallet REST integration (unit mock + live list), Graphitti B2B tool gating, Eliza v2 action parity with MCP catalog.
+- **Agents:** Same npm cores power MCP stdio servers, Eliza plugins, and Eve/OpenClaw/Hermes adapters under `ecosystem-agent-plugins/`.
+
+### Reproduce
+
+```bash
+cd ecosystem-agent-plugins
+pnpm install && pnpm build && pnpm test
+pnpm test:live   # optional; network + THEGRAPH_API_KEY / Privy app credentials
+```
+
+elizaOS wrappers (separate clone): see [ecosystem-agent-plugins/ELIZA.md](ecosystem-agent-plugins/ELIZA.md).
+
 ## How to try it
 
+### Hosted app (fastest)
+
 1. Open [graphitti-five.vercel.app](https://graphitti-five.vercel.app).
-2. Sign in and **Connect wallet** (Privy embedded wallet).
-3. Open a starred template such as **Uniswap V3 large swap alert (subgraph)** and run it on the canvas.
-4. For treasury: open **Payroll batch with intent fallback**, fund the org wallet, run a transfer under the 10 USDC auto cap or approve a pending intent for a larger amount.
+2. Sign in and click **Connect wallet** (embedded Privy wallet for gasless steps and Arc sends).
+3. Open **Saved workflows** or the starred gallery and pick a template.
+4. **Settings → Project Integrations** — add The Graph, Telegram, Stripe, Supabase, or Circle; bind each on the node inspector.
+5. For payroll, Stripe, or keeper payouts: **Treasury** → create org → **Fund treasury** with **Base Sepolia USDC** ([Circle faucet](https://faucet.circle.com)).
+6. For **FPL Arc payouts**: fund your **embedded wallet** on **Arc Testnet** with native USDC (18 decimals); set prize-pool address on the balance node to a funded Arc address.
+7. Click **Run** on a **Manual** trigger; read per-node logs.
 
-Local development: see [graphitti/README.md](graphitti/README.md).
+Full navigation, funding matrix, and per-workflow checklist: **[docs — Run workflows and fund wallets](docs/workflows/running-and-funding.mdx)** (Mintlify) or run `mint dev` in `docs/`.
 
-Step-by-step guides for every starred template (env vars, Stripe customer id, Telegram chat id, placeholder errors): [docs/workflows/featured-workflows.mdx](docs/workflows/featured-workflows.mdx).
+Per-template steps (Telegram chat id, Stripe `cus_`, placeholders): **[docs/workflows/featured-workflows.mdx](docs/workflows/featured-workflows.mdx)**.
+
+### Local development
+
+See **[graphitti/README.md](graphitti/README.md)** — Postgres, `.env.local`, `pnpm dev`, and first browser run.
+
+### Monorepo map
+
+| Path | What it is |
+| --- | --- |
+| [`graphitti/`](graphitti/) | Next.js app: canvas, **Treasury**, **Project Integrations**, marketplace |
+| [`docs/`](docs/) | Mintlify docs (`mint dev`) |
+| [`ecosystem-agent-plugins/`](ecosystem-agent-plugins/) | Agent MCP + Eliza packages |
+| [`substreams/`](substreams/) | Kelp Substreams + Supabase sink |
+| [`landing/`](landing/) | Marketing site |
+
+### Wallet reminder (short)
+
+| Flow type | Wallet to fund | Chain | Asset |
+| --- | --- | --- | --- |
+| Org payroll, Stripe→USDC, keepers, waterline | **Org treasury** | Base Sepolia | USDC (6 dec); keep USDC for gas if user-pays mode |
+| FPL Arc sends, some Web3 writes | **Embedded** (Connect wallet) | Arc Testnet | Native USDC (18 dec) |
+| Subgraph / Kelp read / Arc DeFi preflight | None for onchain reads | — | API keys only |
+| Privy Gasless Payroll | Privy **wallet id** on nodes | Sepolia | ETH to recipients |
+
+Arc marketplace settlement and paid listings use **Arc Testnet ERC-20 USDC** (6 decimals). Do not mix Arc native (18 dec) and ERC-20 (6 dec) amounts on the same field.
 
 ## Live vs mock
 
 | Capability | Status |
 |------------|--------|
 | The Graph Gateway GraphQL and Kelp Substreams SQL sink | Live data (sink must run for Kelp freshness) |
-| Privy wallet-actions, intents, sponsored payroll | Live on configured networks |
+| Privy wallet-actions, intents, gasless payroll | Live on configured networks |
 | Arc Testnet USDC, CCTP, Gateway x402 marketplace | Live on Arc Testnet (`5042002`) |
 | Privy card onramp in UI | Mock UI only; qualifying money paths use wallet-actions and intents |
-| Gasless writes | Privy-sponsored transactions where configured |
+| Gasless writes | Privy gasless transactions where configured |
 | Uniswap in featured demos | Subgraph queries via The Graph, not router swaps |
 
 ## Monorepo map

@@ -12,7 +12,7 @@ Next.js workflow builder and execution layer for **Privy** treasuries, **The Gra
 | --- | --- |
 | Production | [graphitti-five.vercel.app](https://graphitti-five.vercel.app) |
 | Product overview and onchain evidence | [Repository README](../README.md) |
-| Run starred examples (env vars, Telegram chat id, Stripe `cus_`, placeholders) | [Featured workflows](../docs/workflows/featured-workflows.mdx) |
+| Run starred examples (env vars, funding, Telegram chat id, Stripe `cus_`) | [Featured workflows](../docs/workflows/featured-workflows.mdx) · [Run and fund](../docs/workflows/running-and-funding.mdx) |
 | Agent MCP packages | [`@graphitti/graph-core`](../ecosystem-agent-plugins/the-graph/graph-core), [`@graphitti/privy-core`](../ecosystem-agent-plugins/privy/privy-core) |
 
 Payroll and org treasury settle on **Base Sepolia USDC**. Marketplace and FPL payouts use **Arc Testnet** (`eip155:5042002`). Featured Uniswap demos use **subgraph reads only**, not on-chain router swaps.
@@ -73,7 +73,7 @@ openssl rand -hex 32
 
 Paste the outputs into `.env.local`. Keep `WORKFLOW_EMBEDDED_BASE_URL` on port **3000** unless you change the dev server port—otherwise workflow runs can hang on the first node.
 
-Optional for wallet and sponsor demos (see tables below): Privy, `THEGRAPH_API_KEY`, Circle, Stripe, `TELEGRAM_BOT_TOKEN`, etc. Full list is in `.env.example`.
+Optional for wallet and integration demos (see tables below): Privy, `THEGRAPH_API_KEY`, Circle, Stripe, `TELEGRAM_BOT_TOKEN`, etc. Full list is in `.env.example`.
 
 ### Step 4 — Database (Docker + schema)
 
@@ -110,7 +110,39 @@ Open [http://localhost:3000](http://localhost:3000). The dev script runs plugin 
 4. Click **Run** on a **Manual** trigger.
 5. Add **Project Integrations** in the app for Stripe, Telegram, Supabase, or Circle when a template needs them (see [Featured workflows](../docs/workflows/featured-workflows.mdx)).
 
-### Optional — Sponsor keys in `.env.local`
+### Navigate the app
+
+| UI | Path / entry | Use for |
+| --- | --- | --- |
+| Canvas | `/` (home) after sign-in | Edit graph, **Run**, node logs, plugin sidebar |
+| Treasury | Header **Treasury** → `/treasury` | Org wallet, **Fund treasury**, payees, approve intents |
+| Integrations | **Settings** → Project Integrations | Keys for Stripe, Telegram, Supabase, Circle, The Graph |
+| Saved examples | Sidebar gallery | Starred templates copied on first **Connect wallet** |
+| Marketplace | Toolbar or `/hub` | List workflow, Arc USDC pricing |
+| Earnings | `/earnings` | Paid listing revenue |
+
+Mintlify runbook (navigation + funding): [Run workflows and fund wallets](../docs/workflows/running-and-funding.mdx).
+
+### Fund wallets before payout workflows
+
+Read-only templates (Uniswap subgraph alert, Kelp row read, Arc DeFi **preflight**) need API keys only—no onchain balance.
+
+| Template family | Wallet | Chain | What to hold |
+| --- | --- | --- | --- |
+| Payroll batch, Stripe→USDC, Aave keeper, Org waterline | **Org treasury** | Base Sepolia | USDC (6 decimals); top up via **Fund treasury** or [Circle faucet](https://faucet.circle.com) |
+| FPL League Top Two (Arc sends) | **Embedded wallet** (yours) | Arc Testnet `5042002` | Native USDC (18 decimals) for sends; prize-pool node is balance-only |
+| Privy Gasless Payroll | Privy wallets on pay nodes | Sepolia | ETH payouts; set real `walletId` |
+| Arc / marketplace x402 | Buyer or linked wallet | Arc Testnet | ERC-20 USDC (6 decimals) at `0x3600…0000` |
+
+**Reminders**
+
+- Set each node’s **network** to the chain you funded (Arc DeFi reads org USDC on **base-sepolia**, not Arc Testnet).
+- **User-pays** gas (`PRIVY_GAS_MODE` in `.env.local`) debits **USDC on that chain** for gas—fund USDC, not only payout size.
+- FPL **send-on-arc** spends from your embedded wallet, not from the prize-pool address field.
+
+Per-template steps: [Featured workflows](../docs/workflows/featured-workflows.mdx). Full checklist: [running-and-funding](../docs/workflows/running-and-funding.mdx).
+
+### Optional — Integration keys in `.env.local`
 
 | Goal | Variables |
 | --- | --- |
@@ -149,7 +181,7 @@ Canvas plugins and primary code paths used in shipped examples:
 
 ### Privy
 
-Execution layer: embedded wallet, org treasury, policies, payee allowlist, wallet-actions, transfer intents, sponsored transactions.
+Execution layer: embedded wallet, org treasury, policies, payee allowlist, wallet-actions, transfer intents, gasless transactions.
 
 | Example workflows | Plugin actions |
 | --- | --- |

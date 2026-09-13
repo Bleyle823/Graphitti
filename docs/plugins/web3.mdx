@@ -3,7 +3,7 @@ title: Web3
 description: EVM balance, transfer, approve, contract, logs, and typed data.
 ---
 
-Reads need no wallet. Writes require **Connect wallet** and use Privy `sponsor: true`.
+Reads need no wallet. Writes require **Connect wallet** and Privy gasless mode.
 
 | Action | When to use |
 |---|---|
@@ -11,7 +11,7 @@ Reads need no wallet. Writes require **Connect wallet** and use Privy `sponsor: 
 | Get ERC-20 balance | Token balances |
 | Transfer native / ERC-20 | Send from the linked wallet |
 | Approve / Check allowance | ERC-20 spenders |
-| Read / Write contract | Hex calldata `eth_call` or sponsored send |
+| Read / Write contract | Hex calldata `eth_call` or gasless send |
 | Get transaction / Query logs | Receipts and events |
 | Sign typed data | EIP-712 |
 

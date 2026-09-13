@@ -1,0 +1,131 @@
+---
+title: Run workflows and fund wallets
+description: Navigate Graphitti, run starred templates, and fund the right wallet on the right chain before payouts, Arc sends, or treasury payroll.
+---
+
+Use this page with [Featured example workflows](/workflows/featured-workflows) for per-template node edits. Hosted app: [graphitti-five.vercel.app](https://graphitti-five.vercel.app). Local setup: [graphitti/README](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/README.md).
+
+## Navigate the product
+
+| Area | How to open | What you do there |
+| --- | --- | --- |
+| **Home / canvas** | Sign in → land on the workflow editor | Build graphs, **Run**, view per-node logs, open the plugin sidebar |
+| **Saved workflows** | Sidebar or gallery after **Connect wallet** | Starred examples (The Graph, Privy, Arc, FPL) copy here on first connect |
+| **Treasury** | Header → **Treasury** | Create org wallet, **Fund treasury**, payees, pending intents, policy cap |
+| **Project Integrations** | **Settings** → integrations | Stripe, Telegram, Supabase, Circle, The Graph keys bound to nodes |
+| **Marketplace / Hub** | Editor toolbar **Marketplace** or `/hub` | List workflows, set Arc USDC price, browse public examples |
+| **Earnings** | `/earnings` | Paid listing invocations (Arc USDC via x402) |
+| **Activity** | `/activity` | Run history across workflows |
+
+Organization workflows: switch org in the header menu. Treasury and org-scoped templates use the **active organization**.
+
+## Run a workflow (every template)
+
+<Steps>
+  <Step title="Sign in and connect wallet">
+    Click **Connect wallet**. Privy links your login and provisions an **embedded wallet** used for gasless writes and Arc native USDC sends. Without this, payout and Arc send steps fail.
+  </Step>
+  <Step title="Add integrations">
+    Open **Settings** → **Project Integrations**. Add each plugin the graph needs (The Graph, Telegram, Stripe, Supabase, Circle). Click **Test connection**. Server env keys in `.env.local` are not enough—each step must **bind** an integration in the node inspector.
+  </Step>
+  <Step title="Open a template">
+    Pick a starred workflow from the gallery or **Saved workflows**. Duplicate if you want a private copy.
+  </Step>
+  <Step title="Fund the right wallet (if the graph pays onchain)">
+    See [Which wallet to fund](#which-wallet-to-fund) and [Workflow funding checklist](#workflow-funding-checklist). Read-only demos (subgraph query, Arc DeFi preflight) skip this.
+  </Step>
+  <Step title="Fix placeholders">
+    Replace `YOUR_TELEGRAM_CHAT_ID`, Stripe `cus_...`, FPL league id, and payee addresses where noted on the canvas. See [Featured example workflows](/workflows/featured-workflows#placeholders-warnings-and-when-to-proceed-anyway).
+  </Step>
+  <Step title="Run and read logs">
+    Use **Manual** trigger for demos (switch away from Schedule/Block if needed). Click **Run**. Green upstream nodes + red Telegram only means notifications failed—not necessarily a failed integration.
+  </Step>
+  <Step title="Deploy (optional)">
+    **Block** or **Schedule** triggers need **Deploy** after you are happy with manual runs. Kelp monitor on Ethereum blocks requires a scheduler (KeeperHub or equivalent)—manual run alone does not fire block triggers in production.
+  </Step>
+</Steps>
+
+## Two wallets you must not confuse
+
+| Wallet | Where it lives | Typical chain / asset |
+| --- | --- | --- |
+| **Embedded wallet** (yours, via **Connect wallet**) | Privy user wallet | Arc Testnet native USDC (18 decimals) for **FPL Arc sends**; also source for **Fund treasury** transfers |
+| **Org treasury wallet** | **Treasury** → org name | **Base Sepolia USDC** (6 decimals) for payroll, Stripe→USDC, keeper payouts, waterline |
+
+Arc **prize pool** nodes in FPL only **read** balance at an address you configure—they do not send. **Arc payout steps spend from your embedded wallet**, not from the prize-pool address field.
+
+## Which wallet to fund
+
+| You want to run… | Fund this | Chain | Asset | How |
+| --- | --- | --- | --- | --- |
+| Uniswap / Kelp / Arc DeFi **read-only** | Nothing onchain | — | — | `THEGRAPH_API_KEY` (+ Supabase for Kelp) only |
+| **Payroll batch**, Stripe→USDC, **Aave keeper**, **Org waterline** | **Org treasury** | Base Sepolia | USDC | **Treasury → Fund treasury** from embedded wallet; or [Circle faucet](https://faucet.circle.com) to treasury address |
+| **Arc DeFi readiness** (preflight) | Org treasury (optional) | Base Sepolia | USDC | Only if you want the “GO” branch; unfunded branch still completes |
+| **FPL League Top Two** payouts | **Embedded wallet** on Arc | Arc Testnet (`5042002`) | Native USDC (18 dec) | [Circle faucet](https://faucet.circle.com) → Arc; prize pool node address should match a wallet that holds enough USDC for `totalPrizeUsdc` (default 8 USDC) |
+| **Privy Gasless Payroll** | Privy server **wallet id** on nodes | Ethereum Sepolia | ETH (recipients) | Gasless send from configured Privy wallets; set `walletId` from your app |
+| **Web3** plugin writes | **Embedded wallet** | Node’s network | Native + token as needed | ETH/POL/USDC on that chain for transfers |
+| **Marketplace** paid listing (you as buyer) | Buyer wallet | Arc Testnet | ERC-20 USDC (6 dec) | `PRIVATE_KEY` or linked wallet with Arc USDC; see [Marketplace](/workflows/marketplace) |
+
+## USDC and gas reminders
+
+<Warning>
+  Match **network** on every balance and transfer node to the chain you funded. Arc DeFi templates use **base-sepolia** for org USDC reads—not Arc Testnet and not Ethereum mainnet.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Base Sepolia (org treasury payroll)">
+    Org **wallet-actions** and USDC payouts use **Base Sepolia USDC** (6 decimals). Fund the org treasury in **Treasury**. If Privy gas mode is **user-pays** with USDC, keep USDC on Base Sepolia for gas as well as payout amounts. If transactions fail with insufficient funds, top up USDC (and confirm payees are allowlisted).
+  </Accordion>
+  <Accordion title="Arc Testnet (FPL and marketplace)">
+    Arc native gas is **USDC with 18 decimals**. Marketplace and ERC-20 USDC amounts use **6 decimals** at `0x3600000000000000000000000000000000000000`. FPL **send-on-arc** uses native USDC from your **embedded** wallet. Fund Arc via [Circle faucet](https://faucet.circle.com) or bridge from Base Sepolia using Circle/Arc plugin flows.
+  </Accordion>
+  <Accordion title="Ethereum Sepolia (Privy Gasless Payroll)">
+    Template pays **Sepolia ETH** to contractors via Privy **transfer**. Configure real `walletId` values. Gasless mode still requires a funded Privy wallet or app gas credits per your [Privy dashboard](https://dashboard.privy.io) gas settings.
+  </Accordion>
+  <Accordion title="Ethereum mainnet (subgraph reads only)">
+    Uniswap and Kelp **queries** hit The Graph Gateway (mainnet subgraphs). They do **not** spend your mainnet ETH. Kelp **block trigger** fires on mainnet block height; the workflow read is off-chain unless you add writes.
+  </Accordion>
+  <Accordion title="Gasless vs self-pay (Privy)">
+    Workflow writes use Privy gasless mode when configured ([Gas](/wallet/gas)). **User-pays** mode debits gas from your wallet in USDC on supported chains—fund that chain’s USDC. **App-pays** uses Privy gas credits. Mismatch between dashboard gas settings and `PRIVY_GAS_MODE` in `.env.local` causes avoidable failures.
+  </Accordion>
+</AccordionGroup>
+
+## Workflow funding checklist
+
+| Starred workflow | Fund before payout branch | Minimum |
+| --- | --- | --- |
+| Uniswap V3 large swap alert | No | Graph key + optional Telegram |
+| Kelp rsETH monitor | No (reads Supabase) | Supabase rows from sink |
+| Arc DeFi treasury readiness | Optional (org USDC on Base Sepolia) | Circle + treasury for meaningful “GO” branch |
+| FPL League Top Two | Yes — embedded wallet on Arc | Arc USDC ≥ prize total; league id + roster |
+| Payroll batch with intent fallback | Yes — org treasury Base Sepolia USDC | Payees + 10 USDC auto / intent for 25 USDC leg |
+| Stripe invoice → Privy USDC | Yes — org treasury | Stripe `cus_` + payee allowlist |
+| Privy Gasless Payroll | Yes — source Privy wallets | Sepolia ETH amounts + wallet ids |
+| Aave Uniswap USDC keeper | Yes — org treasury for 1 USDC leg | Treasury + Graph; false branch skips transfer |
+| Org USDC waterline keeper | Yes — org treasury above waterline | Circle read + treasury USDC |
+
+## Faucets and explorers
+
+| Network | Faucet / source | Explorer |
+| --- | --- | --- |
+| Base Sepolia USDC | [faucet.circle.com](https://faucet.circle.com) | [sepolia.basescan.org](https://sepolia.basescan.org) |
+| Arc Testnet USDC | [faucet.circle.com](https://faucet.circle.com) (Arc) | [testnet.arcscan.app](https://testnet.arcscan.app) |
+| Ethereum Sepolia | Public ETH faucets + Privy test wallets | [sepolia.etherscan.io](https://sepolia.etherscan.io) |
+
+Circle plugin steps often append the same faucet URL in logs when balance is zero.
+
+## Repository map (monorepo)
+
+| Path | Role |
+| --- | --- |
+| `graphitti/` | Next.js app you run locally (`pnpm dev`) |
+| `docs/` | This Mintlify site (`mint dev` in `docs/`) |
+| `ecosystem-agent-plugins/` | Agent MCP + Eliza tool packages |
+| `substreams/` | Kelp package + Supabase SQL sink |
+| `landing/` | Marketing site |
+
+## Next steps
+
+- Per-template steps: [Featured example workflows](/workflows/featured-workflows)
+- Treasury UI: [Organization treasury](/treasury/overview)
+- Browser quick start: [Browser](/getting-started/browser)
