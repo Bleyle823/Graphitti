@@ -28,3 +28,37 @@ Graphitti is a visual workflow builder for **business wallets on Privy**. You co
 - Arc App Kit-style flows and Arc USDC settlement
 - Fantasy Premier League public reads
 - A marketplace where listed workflows charge agents per request in **Arc USDC** via Circle nanopayments (x402)
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph triggers [Triggers]
+    Manual[Manual / Schedule / Webhook / Block]
+  end
+
+  subgraph data [The Graph]
+    GQL[Gateway GraphQL subgraphs]
+    SS[Substreams + SQL sink]
+  end
+
+  subgraph circle [Circle on Arc Testnet]
+    CCTP[CCTP bridge]
+    GW[Gateway x402]
+    AppKit[App Kit flows]
+  end
+
+  subgraph privy [Privy]
+    Embed[Embedded wallet]
+    Org[Org treasury]
+    Intent[Intents and policies]
+  end
+
+  triggers --> data
+  data -->|conditions| privy
+  data --> circle
+  circle --> privy
+  GW -->|marketplace| Org
+```
+
+Product screenshots belong under `docs/images/product/` (see that folder for filenames). The [GitHub README](https://github.com/Bleyle823/Graphitti/blob/main/README.md) lists integration evidence and workflow templates in one place.

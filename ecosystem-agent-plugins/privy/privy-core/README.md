@@ -1,6 +1,6 @@
 # @graphitti/privy-core
 
-Shared tool catalog and MCP stdio server for Privy wallet and treasury agent plugins. Exposes `privy_*` tools for native Privy REST (wallets, signing, transfers, policies, intents) and Graphitti-backed workflows and org treasury.
+Part of [Graphitti ecosystem agent plugins](../../README.md). Shared tool catalog and MCP stdio server for Privy wallet and treasury agent plugins. Exposes `privy_*` tools for native Privy REST (wallets, signing, transfers, policies, intents) and Graphitti-backed workflows and org treasury.
 
 ## Install
 
