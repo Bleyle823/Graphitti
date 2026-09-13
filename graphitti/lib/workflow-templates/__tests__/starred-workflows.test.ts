@@ -152,6 +152,11 @@ describe("starred workflow templates", () => {
     expect(
       hasEdge(fpl, "fpl-funded-condition", "fpl-underfunded-telegram", "false")
     ).toBe(true);
+    const funded = fpl.nodes.find((node) => node.id === "fpl-funded-condition");
+    expect(funded?.data.config?.condition).toContain(
+      "Number({{@circle-balance:Get Prize Pool USDC.nativeBalance}})"
+    );
+    expect(funded?.data.config?.condition).not.toContain('Number("{{');
     expect(
       hasEdge(fpl, "fpl-pay-first-condition", "arc-pay-first", "true")
     ).toBe(true);

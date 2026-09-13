@@ -132,7 +132,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       }),
       action("under-cap", { x: 560, y: 120 }, "Under auto cap?", {
         actionType: "Condition",
-        condition: `Number("${PAYROLL_UNDER_CAP_AMOUNT}") <= Number("{{@get-wallet-cap:Get org wallet.autoSpendCapUsdc}}")`,
+        condition: `Number("${PAYROLL_UNDER_CAP_AMOUNT}") <= Number({{@get-wallet-cap:Get org wallet.autoSpendCapUsdc}})`,
       }),
       action("auto-pay", { x: 840, y: 80 }, "Auto payroll transfer", {
         actionType: "privy/wallet-transfer",
