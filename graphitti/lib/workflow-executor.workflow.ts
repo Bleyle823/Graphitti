@@ -342,6 +342,15 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     return node.data.type;
   }
 
+  async function executeTargetsSequentially(
+    nextTargets: string[],
+    visited: Set<string>
+  ): Promise<void> {
+    for (const nextNodeId of nextTargets) {
+      await executeNode(nextNodeId, visited);
+    }
+  }
+
   // Helper to execute a single node
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Node execution requires type checking and error handling
   async function executeNode(nodeId: string, visited: Set<string> = new Set()) {
@@ -371,9 +380,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
       };
 
       const nextTargets = getTargetNodeIds(nodeId);
-      await Promise.all(
-        nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
-      );
+      await executeTargetsSequentially(nextTargets, visited);
       return;
     }
 
@@ -631,9 +638,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
               nextTargets.length,
               "next nodes"
             );
-            await Promise.all(
-              nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
-            );
+            await executeTargetsSequentially(nextTargets, visited);
             return;
           }
 
@@ -642,11 +647,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             console.log(
               "[Workflow Executor] Condition is true, executing",
               nextTargets.length,
-              "next nodes in parallel"
+              "next nodes"
             );
-            await Promise.all(
-              nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
-            );
+            await executeTargetsSequentially(nextTargets, visited);
           } else {
             console.log(
               "[Workflow Executor] Condition is false, skipping next nodes"
@@ -659,11 +662,9 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         console.log(
           "[Workflow Executor] Executing",
           nextTargets.length,
-          "next nodes in parallel"
+          "next nodes"
         );
-        await Promise.all(
-          nextTargets.map((nextNodeId) => executeNode(nextNodeId, visited))
-        );
+        await executeTargetsSequentially(nextTargets, visited);
       }
     } catch (error) {
       console.error("[Workflow Executor] Error executing node:", nodeId, error);

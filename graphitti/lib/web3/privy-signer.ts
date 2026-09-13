@@ -5,6 +5,7 @@ import { type SupportedChain, toCaip2 } from "./chains";
 import { privyFetch } from "./privy-client";
 import { getPrivyGasAttempts, type PrivyGasAttempt } from "./privy-gas";
 import { sendRawTransaction } from "./privy-raw-tx";
+import { withSerializedWalletSend } from "./wallet-send-lock";
 
 type RpcSuccess = {
   method: string;
@@ -110,7 +111,7 @@ async function submitTransaction(input: {
   return hash;
 }
 
-export async function sendSponsoredTransaction(
+async function sendSponsoredTransactionUnlocked(
   input: SendSponsoredTxInput
 ): Promise<SendSponsoredTxResult> {
   const attempts =
@@ -153,6 +154,14 @@ export async function sendSponsoredTransaction(
 
   throw new Error(
     `No gas payment route succeeded on ${input.chain.label}. ${failures.join("; ")}`
+  );
+}
+
+export function sendSponsoredTransaction(
+  input: SendSponsoredTxInput
+): Promise<SendSponsoredTxResult> {
+  return withSerializedWalletSend(input.walletId, input.chain.chainId, () =>
+    sendSponsoredTransactionUnlocked(input)
   );
 }
 
