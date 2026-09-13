@@ -2,7 +2,7 @@
 
 | File | Use |
 | --- | --- |
-| `graphitti-workflows-cover.png` | Repository and app README cover (wide logo on black) |
+| `graphitti-workflows-cover.png` | Static wide logo (optional; README uses `docs/media/graphitti-workflow-demo.mp4` as cover) |
 
 Reference from repo root:
 
