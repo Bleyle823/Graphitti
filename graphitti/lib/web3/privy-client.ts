@@ -4,6 +4,11 @@ import {
   createPrivyAuthorizationSignature,
   needsAuthorizationSignature,
 } from "@/lib/web3/privy-authorization";
+import {
+  buildIntentAuthorizationSignInput,
+  type IntentAuthorizationSignInput,
+  signIntentAuthorizationPayload,
+} from "@/lib/web3/privy-intent-authorize";
 
 const PRIVY_API = "https://api.privy.io";
 
@@ -417,16 +422,96 @@ export async function getPrivyIntent(
   );
 }
 
-export async function signPrivyIntent(
+export type AuthorizePrivyIntentInput = {
+  signature: string;
+  timestamp: number;
+};
+
+export async function authorizePrivyIntent(
   intentId: string,
-  body?: Record<string, unknown>
+  input: AuthorizePrivyIntentInput
 ): Promise<PrivyIntent & Record<string, unknown>> {
+  const encodedId = encodeURIComponent(intentId);
   return await privyFetch<PrivyIntent & Record<string, unknown>>(
-    `/v1/intents/${intentId}/sign`,
+    `/v1/intents/${encodedId}/authorize`,
     {
       method: "POST",
-      body: JSON.stringify(body ?? {}),
+      body: JSON.stringify(input),
     }
+  );
+}
+
+export async function rejectPrivyIntent(
+  intentId: string
+): Promise<PrivyIntent & Record<string, unknown>> {
+  const encodedId = encodeURIComponent(intentId);
+  return await privyFetch<PrivyIntent & Record<string, unknown>>(
+    `/v1/intents/${encodedId}/reject`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    }
+  );
+}
+
+/**
+ * Authorize a pending intent. Prefer passing the org owner's authorization
+ * signature from the client (Treasury UI). Falls back to PRIVY_AUTHORIZATION_KEY
+ * when no user signature is supplied (key-quorum owners only).
+ */
+export async function signPrivyIntent(
+  intentId: string,
+  userAuthorization?: AuthorizePrivyIntentInput
+): Promise<PrivyIntent & Record<string, unknown>> {
+  if (userAuthorization) {
+    return await authorizePrivyIntent(intentId, userAuthorization);
+  }
+
+  const intent = await getPrivyIntent(intentId);
+  const requestDetails = intent.request_details as
+    | { method: string; url: string; body: unknown }
+    | undefined;
+  if (!(requestDetails?.url && requestDetails.method)) {
+    throw new Error("Intent is missing request_details required for approval");
+  }
+
+  const { appId } = getAppCredentials();
+  const signInput = buildIntentAuthorizationSignInput(
+    intent.intent_id ?? intentId,
+    requestDetails,
+    appId
+  );
+
+  const authorizationKey = process.env.PRIVY_AUTHORIZATION_KEY?.trim();
+  if (!authorizationKey) {
+    throw new Error(
+      "Connect with Privy and approve again, or configure PRIVY_AUTHORIZATION_KEY for server-side intent approval."
+    );
+  }
+
+  const signature = signIntentAuthorizationPayload(signInput, authorizationKey);
+  return await authorizePrivyIntent(intentId, {
+    signature,
+    timestamp: signInput.timestamp,
+  });
+}
+
+export async function getPrivyIntentAuthorizationSignInput(
+  intentId: string
+): Promise<IntentAuthorizationSignInput> {
+  const intent = await getPrivyIntent(intentId);
+  const requestDetails = intent.request_details as
+    | { method: string; url: string; body: unknown }
+    | undefined;
+  if (!(requestDetails?.url && requestDetails.method)) {
+    throw new Error("Intent is missing request_details required for approval");
+  }
+
+  const { appId } = getAppCredentials();
+  return buildIntentAuthorizationSignInput(
+    intent.intent_id ?? intentId,
+    requestDetails,
+    appId
   );
 }
 
