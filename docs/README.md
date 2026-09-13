@@ -24,7 +24,7 @@ Docs deploy from the default branch when Mintlify GitHub integration is connecte
 
 ## Product overview
 
-Architecture, workflows, and integration evidence: [repository README](../README.md).
+Architecture, workflows, and integrations: [repository README](../README.md).
 
 Product screenshots: `images/product/` (see `images/product/README.md`).
 

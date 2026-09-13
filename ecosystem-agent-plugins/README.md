@@ -58,4 +58,4 @@ npm install @graphitti/graph-core @graphitti/privy-core
 - [ELIZA.md](./ELIZA.md) — elizaOS v2 integration
 - [The Graph agent plugins](../docs/plugins/agent-the-graph.mdx)
 - [Privy agent plugins](../docs/plugins/agent-privy.mdx)
-- [Repository README](../README.md) — integration evidence and featured workflows
+- [Repository README](../README.md) — integrations, live runs, and featured workflows
