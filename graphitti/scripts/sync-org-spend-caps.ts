@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
+import {
+  buildAutoTransferPolicyRules,
+  DEFAULT_AUTO_SPEND_CAP,
+} from "@/lib/privy/policy-rules";
 
 function loadEnvFile(): void {
   const envFile = process.env.SEED_ENV_FILE?.trim() || ".env.local";
@@ -32,18 +36,50 @@ function loadEnvFile(): void {
   }
 }
 
+async function patchPrivyPolicy(
+  policyId: string,
+  rules: Record<string, unknown>[]
+): Promise<void> {
+  const appId =
+    process.env.PRIVY_APP_ID || process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+  const appSecret = process.env.PRIVY_APP_SECRET;
+  if (!(appId && appSecret)) {
+    throw new Error("PRIVY_APP_ID and PRIVY_APP_SECRET are required");
+  }
+  const auth = Buffer.from(`${appId}:${appSecret}`).toString("base64");
+  const response = await fetch(`https://api.privy.io/v1/policies/${policyId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/json",
+      "privy-app-id": appId,
+    },
+    body: JSON.stringify({ name: "auto payroll", rules }),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Privy policy PATCH failed: HTTP ${response.status} ${text}`);
+  }
+}
+
 async function main(): Promise<void> {
   loadEnvFile();
 
-  const cap = process.env.ORG_AUTO_SPEND_CAP_USDC?.trim() || "10";
+  const cap = process.env.ORG_AUTO_SPEND_CAP_USDC?.trim() || DEFAULT_AUTO_SPEND_CAP;
 
   const { db } = await import("@/lib/db");
-  const { organizationWallets } = await import("@/lib/db/schema");
-  const { syncPayeeAllowlist } = await import("@/lib/privy/sync-payee-allowlist");
+  const { organizationPayees, organizationWallets } = await import(
+    "@/lib/db/schema"
+  );
 
   const rows = await db.query.organizationWallets.findMany({
     where: eq(organizationWallets.isActive, true),
-    columns: { id: true, organizationId: true, autoSpendCapUsdc: true },
+    columns: {
+      id: true,
+      organizationId: true,
+      autoSpendCapUsdc: true,
+      autoPolicyId: true,
+    },
   });
 
   if (rows.length === 0) {
@@ -57,11 +93,28 @@ async function main(): Promise<void> {
       .set({ autoSpendCapUsdc: cap, updatedAt: new Date() })
       .where(eq(organizationWallets.id, row.id));
 
-    const policy = await syncPayeeAllowlist(row.organizationId);
+    let policyNote = "";
+    if (row.autoPolicyId) {
+      const payees = await db.query.organizationPayees.findMany({
+        where: eq(organizationPayees.organizationId, row.organizationId),
+        columns: { address: true },
+      });
+      const rules = buildAutoTransferPolicyRules(
+        cap,
+        payees.map((p) => p.address)
+      );
+      try {
+        await patchPrivyPolicy(row.autoPolicyId, rules);
+        policyNote = " (Privy policy synced)";
+      } catch (error) {
+        policyNote = ` (Privy policy warning: ${
+          error instanceof Error ? error.message : String(error)
+        })`;
+      }
+    }
+
     console.log(
-      `Org ${row.organizationId}: cap ${row.autoSpendCapUsdc} -> ${cap}${
-        policy.error ? ` (policy warning: ${policy.error})` : ""
-      }`
+      `Org ${row.organizationId}: cap ${row.autoSpendCapUsdc} -> ${cap}${policyNote}`
     );
   }
 }

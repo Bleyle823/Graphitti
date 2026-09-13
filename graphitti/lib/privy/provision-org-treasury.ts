@@ -4,6 +4,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userWallets } from "@/lib/db/schema";
 import {
+  buildAutoTransferPolicyRules,
+  DEFAULT_AUTO_SPEND_CAP,
+} from "@/lib/privy/policy-rules";
+import {
   createPrivyKeyQuorum,
   createPrivyOrganization,
   createPrivyOrgWallet,
@@ -12,52 +16,7 @@ import {
   updatePrivyPolicy,
 } from "@/lib/web3/privy-client";
 
-const DEFAULT_AUTO_SPEND_CAP = "10";
-const TREASURY_CHAIN = "base_sepolia";
-
-export function buildAutoTransferPolicyRules(
-  spendCapUsdc: string,
-  allowlistedAddresses: string[] = []
-): Record<string, unknown>[] {
-  const recipientCondition =
-    allowlistedAddresses.length > 0
-      ? {
-          field_source: "action_request_body",
-          field: "destination.address",
-          operator: "in",
-          value: allowlistedAddresses,
-        }
-      : null;
-
-  return [
-    {
-      name: "Allow small USDC transfers",
-      method: "transfer",
-      action: "ALLOW",
-      conditions: [
-        {
-          field_source: "action_request_body",
-          field: "source.chain",
-          operator: "eq",
-          value: TREASURY_CHAIN,
-        },
-        {
-          field_source: "action_request_body",
-          field: "source.asset",
-          operator: "eq",
-          value: "usdc",
-        },
-        {
-          field_source: "action_request_body",
-          field: "source.amount",
-          operator: "lte",
-          value: spendCapUsdc,
-        },
-        ...(recipientCondition ? [recipientCondition] : []),
-      ],
-    },
-  ];
-}
+export { buildAutoTransferPolicyRules, DEFAULT_AUTO_SPEND_CAP, TREASURY_CHAIN } from "@/lib/privy/policy-rules";
 
 function buildOwnerTransferPolicyRules(): Record<string, unknown>[] {
   return [
@@ -183,4 +142,3 @@ export async function syncPayeeAllowlistPolicy(input: {
   });
 }
 
-export { DEFAULT_AUTO_SPEND_CAP, TREASURY_CHAIN };
