@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="../docs/images/brand/graphitti-workflows-cover.png" alt="Graphitti Workflows" width="720" />
+  <video src="../docs/media/graphitti-workflow-demo.mp4" width="720" controls playsinline>
+    Your browser does not support embedded video. <a href="../docs/media/graphitti-workflow-demo.mp4">Download the Graphitti workflow demo</a>.
+  </video>
 </p>
 
 # Graphitti app
@@ -15,18 +17,133 @@ Next.js workflow builder and execution layer for **Privy** treasuries, **The Gra
 
 Payroll and org treasury settle on **Base Sepolia USDC**. Marketplace and FPL payouts use **Arc Testnet** (`eip155:5042002`). Featured Uniswap demos use **subgraph reads only**, not on-chain router swaps.
 
-## Run locally
+## Run the project locally
+
+All commands below are run from the **`graphitti/`** directory (this folder).
+
+### Prerequisites
+
+| Requirement | Notes |
+| --- | --- |
+| [Node.js](https://nodejs.org/) 18+ | LTS recommended |
+| [pnpm](https://pnpm.io/installation) 10+ | Repo pins `pnpm@10.28.0` via `packageManager` |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Local Postgres for auth, workflows, and integrations |
+
+### Step 1 — Clone and enter the app
 
 ```bash
-cp .env.example .env.local   # fill sponsor keys below + auth/database minimums
+git clone https://github.com/Bleyle823/Graphitti.git
+cd Graphitti/graphitti
+```
+
+### Step 2 — Install dependencies
+
+```bash
 pnpm install
+```
+
+### Step 3 — Environment file
+
+Copy the example env file and generate secrets:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`. **Minimum to boot the UI and sign in:**
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/workflow
+WORKFLOW_EMBEDDED_BASE_URL=http://127.0.0.1:3000
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+INTEGRATION_ENCRYPTION_KEY=
+```
+
+Generate secrets (run in a terminal):
+
+```bash
+# BETTER_AUTH_SECRET
+openssl rand -base64 32
+
+# INTEGRATION_ENCRYPTION_KEY (64 hex chars)
+openssl rand -hex 32
+```
+
+Paste the outputs into `.env.local`. Keep `WORKFLOW_EMBEDDED_BASE_URL` on port **3000** unless you change the dev server port—otherwise workflow runs can hang on the first node.
+
+Optional for wallet and sponsor demos (see tables below): Privy, `THEGRAPH_API_KEY`, Circle, Stripe, `TELEGRAM_BOT_TOKEN`, etc. Full list is in `.env.example`.
+
+### Step 4 — Database (Docker + schema)
+
+Start Postgres and apply the Drizzle schema:
+
+```bash
 pnpm setup
+```
+
+This runs `docker compose up -d` and `pnpm db:push`. If Docker is not running, start Docker Desktop and retry.
+
+Useful database commands:
+
+```bash
+pnpm docker:up      # start Postgres only
+pnpm docker:down    # stop containers
+pnpm docker:logs    # tail Postgres logs
+pnpm db:studio      # Drizzle Studio in the browser
+```
+
+### Step 5 — Start the dev server
+
+```bash
 pnpm dev
 ```
 
-Minimum auth/database variables are in `.env.example`. For starred workflows, configure **Project Integrations** in the app (Stripe, Telegram, Supabase, Circle) and the server env keys in the table below.
+Open [http://localhost:3000](http://localhost:3000). The dev script runs plugin discovery, then Next.js.
 
-## Sponsor plugins in this app
+### Step 6 — First run in the browser
+
+1. Sign in (email or configured OAuth if you added client IDs to `.env.local`).
+2. Click **Connect wallet** (requires Privy keys in `.env.local` for embedded wallet flows).
+3. Open a starred workflow from the gallery or **Saved workflows**.
+4. Click **Run** on a **Manual** trigger.
+5. Add **Project Integrations** in the app for Stripe, Telegram, Supabase, or Circle when a template needs them (see [Featured workflows](../docs/workflows/featured-workflows.mdx)).
+
+### Optional — Sponsor keys in `.env.local`
+
+| Goal | Variables |
+| --- | --- |
+| Embedded wallet + treasury | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY`, `NEXT_PUBLIC_PRIVY_SIGNER_ID` |
+| Subgraph queries | `THEGRAPH_API_KEY` |
+| Circle / Arc reads and x402 | `CIRCLE_API_KEY`, optional `PRIVATE_KEY` for marketplace buyer |
+| Telegram plugin default | `TELEGRAM_BOT_TOKEN` (or set per integration in the UI) |
+
+Org treasury does not use a separate env var—create it under **Treasury** in the app after Privy is configured.
+
+### Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| Run stuck on first node | Set `WORKFLOW_EMBEDDED_BASE_URL=http://127.0.0.1:3000` and restart `pnpm dev` |
+| `DATABASE_URL` / connection errors | Run `pnpm docker:up` and confirm Docker is healthy |
+| Privy / wallet errors | Fill Privy vars; use the same app ID in dashboard allowlist for `http://localhost:3000` |
+| The Graph query fails | Add Studio API key to `.env.local` and bind **The Graph** on the query node |
+
+### Production build (local check)
+
+```bash
+pnpm build
+pnpm start
+```
+
+Quality checks before a PR:
+
+```bash
+pnpm type-check
+pnpm fix
+```
+
 
 Canvas plugins and primary code paths used in shipped examples:
 
@@ -100,15 +217,6 @@ These templates are pinned first in the app gallery:
 9. Org USDC waterline keeper — Privy + Circle  
 
 If Telegram or notification nodes still show `YOUR_TELEGRAM_CHAT_ID`, upstream Graph / Privy / Arc steps can still succeed; see the [featured workflows guide](../docs/workflows/featured-workflows.mdx) for placeholder behavior.
-
-## Scripts
-
-```bash
-pnpm dev
-pnpm build
-pnpm type-check
-pnpm fix
-```
 
 ## License
 

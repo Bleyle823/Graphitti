@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="docs/images/brand/graphitti-workflows-cover.png" alt="Graphitti Workflows" width="720" />
+  <video src="docs/media/graphitti-workflow-demo.mp4" width="720" controls playsinline>
+    Your browser does not support embedded video. <a href="docs/media/graphitti-workflow-demo.mp4">Download the Graphitti workflow demo</a>.
+  </video>
 </p>
 
 # Graphitti
@@ -11,7 +13,7 @@ Graphitti is the execution layer for businesses, users, and developers onchain: 
 | App | [graphitti-five.vercel.app](https://graphitti-five.vercel.app) |
 | Docs | [Mintlify site](docs/) — run `mint dev` in `docs/` or open published docs from your deployment |
 | Repository | [github.com/Bleyle823/Graphitti](https://github.com/Bleyle823/Graphitti) |
-| Demo video | `VIDEO_URL` |
+| Demo video | [Workflow demo](docs/media/graphitti-workflow-demo.mp4) (embedded above) |
 | npm | [`@graphitti/graph-core`](https://www.npmjs.com/package/@graphitti/graph-core), [`@graphitti/privy-core`](https://www.npmjs.com/package/@graphitti/privy-core) |
 
 ## Architecture
