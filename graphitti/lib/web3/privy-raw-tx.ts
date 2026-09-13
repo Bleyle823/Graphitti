@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ethers } from "ethers";
+import { logWarn } from "@/lib/logging";
 import type { SupportedChain } from "./chains";
 import { getPrivyWallet, privyFetch } from "./privy-client";
 
@@ -54,6 +55,41 @@ function resolveFees(
     maxFeePerGas,
     maxPriorityFeePerGas: priority > maxFeePerGas ? maxFeePerGas : priority,
   };
+}
+
+const NONCE_CONSUMED_TIMEOUT_MS = 15_000;
+const NONCE_CONSUMED_POLL_MS = 250;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * Hold the per-wallet send lock until the RPC's pending nonce moves past the
+ * nonce we just broadcast. Otherwise a sibling Arc send can still read the
+ * same nonce and fail with "replacement fee too low".
+ */
+async function waitUntilPendingNonceConsumed(
+  provider: ethers.JsonRpcProvider,
+  address: string,
+  usedNonce: number,
+  chainLabel: string
+): Promise<void> {
+  const deadline = Date.now() + NONCE_CONSUMED_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const pending = await provider.getTransactionCount(address, "pending");
+    if (pending > usedNonce) {
+      return;
+    }
+    await delay(NONCE_CONSUMED_POLL_MS);
+  }
+
+  logWarn("[Privy] Pending nonce did not advance after broadcast", {
+    chain: chainLabel,
+    used_nonce: String(usedNonce),
+  });
 }
 
 /**
@@ -131,6 +167,12 @@ export async function sendRawTransaction(
 
     const response = await provider.broadcastTransaction(
       transaction.serialized
+    );
+    await waitUntilPendingNonceConsumed(
+      provider,
+      wallet.address,
+      nonce,
+      input.chain.label
     );
     return { hash: response.hash };
   } finally {

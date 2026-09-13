@@ -926,7 +926,6 @@ export function generateWorkflowCode(
 
   /**
    * Generate code for a complete branch (node + all descendants)
-   * Used inside async IIFEs for parallel branches
    */
   function generateBranchCode(
     nodeId: string,
@@ -1036,7 +1035,8 @@ export function generateWorkflowCode(
   }
 
   /**
-   * Generate code for children nodes, handling parallel branches
+   * Generate code for children nodes. Sibling branches run in series so two
+   * Arc sends from the same wallet do not share a nonce.
    */
   function generateChildrenCode(
     childIds: string[],
@@ -1051,59 +1051,37 @@ export function generateWorkflowCode(
       return generateBranchCode(unvisited[0], indent, branchVisited);
     }
 
-    // Multiple children - generate Promise.all with async IIFEs
-    const lines: string[] = [`${indent}await Promise.all([`];
-
-    for (let i = 0; i < unvisited.length; i++) {
-      const childId = unvisited[i];
-      const isLast = i === unvisited.length - 1;
-      const comma = isLast ? "" : ",";
-
-      // Create a new visited set for this branch
-      const childBranchVisited = new Set(branchVisited);
-      const branchCode = generateBranchCode(
-        childId,
-        `${indent}    `,
-        childBranchVisited
-      );
-
-      if (branchCode.length > 0) {
-        lines.push(`${indent}  (async () => {`);
-        lines.push(...branchCode);
-        lines.push(`${indent}  })()${comma}`);
-      }
-    }
-
-    lines.push(`${indent}]);`);
-    return lines;
+    // Sibling branches from one node (e.g. two Arc sends) must run in order.
+    // Promise.all races the same wallet nonce and Arc rejects the second
+    // broadcast as "replacement fee too low".
+    return appendSequentialBranches(
+      unvisited,
+      indent,
+      () => new Set(branchVisited)
+    );
   }
 
-  /**
-   * Generate a single async IIFE branch for Promise.all
-   */
-  function generateAsyncIIFEBranch(
-    nodeId: string,
+  function appendSequentialBranches(
+    childIds: string[],
     indent: string,
-    isLast: boolean
+    visitedFor: (childId: string) => Set<string>
   ): string[] {
-    const branchVisited = new Set(visited);
-    branchVisited.delete(nodeId);
-    const branchCode = generateBranchCode(
-      nodeId,
-      `${indent}    `,
-      branchVisited
-    );
-    const comma = isLast ? "" : ",";
-
-    if (branchCode.length === 0) {
-      return [];
+    const lines: string[] = [];
+    for (const childId of childIds) {
+      const branchCode = generateBranchCode(
+        childId,
+        indent,
+        visitedFor(childId)
+      );
+      if (branchCode.length === 0) {
+        continue;
+      }
+      if (lines.length > 0) {
+        lines.push("");
+      }
+      lines.push(...branchCode);
     }
-
-    return [
-      `${indent}  (async () => {`,
-      ...branchCode,
-      `${indent}  })()${comma}`,
-    ];
+    return lines;
   }
 
   /**
@@ -1135,20 +1113,11 @@ export function generateWorkflowCode(
       visited.add(id);
     }
 
-    // Multiple branches - wrap each in async IIFE
-    const lines: string[] = [`${indent}await Promise.all([`];
-    for (let i = 0; i < unvisited.length; i++) {
-      lines.push(
-        ...generateAsyncIIFEBranch(
-          unvisited[i],
-          indent,
-          i === unvisited.length - 1
-        )
-      );
-    }
-    lines.push(`${indent}]);`);
-
-    return lines;
+    return appendSequentialBranches(unvisited, indent, (id) => {
+      const branchVisited = new Set(visited);
+      branchVisited.delete(id);
+      return branchVisited;
+    });
   }
 
   /**

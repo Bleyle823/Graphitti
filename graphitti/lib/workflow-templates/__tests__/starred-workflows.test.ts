@@ -136,7 +136,7 @@ describe("starred workflow templates", () => {
     }
   });
 
-  it("FPL pays from funded true branches and has false paths for gameweek and pool", () => {
+  it("FPL pays 1st then 2nd sequentially and has false paths for gameweek and pool", () => {
     const fpl = requireTemplate("FPL League Top Two USDC Payouts");
     expect(actionTypes(fpl)).toContain("telegram/send-message");
     expect(hasEdge(fpl, "fpl-gw-finished", "fpl-standings", "true")).toBe(true);
@@ -148,7 +148,7 @@ describe("starred workflow templates", () => {
     ).toBe(true);
     expect(
       hasEdge(fpl, "fpl-funded-condition", "fpl-pay-second-condition", "true")
-    ).toBe(true);
+    ).toBe(false);
     expect(
       hasEdge(fpl, "fpl-funded-condition", "fpl-underfunded-telegram", "false")
     ).toBe(true);
@@ -161,9 +161,23 @@ describe("starred workflow templates", () => {
       hasEdge(fpl, "fpl-pay-first-condition", "arc-pay-first", "true")
     ).toBe(true);
     expect(
+      hasEdge(
+        fpl,
+        "fpl-pay-first-condition",
+        "fpl-pay-second-condition",
+        "false"
+      )
+    ).toBe(true);
+    expect(hasEdge(fpl, "arc-pay-first", "fpl-pay-second-condition")).toBe(
+      true
+    );
+    expect(
       hasEdge(fpl, "fpl-pay-second-condition", "arc-pay-second", "true")
     ).toBe(true);
-    expect(hasEdge(fpl, "arc-pay-first", "fpl-telegram")).toBe(true);
+    expect(
+      hasEdge(fpl, "fpl-pay-second-condition", "fpl-telegram", "false")
+    ).toBe(true);
+    expect(hasEdge(fpl, "arc-pay-first", "fpl-telegram")).toBe(false);
     expect(hasEdge(fpl, "arc-pay-second", "fpl-telegram")).toBe(true);
   });
 
@@ -264,15 +278,15 @@ describe("starred workflow templates", () => {
     expect(types).toContain("arc/get-usdc-erc20-balance");
     expect(types).toContain("arc/estimate-swap");
     expect(types).not.toContain("code/run-code");
-    expect(hasEdge(arcdefi, "arcdefi-ready", "arcdefi-swap-estimate", "true")).toBe(
-      true
-    );
+    expect(
+      hasEdge(arcdefi, "arcdefi-ready", "arcdefi-swap-estimate", "true")
+    ).toBe(true);
     expect(
       hasEdge(arcdefi, "arcdefi-ready", "arcdefi-telegram-fund", "false")
     ).toBe(true);
-    expect(hasEdge(arcdefi, "arcdefi-swap-estimate", "arcdefi-telegram-ready")).toBe(
-      true
-    );
+    expect(
+      hasEdge(arcdefi, "arcdefi-swap-estimate", "arcdefi-telegram-ready")
+    ).toBe(true);
   });
 
   it("payroll batch with intent fallback merges payouts into Telegram", () => {
@@ -312,6 +326,14 @@ describe("starred workflow templates", () => {
       {
         name: "FPL League Top Two USDC Payouts",
         conditionId: "fpl-funded-condition",
+      },
+      {
+        name: "FPL League Top Two USDC Payouts",
+        conditionId: "fpl-pay-first-condition",
+      },
+      {
+        name: "FPL League Top Two USDC Payouts",
+        conditionId: "fpl-pay-second-condition",
       },
       {
         name: "Stripe invoice to Privy USDC settlement",

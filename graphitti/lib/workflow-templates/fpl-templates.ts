@@ -75,7 +75,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           label: "Sticky note",
           type: "note",
           config: {
-            text: "Set classic league ID on Get League Standings. Edit the roster JSON on Rank Top Two (team, manager, Arc wallet). Team names match FPL entry_name with emojis stripped. Set prize-pool address on Get Prize Pool USDC (same wallet that sends via Arc). Pays 5 / 3 native USDC to mapped 1st / 2nd only. Set Telegram chat ID for the payout notification.",
+            text: "Set classic league ID on Get League Standings. Edit the roster JSON on Rank Top Two (team, manager, Arc wallet). Team names match FPL entry_name with emojis stripped. Set prize-pool address on Get Prize Pool USDC (same wallet that sends via Arc). Pays 5 then 3 native USDC to mapped 1st / 2nd (sequential on one Arc wallet). Set Telegram chat ID for the payout notification.",
             color: "blue",
             fontSize: "sm",
             textAlign: "left",
@@ -224,7 +224,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "fpl-pay-second-condition",
         type: "action",
-        position: { x: 2000, y: 340 },
+        position: { x: 2560, y: 200 },
         data: {
           label: "Pay 2nd?",
           type: "action",
@@ -257,7 +257,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "arc-pay-second",
         type: "action",
-        position: { x: 2300, y: 340 },
+        position: { x: 2840, y: 200 },
         data: {
           label: "Pay 2nd Place",
           type: "action",
@@ -293,7 +293,7 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: "fpl-telegram",
         type: "action",
-        position: { x: 2600, y: 200 },
+        position: { x: 3120, y: 200 },
         data: {
           label: "Send payout notification",
           type: "action",
@@ -359,12 +359,6 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         sourceHandle: "true",
       },
       {
-        id: "e-fpl-funded-second-branch",
-        source: "fpl-funded-condition",
-        target: "fpl-pay-second-condition",
-        sourceHandle: "true",
-      },
-      {
         id: "e-fpl-funded-underfunded",
         source: "fpl-funded-condition",
         target: "fpl-underfunded-telegram",
@@ -377,15 +371,27 @@ export const FPL_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         sourceHandle: "true",
       },
       {
+        id: "e-fpl-skip-first",
+        source: "fpl-pay-first-condition",
+        target: "fpl-pay-second-condition",
+        sourceHandle: "false",
+      },
+      {
+        id: "e-fpl-first-to-second",
+        source: "arc-pay-first",
+        target: "fpl-pay-second-condition",
+      },
+      {
         id: "e-fpl-pay-second",
         source: "fpl-pay-second-condition",
         target: "arc-pay-second",
         sourceHandle: "true",
       },
       {
-        id: "e-fpl-first-telegram",
-        source: "arc-pay-first",
+        id: "e-fpl-skip-second",
+        source: "fpl-pay-second-condition",
         target: "fpl-telegram",
+        sourceHandle: "false",
       },
       {
         id: "e-fpl-second-telegram",
