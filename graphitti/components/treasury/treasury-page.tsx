@@ -336,7 +336,7 @@ export function TreasuryPage(): React.ReactElement {
     if (!data?.treasury) {
       return;
     }
-    setAutoCap(data.treasury.autoSpendCapUsdc ?? "50");
+    setAutoCap(data.treasury.autoSpendCapUsdc ?? "10");
     setDailyCap(data.treasury.dailySpendCapUsdc ?? "");
   }, [data?.treasury]);
 

@@ -24,6 +24,7 @@
     "seed:workflows": "tsx scripts/seed-workflow-templates.ts",
     "seed:marketplace": "cross-env SEED_LIST=1 tsx scripts/seed-workflow-templates.ts",
     "sync:catalog-copies": "tsx scripts/refresh-user-catalog-copies.ts",
+    "sync:org-spend-caps": "tsx scripts/sync-org-spend-caps.ts",
     "substreams:deploy-checklist": "tsx scripts/substreams-subgraph-deploy-checklist.ts",
     "substreams:deploy-kelp": "tsx scripts/deploy-kelp-substreams.ts",
     "fetch-brand-logos": "tsx scripts/fetch-brand-logos.ts",

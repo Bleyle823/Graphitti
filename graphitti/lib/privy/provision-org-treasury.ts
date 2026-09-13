@@ -12,7 +12,7 @@ import {
   updatePrivyPolicy,
 } from "@/lib/web3/privy-client";
 
-const DEFAULT_AUTO_SPEND_CAP = "50";
+const DEFAULT_AUTO_SPEND_CAP = "10";
 const TREASURY_CHAIN = "base_sepolia";
 
 export function buildAutoTransferPolicyRules(

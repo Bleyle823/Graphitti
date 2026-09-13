@@ -1,0 +1,1 @@
+ALTER TABLE "organization_wallets" ALTER COLUMN "auto_spend_cap_usdc" SET DEFAULT '10';

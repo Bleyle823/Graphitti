@@ -10,6 +10,12 @@ const STRIPE_DEMO_LINE_ITEMS =
   '[{"description": "Contractor deliverable", "amount": 25000, "quantity": 1}]';
 const STRIPE_DEMO_CONTRACTOR_ADDRESS =
   "0xe53c55806328d94A345f2784c7387495505B1CF1";
+/** Direct org transfers above this USDC need a Privy intent (matches DEFAULT_AUTO_SPEND_CAP). */
+const ORG_AUTO_SPEND_CAP_USDC = "10";
+const PAYROLL_UNDER_CAP_AMOUNT = "10";
+const PAYROLL_INTENT_AMOUNT = "25";
+const PAYROLL_DEMO_PAYEE_UNDER_CAP = "0xc67c0d1d4e12D838f3ed2fC6241D8e65Dfb3100B";
+const PAYROLL_DEMO_PAYEE_INTENT = "0xe62803A1A219Be5f0D437ed9F84F2e4CDc8A3Ca1";
 
 function trigger(
   id: string,
@@ -126,15 +132,14 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       }),
       action("under-cap", { x: 560, y: 120 }, "Under auto cap?", {
         actionType: "Condition",
-        condition:
-          'Number("25") <= Number("{{@get-wallet-cap:Get org wallet.autoSpendCapUsdc}}")',
+        condition: `Number("${PAYROLL_UNDER_CAP_AMOUNT}") <= Number("{{@get-wallet-cap:Get org wallet.autoSpendCapUsdc}}")`,
       }),
       action("auto-pay", { x: 840, y: 80 }, "Auto payroll transfer", {
         actionType: "privy/wallet-transfer",
         walletId: "{{@get-wallet-cap:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
         sourceAsset: "usdc",
-        amount: "25",
+        amount: PAYROLL_UNDER_CAP_AMOUNT,
         destinationAddress: PLACEHOLDER,
         useIntent: "false",
       }),
@@ -143,7 +148,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         walletId: "{{@get-wallet-cap:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
         sourceAsset: "usdc",
-        amount: "250",
+        amount: PAYROLL_INTENT_AMOUNT,
         destinationAddress: PLACEHOLDER,
       }),
       action("notify-cap", { x: 1120, y: 200 }, "Notify payroll", {
@@ -428,7 +433,7 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     name: "Payroll batch with intent fallback",
     description:
-      "Pay allowlisted contractors under the auto cap, queue a large remainder as a Privy transfer intent for owner approval, and Telegram a payroll summary.",
+      "Pay 10 USDC direct (at the org auto cap), then queue 25 USDC as a Privy transfer intent for owner approval. Set Treasury auto cap to 10 USDC so transfers over 10 require intents.",
     nodes: [
       trigger("trigger-batch", "Run payroll batch", {
         triggerType: "Manual",
@@ -439,28 +444,28 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       action("list-payees-batch", { x: 560, y: 200 }, "List payees", {
         actionType: "treasury/list-payees",
       }),
-      action("small-pay", { x: 840, y: 80 }, "Small contractor payout", {
+      action("small-pay", { x: 840, y: 200 }, "Small contractor payout", {
         actionType: "privy/wallet-transfer",
         walletId: "{{@get-wallet-batch:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
         sourceAsset: "usdc",
-        amount: "25",
-        destinationAddress: PLACEHOLDER,
+        amount: PAYROLL_UNDER_CAP_AMOUNT,
+        destinationAddress: PAYROLL_DEMO_PAYEE_UNDER_CAP,
         useIntent: "false",
       }),
-      action("large-intent", { x: 840, y: 280 }, "Large payroll intent", {
+      action("large-intent", { x: 1120, y: 200 }, "Large payroll intent", {
         actionType: "privy/create-transfer-intent",
         walletId: "{{@get-wallet-batch:Get org wallet.walletId}}",
         sourceChain: "base_sepolia",
         sourceAsset: "usdc",
-        amount: "500",
-        destinationAddress: PLACEHOLDER,
+        amount: PAYROLL_INTENT_AMOUNT,
+        destinationAddress: PAYROLL_DEMO_PAYEE_INTENT,
       }),
-      action("telegram-batch", { x: 1120, y: 200 }, "Send payroll report", {
+      action("telegram-batch", { x: 1400, y: 200 }, "Send payroll report", {
         actionType: "telegram/send-message",
         chatId: "YOUR_TELEGRAM_CHAT_ID",
         message:
-          "Payroll batch complete\n\nUnder-cap transfer: {{@small-pay:Small contractor payout.status}}\nTx: {{@small-pay:Small contractor payout.transaction_hash}}\nLarge intent: {{@large-intent:Large payroll intent.intent_id}} ({{@large-intent:Large payroll intent.status}})\nApprove the intent in Treasury if pending.",
+          `Payroll batch complete (auto cap ${ORG_AUTO_SPEND_CAP_USDC} USDC)\n\nUnder-cap transfer: {{@small-pay:Small contractor payout.status}}\nTx: {{@small-pay:Small contractor payout.transaction_hash}}\nLarge intent: {{@large-intent:Large payroll intent.intent_id}} ({{@large-intent:Large payroll intent.status}})\nApprove the intent in Treasury if pending.`,
         parseMode: "none",
       }),
     ],
@@ -468,9 +473,8 @@ export const B2B_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       edge("eb1", "trigger-batch", "get-wallet-batch"),
       edge("eb2", "get-wallet-batch", "list-payees-batch"),
       edge("eb3", "list-payees-batch", "small-pay"),
-      edge("eb4", "list-payees-batch", "large-intent"),
-      edge("eb5", "small-pay", "telegram-batch"),
-      edge("eb6", "large-intent", "telegram-batch"),
+      edge("eb4", "small-pay", "large-intent"),
+      edge("eb5", "large-intent", "telegram-batch"),
     ],
   },
   {

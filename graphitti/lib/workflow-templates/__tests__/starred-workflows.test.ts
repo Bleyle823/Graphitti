@@ -275,7 +275,7 @@ describe("starred workflow templates", () => {
     expect(actionTypes(payroll)).toContain("privy/create-transfer-intent");
     expect(actionTypes(payroll)).toContain("telegram/send-message");
     expect(actionTypes(payroll)).not.toContain("linear/create-ticket");
-    expect(hasEdge(payroll, "small-pay", "telegram-batch")).toBe(true);
+    expect(hasEdge(payroll, "small-pay", "large-intent")).toBe(true);
     expect(hasEdge(payroll, "large-intent", "telegram-batch")).toBe(true);
   });
 

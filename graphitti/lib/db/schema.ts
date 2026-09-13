@@ -184,7 +184,7 @@ export const organizationWallets = pgTable(
     operatorSignerId: text("operator_signer_id"),
     autoPolicyId: text("auto_policy_id"),
     humanPolicyId: text("human_policy_id"),
-    autoSpendCapUsdc: numeric("auto_spend_cap_usdc").notNull().default("50"),
+    autoSpendCapUsdc: numeric("auto_spend_cap_usdc").notNull().default("10"),
     dailySpendCapUsdc: numeric("daily_spend_cap_usdc"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),

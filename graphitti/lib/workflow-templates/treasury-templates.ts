@@ -51,7 +51,7 @@ export const TREASURY_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
             walletId: "{{@get-wallet:Get org wallet.walletId}}",
             sourceChain: "base_sepolia",
             sourceAsset: "usdc",
-            amount: "25",
+            amount: "10",
             destinationAddress: "0x0000000000000000000000000000000000000001",
             useIntent: "false",
           },
