@@ -1,10 +1,20 @@
-import type { Action, IAgentRuntime, Memory, Plugin } from "@elizaos/core";
+import type {
+  Action,
+  ActionResult,
+  HandlerCallback,
+  IAgentRuntime,
+  Memory,
+  Plugin,
+  State,
+} from "@elizaos/core";
+import { logger } from "@elizaos/core";
 import {
   executeGraphTool,
   GRAPH_TOOLS,
   resolveCredentials,
   type GraphCredentials,
 } from "@graphitti/graph-core";
+import { parseToolParamsFromMessage } from "./parse-tool-params.js";
 
 function envCredentials(runtime: IAgentRuntime): GraphCredentials {
   const base = resolveCredentials();
@@ -15,7 +25,8 @@ function envCredentials(runtime: IAgentRuntime): GraphCredentials {
     SUBSTREAMS_API_KEY:
       runtime.getSetting("SUBSTREAMS_API_KEY") ?? base.SUBSTREAMS_API_KEY,
     THEGRAPH_MARKET_BEARER:
-      runtime.getSetting("THEGRAPH_MARKET_BEARER") ?? base.THEGRAPH_MARKET_BEARER,
+      runtime.getSetting("THEGRAPH_MARKET_BEARER") ??
+      base.THEGRAPH_MARKET_BEARER,
     GRAPHITTI_BASE_URL:
       runtime.getSetting("GRAPHITTI_BASE_URL") ?? base.GRAPHITTI_BASE_URL,
     GRAPHITTI_API_KEY:
@@ -28,39 +39,51 @@ function toActionName(toolName: string): string {
 }
 
 function createGraphAction(toolName: string, description: string): Action {
+  const actionName = toActionName(toolName);
   return {
-    name: toActionName(toolName),
+    name: actionName,
     similes: [toolName, toolName.replace(/^graph_/, "")],
     description,
     examples: [],
     validate: async (runtime) => {
       const creds = envCredentials(runtime);
-      if (!creds.THEGRAPH_API_KEY && toolName.startsWith("graph_whoami")) {
+      if (!creds.THEGRAPH_API_KEY && toolName === "graph_whoami") {
         return Boolean(creds.GRAPHITTI_API_KEY);
       }
       return Boolean(creds.THEGRAPH_API_KEY);
     },
-    handler: async (runtime, message) => {
+    handler: async (
+      runtime: IAgentRuntime,
+      message: Memory,
+      _state?: State,
+      _options?: Record<string, unknown>,
+      callback?: HandlerCallback
+    ): Promise<ActionResult> => {
       const creds = envCredentials(runtime);
-      const text = message.content.text ?? "";
-      let params: Record<string, unknown> = {};
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          params = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-        } catch {
-          params = { goal: text, keyword: text, query: text };
-        }
-      } else if (text.trim()) {
-        params = { goal: text, keyword: text, query: text };
-      }
+      const params = parseToolParamsFromMessage(message, [
+        "goal",
+        "keyword",
+        "query",
+      ]);
       const result = await executeGraphTool(toolName, params, creds);
       if (!result.success) {
-        return { success: false, text: result.error, error: new Error(result.error) };
+        const errorText = result.error;
+        await callback?.({
+          text: errorText,
+          source: message.content.source,
+          actions: [actionName],
+        });
+        return { success: false, text: errorText, error: errorText };
       }
+      const text = JSON.stringify(result.data);
+      await callback?.({
+        text,
+        source: message.content.source,
+        actions: [actionName],
+      });
       return {
         success: true,
-        text: JSON.stringify(result.data),
+        text,
         data: result.data,
       };
     },
@@ -80,8 +103,10 @@ export const theGraphPlugin: Plugin = {
   services: [],
   init: async (_config, runtime) => {
     const creds = envCredentials(runtime);
-    if (!creds.THEGRAPH_API_KEY) {
-      throw new Error("THEGRAPH_API_KEY is required for plugin-the-graph");
+    if (!creds.THEGRAPH_API_KEY && !creds.GRAPHITTI_API_KEY) {
+      logger.warn(
+        "[plugin-the-graph] THEGRAPH_API_KEY (or GRAPHITTI_API_KEY for whoami) is not set; graph actions will not validate until configured."
+      );
     }
   },
 };

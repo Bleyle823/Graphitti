@@ -1,7 +1,22 @@
 declare module "@elizaos/core" {
   export type Memory = {
-    content: { text?: string };
+    content: { text?: string; source?: string };
   };
+
+  export type State = Record<string, unknown>;
+
+  export type HandlerCallback = (content: {
+    text?: string;
+    source?: string;
+    actions?: string[];
+  }) => Promise<unknown[] | void> | unknown[] | void;
+
+  export interface ActionResult {
+    success: boolean;
+    text?: string;
+    data?: unknown;
+    error?: string | Error;
+  }
 
   export type IAgentRuntime = {
     getSetting: (key: string) => string | undefined;
@@ -15,13 +30,11 @@ declare module "@elizaos/core" {
     validate: (runtime: IAgentRuntime) => Promise<boolean>;
     handler: (
       runtime: IAgentRuntime,
-      message: Memory
-    ) => Promise<{
-      success: boolean;
-      text?: string;
-      data?: unknown;
-      error?: Error;
-    }>;
+      message: Memory,
+      state?: State,
+      options?: Record<string, unknown>,
+      callback?: HandlerCallback
+    ) => Promise<ActionResult | void>;
   };
 
   export type Plugin = {
@@ -31,5 +44,9 @@ declare module "@elizaos/core" {
     providers: unknown[];
     services: unknown[];
     init?: (config: unknown, runtime: IAgentRuntime) => Promise<void>;
+  };
+
+  export const logger: {
+    warn: (...args: unknown[]) => void;
   };
 }

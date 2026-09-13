@@ -100,6 +100,16 @@ Privy is the execution layer: embedded wallets for users, organization treasurie
 - Stripe invoice to Privy USDC: [b2b-templates.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/lib/workflow-templates/b2b-templates.ts#L481-L554)
 - Eliza `plugin-privy`: [plugin-privy/src/index.ts](https://github.com/Bleyle823/Graphitti/blob/main/ecosystem-agent-plugins/privy/plugin-privy/src/index.ts#L70-L78)
 
+**Automated tests (2026-09-13)**
+
+| Suite | Scope | Result |
+|-------|--------|--------|
+| `ecosystem-agent-plugins` → `pnpm test` | `@graphitti/privy-core` catalog, MCP contract, mocked Privy REST + Graphitti B2B; `plugin-privy` Eliza v2 actions | **Pass** (9 tests in Privy stack) |
+| `ecosystem-agent-plugins` → `pnpm test:live` | Live `privy_list_wallets` against Privy API | **Pass** (local credentials) |
+| eliza-main → `@elizaos/plugin-graphitti-privy` | Wrapper re-export smoke test | **Pass** |
+
+Reproduce: [ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md). Full report also summarized in [README — Agent plugin test report](#agent-plugin-test-report).
+
 **Live proof**
 
 | Item | Value |
@@ -161,6 +171,16 @@ Canvas actions query live subgraphs and Substreams packages. Agent packages reus
 - Kelp package slug: [kelp-substreams-deployments.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/lib/the-graph/kelp-substreams-deployments.ts#L15)
 - Eliza `plugin-the-graph`: [plugin-the-graph/src/index.ts](https://github.com/Bleyle823/Graphitti/blob/main/ecosystem-agent-plugins/the-graph/plugin-the-graph/src/index.ts#L70-L78)
 
+**Automated tests (2026-09-13)**
+
+| Suite | Scope | Result |
+|-------|--------|--------|
+| `ecosystem-agent-plugins` → `pnpm test` | `@graphitti/graph-core` Gateway key rules, Substreams tools, MCP `graph_*` list, mocked recommend/search; `plugin-the-graph` Eliza v2 handlers | **Pass** (10 tests in Graph stack) |
+| `ecosystem-agent-plugins` → `pnpm test:live` | Live `graph_search_subgraphs` (Studio Gateway, keyword `uniswap`) | **Pass** (local `THEGRAPH_API_KEY`) |
+| eliza-main → `@elizaos/plugin-graphitti-the-graph` | Wrapper re-export smoke test | **Pass** |
+
+Reproduce: [ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md). Full report also summarized in [README — Agent plugin test report](#agent-plugin-test-report).
+
 **Live proof**
 
 | Item | Value |
@@ -180,6 +200,39 @@ Canvas actions query live subgraphs and Substreams packages. Agent packages reus
 | Table Editor screenshot | YOUR_LINK or `docs/images/product/supabase-backing-snapshots.png` |
 
 Uniswap **contract** swap actions exist in the protocol plugin pack; featured examples use **subgraph reads only**, not on-chain router execution.
+
+## Agent plugin test report
+
+Automated coverage for sponsor agent integrations (The Graph + Privy). Detailed file-level inventory: **[ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md)**.
+
+### Summary (2026-09-13)
+
+| Package | Tools / actions | Offline tests | Live tests |
+|---------|-----------------|---------------|------------|
+| `@graphitti/graph-core` | 36 `graph_*` | 8 passed | 1 passed (Gateway subgraph search) |
+| `@graphitti/privy-core` | 35 `privy_*` | 8 passed | 1 passed (Privy list wallets) |
+| `plugin-the-graph` (Eliza v2) | 36 `GRAPH_*` | 2 passed | Uses graph-core live |
+| `plugin-privy` (Eliza v2) | 35 `PRIVY_*` | 1 passed | Uses privy-core live |
+| `@elizaos/plugin-graphitti-*` (eliza-main) | Re-exports above | 2 passed (smoke) | — |
+
+**Total default offline run:** 19 tests (`pnpm test` in `ecosystem-agent-plugins`).  
+**Optional live run:** 2 tests (`pnpm test:live`; requires local keys, same as `graphitti/.env.local`).
+
+### What sponsors can cite
+
+- **The Graph:** Studio Gateway key validation, subgraph discovery and recommendation (unit + mocked GraphQL), Substreams tool surface in MCP and Eliza, live subgraph search rehearsal.
+- **Privy:** App credential validation, server wallet REST integration (unit mock + live list), Graphitti B2B tool gating, Eliza v2 action parity with MCP catalog.
+- **Agents:** Same npm cores power MCP stdio servers, Eliza plugins, and Eve/OpenClaw/Hermes adapters under `ecosystem-agent-plugins/`.
+
+### Reproduce
+
+```bash
+cd ecosystem-agent-plugins
+pnpm install && pnpm build && pnpm test
+pnpm test:live   # optional; network + THEGRAPH_API_KEY / Privy app credentials
+```
+
+elizaOS wrappers (separate clone): see [ecosystem-agent-plugins/ELIZA.md](ecosystem-agent-plugins/ELIZA.md).
 
 ## How to try it
 
