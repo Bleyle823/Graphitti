@@ -1,6 +1,6 @@
 # @graphitti/graph-core
 
-Shared tool catalog and MCP stdio server for The Graph protocol agent plugins. Exposes `graph_*` tools for subgraph discovery, GraphQL queries, Token API reads, Substreams registry operations, and optional Graphitti workflow APIs.
+Part of [Graphitti ecosystem agent plugins](../../README.md). Shared tool catalog and MCP stdio server for The Graph protocol agent plugins. Exposes `graph_*` tools for subgraph discovery, GraphQL queries, Token API reads, Substreams registry operations, and optional Graphitti workflow APIs.
 
 ## Install
 

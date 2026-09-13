@@ -97,6 +97,12 @@ Supabase should run `apply_kelp_invariants()` on `backing_snapshots` so the late
 4. Deploy workflow; block trigger requires **KeeperHub**
 5. Keep both SQL sink containers running on your machine for live data
 
+Template in the app gallery matches [monitor-templates.ts](../graphitti/lib/workflow-templates/monitor-templates.ts). Product context: [repository README](../README.md).
+
+![Supabase backing_snapshots](YOUR_LINK)
+
+Drop a Table Editor screenshot at `docs/images/product/supabase-backing-snapshots.png` or replace `YOUR_LINK` above.
+
 Workflow shape:
 
 ```

@@ -1,8 +1,12 @@
 # Ecosystem agent plugins
 
-Shared agent plugin packages for Graphitti ecosystem protocols. Each protocol has a core catalog (`graph_*` or `privy_*` tools), runtime adapters (Eliza, OpenClaw, Eve, Hermes), and an MCP stdio server.
+Reusable agent tools for The Graph and Privy: npm core catalogs, MCP stdio servers, and runtime adapters (Eliza, Eve, OpenClaw, Hermes). Agents and Cursor can query subgraphs, stream Substreams metadata, and drive the same Privy treasury flows as the Graphitti canvas.
 
 Privy packages live under `privy/`. The Graph packages live under `the-graph/`.
+
+![Agent plugin screenshot](YOUR_SCREENSHOT.png)
+
+Replace `YOUR_SCREENSHOT.png` with a capture of MCP tools or an Eliza agent calling `graph_*` / `privy_*` actions.
 
 ## Commands
 
@@ -36,3 +40,4 @@ npm install @graphitti/graph-core @graphitti/privy-core
 
 - [The Graph agent plugins](../docs/plugins/agent-the-graph.mdx)
 - [Privy agent plugins](../docs/plugins/agent-privy.mdx)
+- [Repository README](../README.md) — integration evidence and featured workflows
