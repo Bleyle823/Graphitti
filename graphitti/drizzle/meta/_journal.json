@@ -64,6 +64,13 @@
       "when": 1789045708041,
       "tag": "0008_motionless_infant_terrible",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789258202758,
+      "tag": "0009_parched_ender_wiggin",
+      "breakpoints": true
     }
   ]
 }
