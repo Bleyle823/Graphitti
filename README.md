@@ -80,9 +80,9 @@ Each template is available in the app workflow gallery. Problem, graph, and stac
 
 More templates and marketplace listings use the same plugins; see [docs/treasury/overview.mdx](docs/treasury/overview.mdx).
 
-## Evidence by integration
+## Integrations
 
-GitHub links point at `main`. Replace `YOUR_LINK` with explorer URLs, payment IDs, or screenshots you collect from rehearsal.
+GitHub links point at `main`. Tables below are code, test runs, and onchain ids from rehearsal. Replace `YOUR_LINK` with explorer URLs, payment IDs, or screenshots you collect.
 
 ### Privy
 
@@ -110,7 +110,7 @@ Privy is the execution layer: embedded wallets for users, organization treasurie
 
 Reproduce: [ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md). Full report also summarized in [README — Agent plugin test report](#agent-plugin-test-report).
 
-**Live proof**
+**What ran**
 
 | Item | Value |
 |------|--------|
@@ -147,15 +147,18 @@ Arc Testnet (`eip155:5042002`) hosts native and ERC-20 USDC, CCTP domain 26, Cir
 - x402 challenge: [x402.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/lib/marketplace/x402.ts#L42-L73)
 - Sign `GatewayWalletBatched`: [nanopayments.ts](https://github.com/Bleyle823/Graphitti/blob/main/graphitti/plugins/circle/steps/nanopayments.ts#L319-L334)
 
-**Live proof**
+**What ran**
 
 | Item | Value |
 |------|--------|
 | Gateway verifying contract (Arc Testnet) | `0x0077777d7EBA4688BDeF3E311b846F25870A19B9` |
+| Gateway activity wallet (Arc Testnet) | [`0xfb526dC52755ba99F7d952e8385bBAAc572F00c9`](https://testnet.arcscan.app/address/0xfb526dC52755ba99F7d952e8385bBAAc572F00c9) |
 | Arc native USDC send (Arcscan) | YOUR_LINK |
 | CCTP burn or mint tx | YOUR_LINK |
 | Marketplace `paymentId` or PAYMENT-SIGNATURE | YOUR_LINK |
 | Screenshot | `docs/images/product/arc-defi-readiness.png`, `marketplace-pay.png` |
+
+Open that Gateway activity wallet on [Arcscan](https://testnet.arcscan.app/address/0xfb526dC52755ba99F7d952e8385bBAAc572F00c9) and in Circle Gateway to see x402 marketplace deposits and nanopayments on Arc Testnet.
 
 The product targets Arc Testnet today and is structured to move to Arc mainnet when you deploy there. Marketplace revenue is Arc ERC-20 USDC via x402.
 
@@ -181,7 +184,7 @@ Canvas actions query live subgraphs and Substreams packages. Agent packages reus
 
 Reproduce: [ecosystem-agent-plugins/TEST-REPORT.md](ecosystem-agent-plugins/TEST-REPORT.md). Full report also summarized in [README — Agent plugin test report](#agent-plugin-test-report).
 
-**Live proof**
+**What ran**
 
 | Item | Value |
 |------|--------|

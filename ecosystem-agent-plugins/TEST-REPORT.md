@@ -129,4 +129,4 @@ bun run --cwd plugins/plugin-graphitti-privy test
 
 - [README](./README.md) — package map and npm publish
 - [ELIZA.md](./ELIZA.md) — elizaOS v2 wiring and OpenRouter env
-- [Root integration evidence](../README.md#evidence-by-integration) — product links and live proof tables
+- [Root integrations](../README.md#integrations) — product links and live run tables

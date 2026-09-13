@@ -11,7 +11,7 @@ Next.js workflow builder and execution layer for **Privy** treasuries, **The Gra
 | | |
 | --- | --- |
 | Production | [graphitti-five.vercel.app](https://graphitti-five.vercel.app) |
-| Product overview and onchain evidence | [Repository README](../README.md) |
+| Product overview and onchain runs | [Repository README](../README.md) |
 | Run starred examples (env vars, funding, Telegram chat id, Stripe `cus_`) | [Featured workflows](../docs/workflows/featured-workflows.mdx) · [Run and fund](../docs/workflows/running-and-funding.mdx) |
 | Agent MCP packages | [`@graphitti/graph-core`](../ecosystem-agent-plugins/the-graph/graph-core), [`@graphitti/privy-core`](../ecosystem-agent-plugins/privy/privy-core) |
 
@@ -222,6 +222,7 @@ Arc Testnet USDC (native 18-decimal and ERC-20 6-decimal), CCTP, App Kit genesis
 | `CIRCLE_API_KEY`, optional `CIRCLE_ENTITY_SECRET` | [Circle Developer Console](https://developers.circle.com/) |
 | `PRIVATE_KEY` | Arc Testnet USDC buyer for marketplace / Gateway deposit (see `.env.example`) |
 | Gateway verifier (Arc Testnet) | `0x0077777d7EBA4688BDeF3E311b846F25870A19B9` |
+| Gateway activity wallet (Arc Testnet) | [`0xfb526dC52755ba99F7d952e8385bBAAc572F00c9`](https://testnet.arcscan.app/address/0xfb526dC52755ba99F7d952e8385bBAAc572F00c9) — Circle Gateway / Arcscan for x402 nanopayments |
 
 Code: [`lib/arc/app-kit-flows.ts`](lib/arc/app-kit-flows.ts), [`lib/marketplace/x402.ts`](lib/marketplace/x402.ts), [`plugins/arc/`](plugins/arc/), [`plugins/circle/`](plugins/circle/)
 
