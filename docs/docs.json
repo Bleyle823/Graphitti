@@ -26,6 +26,7 @@
         "group": "Workflows",
         "pages": [
           "workflows/index",
+          "workflows/featured-workflows",
           "workflows/creating",
           "workflows/templating",
           "workflows/marketplace"

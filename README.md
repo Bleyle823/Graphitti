@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/brand/graphitti-workflows-cover.png" alt="Graphitti Workflows" width="720" />
+</p>
+
 # Graphitti
 
 Graphitti is the execution layer for businesses, users, and developers onchain: visual workflows that watch chain state (The Graph), send USDC (Privy and Arc), and sell the same graph per call over Circle Gateway x402.
@@ -183,6 +187,8 @@ Uniswap **contract** swap actions exist in the protocol plugin pack; featured ex
 4. For treasury: open **Payroll batch with intent fallback**, fund the org wallet, run a transfer under the 10 USDC auto cap or approve a pending intent for a larger amount.
 
 Local development: see [graphitti/README.md](graphitti/README.md).
+
+Step-by-step guides for every starred template (env vars, Stripe customer id, Telegram chat id, placeholder errors): [docs/workflows/featured-workflows.mdx](docs/workflows/featured-workflows.mdx).
 
 ## Live vs mock
 
