@@ -4,7 +4,7 @@ import { CIRCLE_API, circleFetch } from "@/lib/circle/client";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { encodeApprove } from "@/lib/web3/abi";
-import { parseUnits, requireChain } from "@/lib/web3/chains";
+import { getChain, parseUnits, requireChain } from "@/lib/web3/chains";
 import { sendSponsoredTransaction, signTypedDataV4 } from "@/lib/web3/privy-signer";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
 import {
@@ -92,7 +92,12 @@ async function getNanopaymentBalance(input: NanoInput) {
       method: "POST",
       body: {
         token: "USDC",
-        sources: [{ domain: input.network === "arc-testnet" ? 26 : 0, depositor: input.address }],
+        sources: [
+          {
+            domain: getChain(input.network || "arc-testnet")?.cctpDomain ?? 0,
+            depositor: input.address,
+          },
+        ],
       },
     });
     if (result.error) {
@@ -470,7 +475,7 @@ async function withdrawFromGateway(input: NanoInput) {
       to: tokenMessenger(input.network),
       data: encodeDepositForBurn({
         amount: parseUnits(input.amount, 6),
-        destinationDomain: dest === "arc-testnet" ? 26 : 0,
+        destinationDomain: getChain(dest)?.cctpDomain ?? 0,
         mintRecipient: input.mintRecipient || wallet.wallet.address,
         burnToken: token,
         maxFee: BigInt(0),

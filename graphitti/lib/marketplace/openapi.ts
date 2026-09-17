@@ -55,7 +55,7 @@ export function buildOpenApiDocument(options: {
           "200": { description: "Mapped outputs" },
           "402": {
             description:
-              "Payment required: Circle nanopayments over x402 on Arc Testnet (GatewayWalletBatched, 6-decimal USDC)",
+              "Payment required: Circle nanopayments over x402 on Arc (GatewayWalletBatched, 6-decimal USDC)",
           },
         },
       },
@@ -92,7 +92,7 @@ export function buildOpenApiDocument(options: {
       title: "Graphitti Marketplace",
       version: "1.0.0",
       description:
-        "Public catalog and call APIs. Paid listings settle with Circle nanopayments over x402 on Arc Testnet.",
+        "Public catalog and call APIs. Paid listings settle with Circle nanopayments over x402 on Arc.",
     },
     servers: [{ url: options.origin }],
     paths,

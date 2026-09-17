@@ -1,7 +1,7 @@
 import "server-only";
 
 import { circleFetch } from "@/lib/circle/client";
-import { CIRCLE_GATEWAY_X402_BASE } from "./constants";
+import { getMarketplaceSettlement } from "./constants";
 import type { X402Accepts } from "./x402";
 import { decodeX402Header } from "./x402";
 
@@ -96,8 +96,10 @@ export async function verifyMarketplacePayment(options: {
       : requirementsForSettle(options);
 
   const apiKey = process.env.CIRCLE_API_KEY?.trim();
+  const settleNetwork =
+    typeof requirements.network === "string" ? requirements.network : "";
   const result = await circleFetch<SettleResponse>({
-    baseUrl: CIRCLE_GATEWAY_X402_BASE,
+    baseUrl: getMarketplaceSettlement(settleNetwork).gatewayApi,
     path: "/v1/x402/settle",
     method: "POST",
     apiKey,

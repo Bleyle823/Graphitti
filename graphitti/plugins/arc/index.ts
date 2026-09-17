@@ -1,4 +1,4 @@
-import { NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
+import { ARC_NETWORK_SELECT_OPTIONS, NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
 import type { IntegrationPlugin } from "../registry";
 import { registerIntegration } from "../registry";
 
@@ -34,6 +34,14 @@ const network = {
   defaultValue: "arc-testnet",
 };
 
+const arcNetwork = {
+  key: "network",
+  label: "Network",
+  type: "select" as const,
+  options: ARC_NETWORK_SELECT_OPTIONS,
+  defaultValue: "arc-testnet",
+};
+
 const tokenSelect = {
   key: "token",
   label: "Token",
@@ -46,7 +54,7 @@ const arcPlugin: IntegrationPlugin = {
   type: "arc",
   label: "Arc",
   description:
-    "Arc Testnet App Kit flows: CCTP bridge, swap, send, unified balance, genesis tokens, deploy, StableFX.",
+    "Arc App Kit flows on Arc and Arc Testnet: CCTP bridge, swap, send, unified balance, genesis tokens, deploy, StableFX.",
   formFields: [
     {
       id: "apiKey",
@@ -78,7 +86,7 @@ const arcPlugin: IntegrationPlugin = {
     {
       slug: "bridge-usdc",
       label: "Bridge USDC",
-      description: "CCTP V2 burn with Arc Testnet as from or to",
+      description: "CCTP V2 burn with Arc or Arc Testnet as from or to",
       category: "Arc Bridge",
       stepFunction: "bridgeUsdcStep",
       stepImportPath: "bridge",
@@ -143,12 +151,13 @@ const arcPlugin: IntegrationPlugin = {
     {
       slug: "swap-on-arc",
       label: "Swap on Arc",
-      description: "Quote a USDC / EURC / cirBTC swap on Arc Testnet",
+      description: "Quote a USDC / EURC / cirBTC swap on Arc",
       category: "Arc Swap",
       stepFunction: "swapOnArcStep",
       stepImportPath: "swap",
       outputFields: [{ field: "quote", description: "Quote" }],
       configFields: [
+        arcNetwork,
         { key: "fromToken", label: "From", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "toToken", label: "To", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "amount", label: "Amount", type: "template-input", required: true },
@@ -163,6 +172,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "swap",
       outputFields: [{ field: "quote", description: "Quote" }],
       configFields: [
+        arcNetwork,
         { key: "fromToken", label: "From", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "toToken", label: "To", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "amount", label: "Amount", type: "template-input", required: true },
@@ -196,6 +206,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "swap",
       outputFields: [{ field: "amount", description: "Amount" }],
       configFields: [
+        arcNetwork,
         { key: "fromToken", label: "From", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "toToken", label: "To", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "amount", label: "Amount", type: "template-input", required: true },
@@ -210,6 +221,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "send",
       outputFields: [{ field: "hash", description: "Transaction hash" }],
       configFields: [
+        arcNetwork,
         tokenSelect,
         { key: "to", label: "Recipient", type: "template-input", required: true },
         { key: "amount", label: "Amount", type: "template-input", required: true },
@@ -225,6 +237,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "send",
       outputFields: [{ field: "maxFeePerGasWei", description: "Gas floor" }],
       configFields: [
+        arcNetwork,
         tokenSelect,
         { key: "to", label: "Recipient", type: "template-input", required: true },
         { key: "amount", label: "Amount", type: "template-input", required: true },
@@ -376,6 +389,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "reads",
       outputFields: [{ field: "data", description: "Quote" }],
       configFields: [
+        arcNetwork,
         { key: "fromToken", label: "From", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "toToken", label: "To", type: "select", options: [...ARC_TOKENS], required: true },
         { key: "amount", label: "Amount", type: "template-input", required: true },
@@ -407,12 +421,12 @@ const arcPlugin: IntegrationPlugin = {
     {
       slug: "get-arc-config",
       label: "Get Arc config",
-      description: "RPC, explorer, chainId 5042002, CCTP domain 26",
+      description: "RPC, explorer, chain ID, CCTP domain 26",
       category: "Arc Reads",
       stepFunction: "getArcConfigStep",
       stepImportPath: "reads",
       outputFields: [{ field: "chainId", description: "Chain ID" }],
-      configFields: [],
+      configFields: [arcNetwork],
     },
     {
       slug: "list-genesis-addresses",
@@ -422,7 +436,7 @@ const arcPlugin: IntegrationPlugin = {
       stepFunction: "listGenesisAddressesStep",
       stepImportPath: "reads",
       outputFields: [{ field: "addresses", description: "Addresses" }],
-      configFields: [],
+      configFields: [arcNetwork],
     },
     {
       slug: "get-native-usdc-balance",
@@ -433,6 +447,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "reads",
       outputFields: [{ field: "balance", description: "Native USDC" }],
       configFields: [
+        arcNetwork,
         { key: "address", label: "Address", type: "template-input", required: true },
       ],
     },
@@ -445,6 +460,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "reads",
       outputFields: [{ field: "balance", description: "ERC-20 USDC" }],
       configFields: [
+        arcNetwork,
         { key: "address", label: "Address", type: "template-input", required: true },
       ],
     },
@@ -457,6 +473,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "reads",
       outputFields: [{ field: "balance", description: "EURC" }],
       configFields: [
+        arcNetwork,
         { key: "address", label: "Address", type: "template-input", required: true },
       ],
     },
@@ -468,7 +485,7 @@ const arcPlugin: IntegrationPlugin = {
       stepFunction: "estimateUsdcGasStep",
       stepImportPath: "reads",
       outputFields: [{ field: "minMaxFeePerGasWei", description: "Floor" }],
-      configFields: [],
+      configFields: [arcNetwork],
     },
     {
       slug: "wait-finality",
@@ -479,6 +496,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "reads",
       outputFields: [{ field: "finalized", description: "Finalized" }],
       configFields: [
+        arcNetwork,
         { key: "txHash", label: "Transaction hash", type: "template-input", required: true },
       ],
     },
@@ -491,6 +509,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "reads",
       outputFields: [{ field: "logs", description: "Logs" }],
       configFields: [
+        arcNetwork,
         { key: "fromBlock", label: "From block", type: "template-input" },
         { key: "toBlock", label: "To block", type: "template-input" },
       ],
@@ -504,6 +523,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "contracts",
       outputFields: [{ field: "hash", description: "Transaction hash" }],
       configFields: [
+        arcNetwork,
         { key: "target", label: "Target", type: "template-input", required: true },
         { key: "data", label: "Calldata", type: "template-textarea", required: true },
         { key: "memo", label: "Memo", type: "template-input" },
@@ -519,6 +539,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "contracts",
       outputFields: [{ field: "hash", description: "Transaction hash" }],
       configFields: [
+        arcNetwork,
         { key: "bytecode", label: "Bytecode", type: "template-textarea", required: true },
         { key: "salt", label: "CREATE2 salt", type: "template-input" },
       ],
@@ -526,12 +547,13 @@ const arcPlugin: IntegrationPlugin = {
     {
       slug: "read-contract",
       label: "Read contract",
-      description: "eth_call on Arc Testnet",
+      description: "eth_call on Arc",
       category: "Arc Contracts",
       stepFunction: "readContractStep",
       stepImportPath: "contracts",
       outputFields: [{ field: "result", description: "Hex result" }],
       configFields: [
+        arcNetwork,
         { key: "contractAddress", label: "Contract", type: "template-input", required: true },
         { key: "data", label: "Calldata", type: "template-textarea", required: true },
       ],
@@ -545,6 +567,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "contracts",
       outputFields: [{ field: "hash", description: "Transaction hash" }],
       configFields: [
+        arcNetwork,
         { key: "contractAddress", label: "Contract", type: "template-input", required: true },
         { key: "data", label: "Calldata", type: "template-textarea", required: true },
         { key: "value", label: "Value hex", type: "template-input" },
@@ -559,6 +582,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "contracts",
       outputFields: [{ field: "hash", description: "Transaction hash" }],
       configFields: [
+        arcNetwork,
         { key: "registryAddress", label: "Registry", type: "template-input", required: true },
         { key: "agentUri", label: "Agent URI", type: "template-input", required: true },
       ],
@@ -572,6 +596,7 @@ const arcPlugin: IntegrationPlugin = {
       stepImportPath: "contracts",
       outputFields: [{ field: "hash", description: "Transaction hash" }],
       configFields: [
+        arcNetwork,
         { key: "registryAddress", label: "Registry", type: "template-input", required: true },
         { key: "jobCalldata", label: "Job calldata", type: "template-textarea", required: true },
       ],
@@ -584,7 +609,7 @@ const arcPlugin: IntegrationPlugin = {
       stepFunction: "usycInfoStep",
       stepImportPath: "contracts",
       outputFields: [{ field: "usyc", description: "USYC address" }],
-      configFields: [],
+      configFields: [arcNetwork],
     },
     {
       slug: "stablefx-quote",

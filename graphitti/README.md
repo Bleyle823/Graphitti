@@ -15,7 +15,7 @@ Next.js workflow builder and execution layer for **Privy** treasuries, **The Gra
 | Run starred examples (env vars, funding, Telegram chat id, Stripe `cus_`) | [Featured workflows](../docs/workflows/featured-workflows.mdx) · [Run and fund](../docs/workflows/running-and-funding.mdx) |
 | Agent MCP packages | [`@graphitti/graph-core`](../ecosystem-agent-plugins/the-graph/graph-core), [`@graphitti/privy-core`](../ecosystem-agent-plugins/privy/privy-core) |
 
-Payroll and org treasury settle on **Base Sepolia USDC**. Marketplace and FPL payouts use **Arc Testnet** (`eip155:5042002`). Featured Uniswap demos use **subgraph reads only**, not on-chain router swaps.
+Payroll and org treasury settle on **Base Sepolia USDC**. Marketplace paid calls settle on **Arc** (`eip155:5042`) unless the listing chain is Arc Testnet. FPL payouts use **Arc Testnet** (`eip155:5042002`). Featured Uniswap demos use **subgraph reads only**, not on-chain router swaps.
 
 ## Run the project locally
 
@@ -132,7 +132,7 @@ Read-only templates (Uniswap subgraph alert, Kelp row read, Arc DeFi **preflight
 | Payroll batch, Stripe→USDC, Aave keeper, Org waterline | **Org treasury** | Base Sepolia | USDC (6 decimals); top up via **Fund treasury** or [Circle faucet](https://faucet.circle.com) |
 | FPL League Top Two (Arc sends) | **Embedded wallet** (yours) | Arc Testnet `5042002` | Native USDC (18 decimals) for sends; prize-pool node is balance-only |
 | Privy Gasless Payroll | Privy wallets on pay nodes | Sepolia | ETH payouts; set real `walletId` |
-| Arc / marketplace x402 | Buyer or linked wallet | Arc Testnet | ERC-20 USDC (6 decimals) at `0x3600…0000` |
+| Arc / marketplace x402 | Buyer or linked wallet | Arc (`5042`) | ERC-20 USDC (6 decimals) at `0x3600…0000` |
 
 **Reminders**
 
@@ -211,7 +211,7 @@ Code: [`plugins/the-graph/`](plugins/the-graph/), [`lib/the-graph/kelp-substream
 
 ### Arc and Circle
 
-Arc Testnet USDC (native 18-decimal and ERC-20 6-decimal), CCTP, App Kit genesis helpers, StableFX, Gateway **x402** marketplace settlement (`GatewayWalletBatched`).
+Arc USDC (native 18-decimal and ERC-20 6-decimal) on Arc and Arc Testnet, CCTP, App Kit genesis helpers, StableFX, Gateway **x402** marketplace settlement (`GatewayWalletBatched`) on Arc mainnet by default.
 
 | Example workflows | Plugin actions |
 | --- | --- |
@@ -220,9 +220,9 @@ Arc Testnet USDC (native 18-decimal and ERC-20 6-decimal), CCTP, App Kit genesis
 | Env / setup | Source |
 | --- | --- |
 | `CIRCLE_API_KEY`, optional `CIRCLE_ENTITY_SECRET` | [Circle Developer Console](https://developers.circle.com/) |
-| `PRIVATE_KEY` | Arc Testnet USDC buyer for marketplace / Gateway deposit (see `.env.example`) |
+| `PRIVATE_KEY` | Arc USDC buyer for marketplace / Gateway deposit (see `.env.example`) |
+| Gateway verifier (Arc) | `0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE` |
 | Gateway verifier (Arc Testnet) | `0x0077777d7EBA4688BDeF3E311b846F25870A19B9` |
-| Gateway activity wallet (Arc Testnet) | [`0xfb526dC52755ba99F7d952e8385bBAAc572F00c9`](https://testnet.arcscan.app/address/0xfb526dC52755ba99F7d952e8385bBAAc572F00c9) — Circle Gateway / Arcscan for x402 nanopayments |
 
 Code: [`lib/arc/app-kit-flows.ts`](lib/arc/app-kit-flows.ts), [`lib/marketplace/x402.ts`](lib/marketplace/x402.ts), [`plugins/arc/`](plugins/arc/), [`plugins/circle/`](plugins/circle/)
 

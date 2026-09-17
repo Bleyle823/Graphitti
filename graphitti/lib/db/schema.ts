@@ -288,7 +288,7 @@ export const workflowPayments = pgTable(
     amountUsdc: numeric("amount_usdc").notNull(),
     paymentHash: text("payment_hash").notNull(),
     txHash: text("tx_hash"),
-    chain: text("chain").notNull().default("arc-testnet"),
+    chain: text("chain").notNull().default("arc"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [

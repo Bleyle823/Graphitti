@@ -3,17 +3,17 @@ import "server-only";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { encodeApprove, decodeUint } from "@/lib/web3/abi";
-import { parseUnits, requireChain } from "@/lib/web3/chains";
+import { isArcNetwork, parseUnits, requireChain, resolveNetworkId } from "@/lib/web3/chains";
 import { sendSponsoredTransaction } from "@/lib/web3/privy-signer";
 import { ethCall } from "@/lib/web3/rpc";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
 import {
-  ARC_ADDRESSES,
   circleFetch,
   encodeAddressUint,
   encodeDepositFor,
   encodeTwoAddresses,
   gatewayApi,
+  getArcAddresses,
   SELECTORS,
 } from "../shared";
 
@@ -29,8 +29,20 @@ export type UbInput = StepInput & {
   destinationDomain?: string;
 };
 
+function gatewayNetwork(network?: string): "arc" | "arc-testnet" {
+  const id = network || "arc-testnet";
+  if (isArcNetwork(id)) {
+    return resolveNetworkId(id) === "arc" ? "arc" : "arc-testnet";
+  }
+  return id.includes("testnet") || id.includes("sepolia") ? "arc-testnet" : "arc";
+}
+
 function token(input: UbInput) {
-  return input.tokenAddress || ARC_ADDRESSES.usdcErc20;
+  return input.tokenAddress || getArcAddresses(gatewayNetwork(input.network)).usdcErc20;
+}
+
+function gatewayAddress(network?: string) {
+  return getArcAddresses(gatewayNetwork(network)).gatewayWallet;
 }
 
 async function ubDeposit(input: UbInput) {
@@ -46,20 +58,20 @@ async function ubDeposit(input: UbInput) {
     const chain = requireChain(network);
     const usdc = token(input);
     const amount = parseUnits(input.amount, 6);
-    const gateway = ARC_ADDRESSES.gatewayWallet;
+    const gatewayAddr = gatewayAddress(network);
     await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
       to: usdc,
-      data: encodeApprove(gateway, amount),
+      data: encodeApprove(gatewayAddr, amount),
     });
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: gateway,
+      to: gatewayAddr,
       data: encodeAddressUint(SELECTORS.gatewayDeposit, usdc, amount),
     });
-    return ok({ hash, gateway, token: usdc, amount: input.amount });
+    return ok({ hash, gateway: gatewayAddr, token: usdc, amount: input.amount });
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error));
   }
@@ -78,17 +90,17 @@ async function ubDepositFor(input: UbInput) {
     const chain = requireChain(network);
     const usdc = token(input);
     const amount = parseUnits(input.amount, 6);
-    const gateway = ARC_ADDRESSES.gatewayWallet;
+    const gatewayAddr = gatewayAddress(network);
     await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
       to: usdc,
-      data: encodeApprove(gateway, amount),
+      data: encodeApprove(gatewayAddr, amount),
     });
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: gateway,
+      to: gatewayAddr,
       data: encodeDepositFor(usdc, input.recipient, amount),
     });
     return ok({ hash, creditedTo: input.recipient, amount: input.amount });
@@ -142,7 +154,7 @@ async function ubAddDelegate(input: UbInput) {
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: ARC_ADDRESSES.gatewayWallet,
+      to: gatewayAddress(input.network),
       data: encodeTwoAddresses(SELECTORS.gatewayAddDelegate, token(input), input.delegate),
     });
     return ok({ hash, delegate: input.delegate });
@@ -164,7 +176,7 @@ async function ubRemoveDelegate(input: UbInput) {
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: ARC_ADDRESSES.gatewayWallet,
+      to: gatewayAddress(input.network),
       data: encodeTwoAddresses(SELECTORS.gatewayRemoveDelegate, token(input), input.delegate),
     });
     return ok({ hash, delegate: input.delegate });
@@ -180,7 +192,7 @@ async function ubDelegateStatus(input: UbInput) {
   try {
     const raw = await ethCall({
       network: input.network || "arc-testnet",
-      to: ARC_ADDRESSES.gatewayWallet,
+      to: gatewayAddress(input.network),
       data: `${SELECTORS.isAuthorizedForBalance}${token(input).slice(2).padStart(64, "0")}${input.depositor.slice(2).padStart(64, "0")}${input.delegate.slice(2).padStart(64, "0")}`,
     });
     return ok({
@@ -206,7 +218,7 @@ async function ubInitiateRemoveFund(input: UbInput) {
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: ARC_ADDRESSES.gatewayWallet,
+      to: gatewayAddress(input.network),
       data: encodeAddressUint(
         SELECTORS.gatewayInitiateWithdrawal,
         token(input),
@@ -229,7 +241,7 @@ async function ubCompleteRemoveFund(input: UbInput) {
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: ARC_ADDRESSES.gatewayWallet,
+      to: gatewayAddress(input.network),
       data: `${SELECTORS.gatewayWithdraw}${token(input).slice(2).padStart(64, "0")}`,
     });
     return ok({ hash });

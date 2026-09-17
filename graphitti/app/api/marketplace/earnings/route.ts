@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { workflowPayments, workflows } from "@/lib/db/schema";
-import { getPlatformFeeBps } from "@/lib/marketplace/constants";
+import { ARC_MARKETPLACE_CHAIN, getPlatformFeeBps } from "@/lib/marketplace/constants";
 
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     grossUsdc: gross.toFixed(6),
     platformFeeBps: feeBps,
     netUsdc: net.toFixed(6),
-    chain: "arc-testnet",
+    chain: ARC_MARKETPLACE_CHAIN.id,
     asset: "USDC",
     rows: payments.map((row) => ({
       id: row.id,

@@ -1,13 +1,13 @@
 /**
- * Pay a Graphitti listed workflow over Circle x402 (Arc Testnet).
+ * Pay a Graphitti listed workflow over Circle x402 (Arc mainnet by default).
  *
  * Usage (from graphitti/):
  *   pnpm pay-listing -- https://host/api/mcp/workflows/{slug}/call
  *   pnpm pay-listing -- https://host/api/mcp/workflows/{slug}/call --body "{\"input\":\"ping\"}"
  *
  * Requires PRIVATE_KEY in the environment or graphitti/.env.local.
- * That key's address must hold Arc USDC in Circle Gateway Wallet
- * 0x0077777d7EBA4688BDeF3E311b846F25870A19B9 (approve + deposit, not a raw transfer).
+ * Deposit Arc ERC-20 USDC into the Gateway Wallet from the 402 accept
+ * (mainnet 0x77777777… or testnet 0x0077777d…) — approve + deposit, not a raw transfer.
  */
 
 import { existsSync } from "node:fs";
@@ -15,11 +15,14 @@ import path from "node:path";
 import { config } from "dotenv";
 import { Wallet } from "ethers";
 
-const GATEWAY_WALLET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
 const ARC_USDC = "0x3600000000000000000000000000000000000000";
-const ARC_CHAIN_ID = 5_042_002;
-const GATEWAY_API = "https://gateway-api-testnet.circle.com";
 const ARC_DOMAIN = 26;
+const ARC_MAINNET_CHAIN_ID = 5042;
+const ARC_TESTNET_CHAIN_ID = 5_042_002;
+const GATEWAY_WALLET_MAINNET = "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE";
+const GATEWAY_WALLET_TESTNET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
+const GATEWAY_API_MAINNET = "https://gateway-api.circle.com";
+const GATEWAY_API_TESTNET = "https://gateway-api-testnet.circle.com";
 const VALIDITY_SECONDS = 60 * 60 * 24 * 8;
 const LISTING_SUFFIX = /\/listing$/;
 const WORKFLOW_PATH = /\/api\/mcp\/workflows\/([^/]+)\/?$/;
@@ -137,10 +140,39 @@ async function parseJson(response: Response): Promise<unknown> {
   }
 }
 
-function loadHint(address: string) {
+function isArcTestnetNetwork(network: unknown): boolean {
+  return typeof network === "string" && network.includes("5042002");
+}
+
+function settlementFromAccept(accept: Record<string, unknown>): {
+  chainId: number;
+  network: string;
+  gatewayWallet: string;
+  gatewayApi: string;
+} {
+  const extra =
+    accept.extra && typeof accept.extra === "object"
+      ? (accept.extra as Record<string, unknown>)
+      : {};
+  const testnet = isArcTestnetNetwork(accept.network);
+  const fallbackWallet = testnet ? GATEWAY_WALLET_TESTNET : GATEWAY_WALLET_MAINNET;
+  return {
+    chainId: testnet ? ARC_TESTNET_CHAIN_ID : ARC_MAINNET_CHAIN_ID,
+    network:
+      typeof accept.network === "string"
+        ? accept.network
+        : `eip155:${testnet ? ARC_TESTNET_CHAIN_ID : ARC_MAINNET_CHAIN_ID}`,
+    gatewayWallet:
+      (typeof extra.verifyingContract === "string" && extra.verifyingContract) ||
+      fallbackWallet,
+    gatewayApi: testnet ? GATEWAY_API_TESTNET : GATEWAY_API_MAINNET,
+  };
+}
+
+function loadHint(address: string, gatewayWallet: string) {
   return {
     eoa: address,
-    gatewayWallet: GATEWAY_WALLET,
+    gatewayWallet,
     usdc: ARC_USDC,
     faucet: "https://faucet.circle.com",
   };
@@ -150,8 +182,11 @@ function printJson(value: unknown) {
   console.log(JSON.stringify(value, null, 2));
 }
 
-async function gatewayBalance(address: string): Promise<unknown> {
-  const response = await fetch(`${GATEWAY_API}/v1/balances`, {
+async function gatewayBalance(
+  address: string,
+  gatewayApi: string
+): Promise<unknown> {
+  const response = await fetch(`${gatewayApi}/v1/balances`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -175,6 +210,8 @@ async function probe(url: string, body: string) {
 async function signAuthorization(options: {
   wallet: Wallet;
   accept: Record<string, unknown>;
+  chainId: number;
+  gatewayWallet: string;
 }): Promise<{
   authorization: {
     from: string;
@@ -217,11 +254,11 @@ async function signAuthorization(options: {
         (typeof extra.name === "string" && extra.name) ||
         "GatewayWalletBatched",
       version: (typeof extra.version === "string" && extra.version) || "1",
-      chainId: ARC_CHAIN_ID,
+      chainId: options.chainId,
       verifyingContract:
         (typeof extra.verifyingContract === "string" &&
           extra.verifyingContract) ||
-        GATEWAY_WALLET,
+        options.gatewayWallet,
     },
     {
       TransferWithAuthorization: [
@@ -330,6 +367,7 @@ function failIfNot402(options: {
   payer: string;
   balances: unknown;
   body: unknown;
+  gatewayWallet: string;
 }): void {
   if (options.status === 402) {
     return;
@@ -343,7 +381,7 @@ function failIfNot402(options: {
     httpStatus: options.status,
     url: options.url,
     payer: options.payer,
-    load: loadHint(options.payer),
+    load: loadHint(options.payer, options.gatewayWallet),
     gatewayBalance: options.balances,
     body: options.body,
   });
@@ -357,30 +395,44 @@ async function main() {
   const privateKey = process.env.PRIVATE_KEY?.trim();
   if (!privateKey) {
     throw new Error(
-      "Set PRIVATE_KEY to the Arc Testnet EOA that deposited USDC into Gateway Wallet."
+      "Set PRIVATE_KEY to the Arc EOA that deposited USDC into Gateway Wallet."
     );
   }
 
   const wallet = new Wallet(privateKey);
-  const balances = await gatewayBalance(wallet.address);
   const first = await probe(url, requestBody);
   const firstBody = await parseJson(first.response);
+  const challenge = decodePaymentHeader(
+    first.response.headers.get("PAYMENT-REQUIRED")
+  );
+  const accept = pickAccept(challenge, firstBody);
+  const settlement = accept
+    ? settlementFromAccept(accept)
+    : {
+        chainId: ARC_MAINNET_CHAIN_ID,
+        network: `eip155:${ARC_MAINNET_CHAIN_ID}`,
+        gatewayWallet: GATEWAY_WALLET_MAINNET,
+        gatewayApi: GATEWAY_API_MAINNET,
+      };
+  const balances = await gatewayBalance(wallet.address, settlement.gatewayApi);
   failIfNot402({
     status: first.response.status,
     url,
     payer: wallet.address,
     balances,
     body: firstBody,
+    gatewayWallet: settlement.gatewayWallet,
   });
 
-  const challenge = decodePaymentHeader(
-    first.response.headers.get("PAYMENT-REQUIRED")
-  );
-  const accept = pickAccept(challenge, firstBody);
   if (!accept) {
     throw new Error("402 response did not include payment requirements");
   }
-  const signed = await signAuthorization({ wallet, accept });
+  const signed = await signAuthorization({
+    wallet,
+    accept,
+    chainId: settlement.chainId,
+    gatewayWallet: settlement.gatewayWallet,
+  });
   const { paid, paidBody, paymentResponse } = await retryPaid({
     url,
     method: first.method,
@@ -406,14 +458,14 @@ async function main() {
     payer: wallet.address,
     payTo: signed.payTo,
     amountAtomicUsdc: signed.amount,
-    network: "eip155:5042002",
+    network: settlement.network,
     transaction: summary.transaction,
     paymentId: summary.paymentId,
     nonce: signed.authorization.nonce,
     executionId: summary.executionId,
     paymentResponse,
     gatewayBalance: balances,
-    load: loadHint(wallet.address),
+    load: loadHint(wallet.address, settlement.gatewayWallet),
     body: paidBody,
   });
   if (!summary.ok) {

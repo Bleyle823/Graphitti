@@ -9,7 +9,7 @@ import {
   encodeBalanceOf,
   encodeTransfer,
 } from "@/lib/web3/abi";
-import { formatUnits, parseUnits, requireChain } from "@/lib/web3/chains";
+import { formatUnits, isArcNetwork, parseUnits, requireChain } from "@/lib/web3/chains";
 import { sendSponsoredTransaction } from "@/lib/web3/privy-signer";
 import { ethCall, ethGetBalance } from "@/lib/web3/rpc";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
@@ -51,7 +51,7 @@ async function lookup(input: TokenInput) {
     nativeDecimals: token.nativeDecimals,
     faucet: faucetNote(),
     note:
-      input.network === "arc-testnet" && symbol === "USDC"
+      input.network && isArcNetwork(input.network) && symbol === "USDC"
         ? "Arc native gas USDC is 18 decimals. The ERC-20 interface at 0x3600...0000 is 6 decimals."
         : undefined,
   });
@@ -69,9 +69,9 @@ async function balanceOf(input: TokenInput, symbol: "USDC" | "EURC") {
     );
   }
   try {
-    if (symbol === "USDC" && network === "arc-testnet" && !input.tokenAddress) {
+    if (symbol === "USDC" && isArcNetwork(network) && !input.tokenAddress) {
       const wei = await ethGetBalance(network, address);
-      const erc20 = lookupToken("USDC", "arc-testnet");
+      const erc20 = lookupToken("USDC", network);
       let erc20Raw = "0";
       if (erc20) {
         const raw = await ethCall({

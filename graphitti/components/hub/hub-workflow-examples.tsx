@@ -22,7 +22,7 @@ type HubWorkflowExamplesProps = {
 function exampleMeta(item: MarketplaceListing): string {
   const parts = [
     item.category ?? undefined,
-    item.chain ?? "arc-testnet",
+    item.chain ?? "arc",
     item.workflowType,
   ].filter((part): part is string => Boolean(part));
   return parts.join(" · ");

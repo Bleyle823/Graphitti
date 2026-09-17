@@ -93,7 +93,7 @@ export function ListingOverlay({
   const [slug, setSlug] = useState(existingSlug ?? "");
   const [price, setPrice] = useState(existingPrice ?? "0");
   const [category, setCategory] = useState(existingCategory ?? "general");
-  const [chain, setChain] = useState(existingChain ?? "arc-testnet");
+  const [chain, setChain] = useState(existingChain ?? "arc");
   const [workflowType, setWorkflowType] = useState<"read" | "write">(
     existingType ?? "read"
   );

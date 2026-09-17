@@ -58,7 +58,7 @@ export function ListingDetailOverlay({
           </div>
           <div>
             <dt className="text-muted-foreground text-xs">Chain</dt>
-            <dd className="font-medium">{listing.chain ?? "arc-testnet"}</dd>
+            <dd className="font-medium">{listing.chain ?? "arc"}</dd>
           </div>
         </dl>
         {listing.listedSlug ? (
