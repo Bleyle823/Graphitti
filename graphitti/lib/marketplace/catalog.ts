@@ -23,21 +23,21 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
   "Circle CCTP USDC to Arc": {
     slug: "circle-cctp-usdc-to-arc",
     category: "circle",
-    chain: "arc-testnet",
+    chain: "arc",
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
   "Arc USDC Inbound then Swap": {
     slug: "arc-usdc-inbound-swap",
     category: "arc",
-    chain: "arc-testnet",
+    chain: "arc",
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
   "Privy Gasless Payroll": {
     slug: "privy-gasless-payroll",
     category: "privy",
-    chain: "arc-testnet",
+    chain: "arc",
     workflowType: "write",
     priceUsdcPerCall: "0",
   },
@@ -184,7 +184,7 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
   "FPL League Top Two USDC Payouts": {
     slug: "fpl-league-top-two-payouts",
     category: "fantasy-premier-league",
-    chain: "arc-testnet",
+    chain: "arc",
     workflowType: "write",
     priceUsdcPerCall: "0",
   },

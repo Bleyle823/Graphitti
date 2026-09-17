@@ -10,6 +10,7 @@ const CIRCLE_BLOCKCHAINS = [
   { value: "MATIC", label: "Polygon" },
   { value: "AVAX", label: "Avalanche" },
   { value: "ARC-TESTNET", label: "Arc Testnet" },
+  { value: "ARC", label: "Arc" },
   { value: "ETH-SEPOLIA", label: "Ethereum Sepolia" },
   { value: "BASE-SEPOLIA", label: "Base Sepolia" },
   { value: "ARB-SEPOLIA", label: "Arbitrum Sepolia" },

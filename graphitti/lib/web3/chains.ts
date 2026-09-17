@@ -71,6 +71,17 @@ export const CHAINS: Record<string, SupportedChain> = {
     nativeDecimals: 18,
     cctpDomain: 7,
   },
+  arc: {
+    id: "arc",
+    label: "Arc",
+    chainId: 5042,
+    rpcUrl: "https://rpc.mainnet.arc.io",
+    explorerUrl: "https://explorer.arc.io",
+    nativeSymbol: "USDC",
+    nativeDecimals: 18,
+    cctpDomain: 26,
+    minMaxFeePerGasWei: ARC_MIN_MAX_FEE_PER_GAS_WEI,
+  },
   "arc-testnet": {
     id: "arc-testnet",
     label: "Arc Testnet",
@@ -109,12 +120,27 @@ export const NETWORK_SELECT_OPTIONS = Object.values(CHAINS).map((chain) => ({
   label: chain.label,
 }));
 
+export const ARC_NETWORK_SELECT_OPTIONS = [
+  { value: "arc-testnet", label: "Arc Testnet" },
+  { value: "arc", label: "Arc" },
+];
+
+export const ARC_CCTP_DOMAIN = 26;
+
 export function resolveNetworkId(network: string): string {
   const normalized = network.trim().toLowerCase().replace(/_/g, "-");
   if (normalized === "eth") {
     return "ethereum";
   }
+  if (normalized === "arc-mainnet") {
+    return "arc";
+  }
   return normalized;
+}
+
+export function isArcNetwork(network: string): boolean {
+  const id = resolveNetworkId(network);
+  return id === "arc" || id === "arc-testnet";
 }
 
 export function getChain(network: string): SupportedChain | undefined {
@@ -125,7 +151,7 @@ export function requireChain(network: string): SupportedChain {
   const chain = getChain(network);
   if (!chain) {
     throw new Error(
-      `Unsupported network "${network}". Use ethereum, sepolia, base, base-sepolia, arbitrum, optimism, polygon, or arc-testnet.`
+      `Unsupported network "${network}". Use ethereum, sepolia, base, base-sepolia, arbitrum, optimism, polygon, arc, or arc-testnet.`
     );
   }
   return chain;

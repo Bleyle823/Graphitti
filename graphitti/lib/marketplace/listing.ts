@@ -152,7 +152,7 @@ async function publishListingRow(options: {
         (options.workflow.isListed ? 1 : 0),
       priceUsdcPerCall: options.price,
       category: options.payload.category ?? options.workflow.category,
-      chain: options.payload.chain ?? options.workflow.chain ?? "arc-testnet",
+      chain: options.payload.chain ?? options.workflow.chain ?? "arc",
       workflowType:
         options.payload.workflowType ?? options.workflow.workflowType ?? "read",
       inputSchema: options.payload.inputSchema ?? options.workflow.inputSchema,

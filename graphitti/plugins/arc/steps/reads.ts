@@ -1,9 +1,11 @@
 import "server-only";
 
+import { resolveArcNetworkId } from "@/lib/arc/app-kit-flows";
+import { fetchCredentials } from "@/lib/credential-fetcher";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { decodeUint, encodeBalanceOf } from "@/lib/web3/abi";
-import { formatUnits, NETWORK_SELECT_OPTIONS } from "@/lib/web3/chains";
+import { formatUnits, NETWORK_SELECT_OPTIONS, requireChain } from "@/lib/web3/chains";
 import {
   ethCall,
   ethGetBalance,
@@ -11,11 +13,17 @@ import {
   ethGetLogs,
   ethGetTransactionReceipt,
 } from "@/lib/web3/rpc";
-import { fetchCredentials } from "@/lib/credential-fetcher";
-import { ARC_ADDRESSES, CHAINS, getArcConfig, getCircleSwapQuote, requireCircleKey } from "../shared";
+import {
+  CHAINS,
+  getArcAddresses,
+  getArcConfig,
+  getCircleSwapQuote,
+  requireCircleKey,
+} from "../shared";
 
 export type ReadInput = StepInput & {
   integrationId?: string;
+  network?: string;
   address?: string;
   txHash?: string;
   fromBlock?: string;
@@ -26,17 +34,24 @@ export type ReadInput = StepInput & {
   amount?: string;
 };
 
-async function getConfig() {
-  return ok(getArcConfig());
+function arcId(input: ReadInput) {
+  return resolveArcNetworkId(input.network);
 }
 
-async function listGenesis() {
+async function getConfig(input: ReadInput) {
+  return ok(getArcConfig(arcId(input)));
+}
+
+async function listGenesis(input: ReadInput) {
+  const chain = requireChain(arcId(input));
+  const addresses = getArcAddresses(chain.id);
   return ok({
-    chainId: 5042002,
-    cctpDomain: 26,
-    explorer: "https://testnet.arcscan.app",
-    rpc: "https://rpc.testnet.arc.network",
-    addresses: ARC_ADDRESSES,
+    network: chain.id,
+    chainId: chain.chainId,
+    cctpDomain: chain.cctpDomain,
+    explorer: chain.explorerUrl,
+    rpc: chain.rpcUrl,
+    addresses,
     decimals: {
       nativeUsdc: 18,
       usdcErc20: 6,
@@ -50,9 +65,11 @@ async function nativeUsdc(input: ReadInput) {
     return fail("address is required");
   }
   try {
-    const wei = await ethGetBalance("arc-testnet", input.address);
+    const network = arcId(input);
+    const wei = await ethGetBalance(network, input.address);
     return ok({
       address: input.address,
+      network,
       balanceWei: BigInt(wei).toString(),
       balance: formatUnits(wei, 18),
       decimals: 18,
@@ -75,15 +92,18 @@ async function usdcErc20(input: ReadInput) {
     );
   }
   try {
+    const network = arcId(input);
+    const token = getArcAddresses(network).usdcErc20;
     const raw = await ethCall({
-      network: "arc-testnet",
-      to: ARC_ADDRESSES.usdcErc20,
+      network,
+      to: token,
       data: encodeBalanceOf(address),
     });
     const balanceRaw = decodeUint(raw).toString();
     return ok({
       address,
-      tokenAddress: ARC_ADDRESSES.usdcErc20,
+      network,
+      tokenAddress: token,
       balanceRaw,
       balance: formatUnits(balanceRaw, 6),
       decimals: 6,
@@ -100,14 +120,17 @@ async function eurcBalance(input: ReadInput) {
     return fail("address is required");
   }
   try {
+    const network = arcId(input);
+    const token = getArcAddresses(network).eurcOfficial;
     const raw = await ethCall({
-      network: "arc-testnet",
-      to: ARC_ADDRESSES.eurc,
+      network,
+      to: token,
       data: encodeBalanceOf(input.address),
     });
     return ok({
       address: input.address,
-      tokenAddress: ARC_ADDRESSES.eurc,
+      network,
+      tokenAddress: token,
       balanceRaw: decodeUint(raw).toString(),
       balance: formatUnits(raw, 6),
       decimals: 6,
@@ -118,10 +141,13 @@ async function eurcBalance(input: ReadInput) {
   }
 }
 
-async function estimateUsdcGas() {
-  const block = await ethGetBlockNumber("arc-testnet");
+async function estimateUsdcGas(input: ReadInput) {
+  const network = arcId(input);
+  const addresses = getArcAddresses(network);
+  const block = await ethGetBlockNumber(network);
   return ok({
-    minMaxFeePerGasWei: ARC_ADDRESSES.minMaxFeePerGasWei.toString(),
+    network,
+    minMaxFeePerGasWei: addresses.minMaxFeePerGasWei.toString(),
     minMaxFeePerGasGwei: "20",
     latestBlock: BigInt(block).toString(),
     note: "Arc gas is native USDC. Use at least 20 Gwei maxFeePerGas.",
@@ -133,11 +159,13 @@ async function waitFinality(input: ReadInput) {
     return fail("txHash is required");
   }
   try {
+    const network = arcId(input);
     for (let i = 0; i < 20; i += 1) {
-      const receipt = await ethGetTransactionReceipt("arc-testnet", input.txHash);
+      const receipt = await ethGetTransactionReceipt(network, input.txHash);
       if (receipt && receipt.status) {
         return ok({
           receipt,
+          network,
           finalized: receipt.status === "0x1",
         });
       }
@@ -153,14 +181,17 @@ async function waitFinality(input: ReadInput) {
 
 async function decodeSystemEmitter(input: ReadInput) {
   try {
+    const network = arcId(input);
+    const emitter = getArcAddresses(network).systemEmitter;
     const logs = await ethGetLogs({
-      network: "arc-testnet",
-      address: ARC_ADDRESSES.systemEmitter,
+      network,
+      address: emitter,
       fromBlock: input.fromBlock,
       toBlock: input.toBlock,
     });
     return ok({
-      emitter: ARC_ADDRESSES.systemEmitter,
+      emitter,
+      network,
       logs,
       count: logs.length,
       note: "System-emitter USDC transfers use 0xffff...FfE.",
@@ -201,26 +232,37 @@ async function getSupportedChains(input: ReadInput) {
     chainId: chain.chainId,
     cctpDomain: chain.cctpDomain,
   }));
+  const mainnet = requireChain("arc");
+  const testnet = requireChain("arc-testnet");
   return ok({
     operation,
     chains,
     networks: NETWORK_SELECT_OPTIONS,
     arc: {
-      chainId: 5042002,
-      domain: 26,
-      usdc: ARC_ADDRESSES.usdcErc20,
+      chainId: mainnet.chainId,
+      domain: mainnet.cctpDomain,
+      usdc: getArcAddresses("arc").usdcErc20,
+      rpc: mainnet.rpcUrl,
+      explorer: mainnet.explorerUrl,
+    },
+    "arc-testnet": {
+      chainId: testnet.chainId,
+      domain: testnet.cctpDomain,
+      usdc: getArcAddresses("arc-testnet").usdcErc20,
+      rpc: testnet.rpcUrl,
+      explorer: testnet.explorerUrl,
     },
   });
 }
 
 export async function getArcConfigStep(input: ReadInput) {
   "use step";
-  return withStepLogging(input, () => getConfig());
+  return withStepLogging(input, () => getConfig(input));
 }
 
 export async function listGenesisAddressesStep(input: ReadInput) {
   "use step";
-  return withStepLogging(input, () => listGenesis());
+  return withStepLogging(input, () => listGenesis(input));
 }
 
 export async function getNativeUsdcBalanceStep(input: ReadInput) {
@@ -240,7 +282,7 @@ export async function getEurcBalanceStep(input: ReadInput) {
 
 export async function estimateUsdcGasStep(input: ReadInput) {
   "use step";
-  return withStepLogging(input, () => estimateUsdcGas());
+  return withStepLogging(input, () => estimateUsdcGas(input));
 }
 
 export async function waitFinalityStep(input: ReadInput) {

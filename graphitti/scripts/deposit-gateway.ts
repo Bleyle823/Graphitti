@@ -4,6 +4,7 @@
  * Usage (from graphitti/):
  *   pnpm deposit-gateway
  *   pnpm deposit-gateway -- --amount 1
+ *   pnpm deposit-gateway -- --testnet
  *
  * Uses PRIVATE_KEY from .env.local. Do not ERC-20 transfer to the Gateway
  * contract; only deposit() credits a nanopayment balance.
@@ -19,15 +20,23 @@ import {
   Wallet,
 } from "ethers";
 
-const GATEWAY_WALLET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
 const ARC_USDC = "0x3600000000000000000000000000000000000000";
-const RPC_URL = "https://rpc.testnet.arc.network";
-const EXPLORER = "https://testnet.arcscan.app";
-const FAUCET = "https://faucet.circle.com";
 const GAS = {
   maxFeePerGas: parseUnits("20", "gwei"),
   maxPriorityFeePerGas: parseUnits("20", "gwei"),
 };
+const NETWORKS = {
+  arc: {
+    gatewayWallet: "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE",
+    rpcUrl: "https://rpc.mainnet.arc.io",
+    explorer: "https://explorer.arc.io",
+  },
+  "arc-testnet": {
+    gatewayWallet: "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
+    rpcUrl: "https://rpc.testnet.arc.network",
+    explorer: "https://testnet.arcscan.app",
+  },
+} as const;
 
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -76,31 +85,34 @@ async function main() {
   }
   const amountHuman = argValue("--amount") || "1";
   const amount = parseUnits(amountHuman, 6);
-  const provider = new JsonRpcProvider(RPC_URL);
+  const network = process.argv.includes("--testnet")
+    ? NETWORKS["arc-testnet"]
+    : NETWORKS.arc;
+  const provider = new JsonRpcProvider(network.rpcUrl);
   const wallet = new Wallet(privateKey, provider);
   const usdc = new Contract(ARC_USDC, ERC20_ABI, wallet);
-  const gateway = new Contract(GATEWAY_WALLET, GATEWAY_ABI, wallet);
+  const gateway = new Contract(network.gatewayWallet, GATEWAY_ABI, wallet);
 
   const [native, tokenBalance, allowance] = await Promise.all([
     provider.getBalance(wallet.address),
     usdc.balanceOf(wallet.address) as Promise<bigint>,
-    usdc.allowance(wallet.address, GATEWAY_WALLET) as Promise<bigint>,
+    usdc.allowance(wallet.address, network.gatewayWallet) as Promise<bigint>,
   ]);
 
   if (native === BigInt(0)) {
     throw new Error(
-      `No Arc native gas on ${wallet.address}. Request Arc Testnet USDC at ${FAUCET}.`
+      `No Arc native gas on ${wallet.address}. Native gas is USDC on Arc.`
     );
   }
   if (tokenBalance < amount) {
     throw new Error(
-      `Need ${amountHuman} Arc ERC-20 USDC (${ARC_USDC}) on ${wallet.address}. Wallet has ${formatUnits(tokenBalance, 6)}. Faucet: ${FAUCET}`
+      `Need ${amountHuman} Arc ERC-20 USDC (${ARC_USDC}) on ${wallet.address}. Wallet has ${formatUnits(tokenBalance, 6)}.`
     );
   }
 
   let approveHash: string | null = null;
   if (allowance < amount) {
-    const approveTx = await usdc.approve(GATEWAY_WALLET, amount, GAS);
+    const approveTx = await usdc.approve(network.gatewayWallet, amount, GAS);
     approveHash = approveTx.hash as string;
     await wait(provider, approveHash);
   }
@@ -114,10 +126,10 @@ async function main() {
     payer: wallet.address,
     amountUsdc: amountHuman,
     token: ARC_USDC,
-    gatewayWallet: GATEWAY_WALLET,
+    gatewayWallet: network.gatewayWallet,
     approveTx: approveHash,
     depositTx: depositHash,
-    explorer: `${EXPLORER}/tx/${depositHash}`,
+    explorer: `${network.explorer}/tx/${depositHash}`,
     next: "Wait ~0.5s, then pnpm pay-listing -- <listing-call-url>",
   });
 }

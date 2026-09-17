@@ -2,14 +2,12 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { workflowPayments } from "@/lib/db/schema";
-import { toCaip2 } from "@/lib/web3/chains";
 import {
   ARC_MARKETPLACE_ASSET,
-  ARC_MARKETPLACE_CHAIN,
   GATEWAY_WALLET_BATCHED_NAME,
   GATEWAY_WALLET_BATCHED_VERSION,
-  MARKETPLACE_GATEWAY_WALLET,
   MARKETPLACE_X402_MAX_TIMEOUT_SECONDS,
+  getMarketplaceSettlement,
   priceToAtomicUsdc,
 } from "./constants";
 
@@ -44,8 +42,10 @@ export function buildCircleNanopayRequired(options: {
   payTo: string;
   resource: string;
   description?: string;
+  chain?: string | null;
 }): X402PaymentRequired {
   const amount = priceToAtomicUsdc(options.priceUsdc);
+  const settlement = getMarketplaceSettlement(options.chain ?? undefined);
   return {
     x402Version: 2,
     resource: {
@@ -56,7 +56,7 @@ export function buildCircleNanopayRequired(options: {
     accepts: [
       {
         scheme: "exact",
-        network: toCaip2(ARC_MARKETPLACE_CHAIN),
+        network: settlement.network,
         amount,
         maxAmountRequired: amount,
         asset: ARC_MARKETPLACE_ASSET,
@@ -66,7 +66,7 @@ export function buildCircleNanopayRequired(options: {
         extra: {
           name: GATEWAY_WALLET_BATCHED_NAME,
           version: GATEWAY_WALLET_BATCHED_VERSION,
-          verifyingContract: MARKETPLACE_GATEWAY_WALLET,
+          verifyingContract: settlement.gatewayWallet,
         },
       },
     ],
@@ -146,6 +146,7 @@ export async function recordWorkflowPayment(options: {
   amountUsdc: string;
   paymentHash: string;
   txHash?: string;
+  chain?: string | null;
 }): Promise<{ created: boolean }> {
   const existing = await db.query.workflowPayments.findFirst({
     where: eq(workflowPayments.paymentHash, options.paymentHash),
@@ -161,7 +162,7 @@ export async function recordWorkflowPayment(options: {
       amountUsdc: options.amountUsdc,
       paymentHash: options.paymentHash,
       txHash: options.txHash,
-      chain: "arc-testnet",
+      chain: getMarketplaceSettlement(options.chain ?? undefined).chain.id,
     });
     return { created: true };
   } catch {

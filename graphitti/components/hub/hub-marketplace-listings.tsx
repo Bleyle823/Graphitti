@@ -17,7 +17,7 @@ type HubMarketplaceListingsProps = {
 
 function listingMeta(item: MarketplaceListing): string {
   const category = item.category ? ` · ${item.category}` : "";
-  return `${item.listedSlug} · ${item.workflowType} · ${item.chain ?? "arc-testnet"}${category}`;
+  return `${item.listedSlug} · ${item.workflowType} · ${item.chain ?? "arc"}${category}`;
 }
 
 function listingPrice(item: MarketplaceListing): string {

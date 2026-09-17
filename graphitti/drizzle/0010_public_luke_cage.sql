@@ -1,0 +1,1 @@
+ALTER TABLE "workflow_payments" ALTER COLUMN "chain" SET DEFAULT 'arc';

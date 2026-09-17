@@ -114,6 +114,7 @@ async function enforceListingPayment(options: {
     payTo: creator.address,
     resource: callResourcePath(listedSlug),
     description: options.workflow.name,
+    chain: options.workflow.chain,
   });
 
   if (!paymentHeader) {
@@ -155,6 +156,7 @@ async function enforceListingPayment(options: {
     amountUsdc: parseListingPriceUsdc(options.workflow.priceUsdcPerCall),
     paymentHash: paymentHashFromReceipt(verified.receipt),
     txHash: verified.txHash ?? extractTxHash(verified.receipt),
+    chain: options.workflow.chain,
   });
 
   return {

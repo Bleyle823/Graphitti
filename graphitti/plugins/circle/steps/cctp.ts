@@ -42,6 +42,7 @@ const DOMAINS = [
   { network: "optimism", domain: 2, usdc: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85" },
   { network: "polygon", domain: 7, usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359" },
   { network: "arc-testnet", domain: 26, usdc: ARC_GENESIS.usdcErc20 },
+  { network: "arc", domain: 26, usdc: ARC_GENESIS.usdcErc20 },
 ];
 
 async function depositForBurn(input: CctpInput) {
@@ -109,7 +110,10 @@ async function irisAttestation(input: CctpInput) {
   }
   try {
     if (!input.sourceDomain || input.sourceDomain === "26") {
-      const result = await getIrisAttestation(input.transactionHash);
+      const result = await getIrisAttestation(
+        input.transactionHash,
+        input.network || "arc-testnet"
+      );
       if (result.error) {
         return fail(result.error);
       }

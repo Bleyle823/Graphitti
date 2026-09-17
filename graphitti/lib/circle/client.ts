@@ -3,7 +3,9 @@ import { readJson } from "@/lib/http-json";
 export const CIRCLE_API = "https://api.circle.com";
 export const CIRCLE_MINT_SANDBOX = "https://api-sandbox.circle.com";
 export const CIRCLE_IRIS = "https://iris-api.circle.com";
+export const CIRCLE_IRIS_SANDBOX = "https://iris-api-sandbox.circle.com";
 export const CIRCLE_GATEWAY = "https://gateway-api.circle.com";
+export const CIRCLE_GATEWAY_TESTNET = "https://gateway-api-testnet.circle.com";
 
 export async function circleFetch<T>(options: {
   baseUrl: string;

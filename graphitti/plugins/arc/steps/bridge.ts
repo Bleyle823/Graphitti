@@ -4,10 +4,10 @@ import { getIrisAttestation as irisAttest } from "@/lib/arc/app-kit-flows";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { encodeApprove } from "@/lib/web3/abi";
-import { parseUnits, requireChain } from "@/lib/web3/chains";
+import { isArcNetwork, parseUnits, requireChain } from "@/lib/web3/chains";
 import { sendSponsoredTransaction } from "@/lib/web3/privy-signer";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
-import { ARC_ADDRESSES, encodeDepositForBurn, encodeReceiveMessage } from "../shared";
+import { encodeDepositForBurn, encodeReceiveMessage, getArcAddresses } from "../shared";
 
 export type BridgeInput = StepInput & {
   integrationId?: string;
@@ -29,6 +29,7 @@ const DOMAINS: Record<string, number> = {
   optimism: 2,
   polygon: 7,
   "arc-testnet": 26,
+  arc: 26,
 };
 
 const MESSENGER: Record<string, string> = {
@@ -37,7 +38,8 @@ const MESSENGER: Record<string, string> = {
   arbitrum: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
   optimism: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
   polygon: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
-  "arc-testnet": ARC_ADDRESSES.tokenMessenger,
+  "arc-testnet": getArcAddresses("arc-testnet").tokenMessenger,
+  arc: getArcAddresses("arc").tokenMessenger,
 };
 
 const USDC: Record<string, string> = {
@@ -46,7 +48,8 @@ const USDC: Record<string, string> = {
   arbitrum: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
   optimism: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
   polygon: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-  "arc-testnet": ARC_ADDRESSES.usdcErc20,
+  "arc-testnet": getArcAddresses("arc-testnet").usdcErc20,
+  arc: getArcAddresses("arc").usdcErc20,
 };
 
 async function bridgeUsdc(input: BridgeInput) {
@@ -57,8 +60,8 @@ async function bridgeUsdc(input: BridgeInput) {
   if (!input.fromNetwork || !input.toNetwork || !input.amount) {
     return fail("fromNetwork, toNetwork, and amount are required");
   }
-  if (input.fromNetwork !== "arc-testnet" && input.toNetwork !== "arc-testnet") {
-    return fail("Arc plugin bridges require Arc Testnet as from or to");
+  if (!isArcNetwork(input.fromNetwork) && !isArcNetwork(input.toNetwork)) {
+    return fail("Arc plugin bridges require Arc or Arc Testnet as from or to");
   }
   try {
     const chain = requireChain(input.fromNetwork);
@@ -110,7 +113,10 @@ async function retryBridge(input: BridgeInput) {
     let message = input.message;
     let attestation = input.attestation;
     if (input.burnTxHash && (!message || !attestation)) {
-      const iris = await irisAttest(input.burnTxHash);
+      const iris = await irisAttest(
+        input.burnTxHash,
+        input.fromNetwork || input.toNetwork || "arc-testnet"
+      );
       if (iris.error) {
         return fail(iris.error);
       }
@@ -129,10 +135,9 @@ async function retryBridge(input: BridgeInput) {
       return wallet;
     }
     const chain = requireChain(dest);
-    const transmitter =
-      dest === "arc-testnet"
-        ? ARC_ADDRESSES.messageTransmitter
-        : "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64";
+    const transmitter = isArcNetwork(dest)
+      ? getArcAddresses(dest).messageTransmitter
+      : "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64";
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,

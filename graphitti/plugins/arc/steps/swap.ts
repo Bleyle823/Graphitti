@@ -8,6 +8,7 @@ import { getCircleSwapQuote, requireCircleKey } from "../shared";
 
 export type SwapInput = StepInput & {
   integrationId?: string;
+  network?: string;
   fromToken?: string;
   toToken?: string;
   amount?: string;
@@ -30,7 +31,7 @@ async function swapOnArc(input: SwapInput) {
     return fail("fromToken, toToken, and amount are required");
   }
   if (!allowedToken(input.fromToken) || !allowedToken(input.toToken)) {
-    return fail("Arc testnet swaps support USDC, EURC, and cirBTC only");
+    return fail("Arc swaps support USDC, EURC, and cirBTC only");
   }
   const key = requireCircleKey(await creds(input));
   if (!key.success) {
@@ -101,7 +102,7 @@ async function estimateSwap(input: SwapInput) {
     fromToken: input.fromToken,
     toToken: input.toToken,
     amount: input.amount,
-    network: "arc-testnet",
+    network: input.network || "arc-testnet",
     note: "Estimate only. Use Swap on Arc for a live Circle quote.",
   });
 }

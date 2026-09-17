@@ -126,7 +126,7 @@ Verify onchain status locally: `graphitti/scripts/verify-privy-transactions.ts` 
 
 ### Arc and Circle
 
-Arc Testnet (`eip155:5042002`) hosts native and ERC-20 USDC, CCTP domain 26, Circle Gateway x402 marketplace settlement (`GatewayWalletBatched`), and App Kit genesis helpers (Iris attestations, swap quotes).
+Arc (`eip155:5042`) hosts native and ERC-20 USDC, CCTP domain 26, Circle Gateway x402 marketplace settlement (`GatewayWalletBatched`), and App Kit genesis helpers (Iris attestations, swap quotes). Arc Testnet (`eip155:5042002`) remains available for listings whose chain is `arc-testnet`.
 
 **Arc chain**
 
@@ -151,6 +151,7 @@ Arc Testnet (`eip155:5042002`) hosts native and ERC-20 USDC, CCTP domain 26, Cir
 
 | Item | Value |
 |------|--------|
+| Gateway verifying contract (Arc) | `0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE` |
 | Gateway verifying contract (Arc Testnet) | `0x0077777d7EBA4688BDeF3E311b846F25870A19B9` |
 | Gateway activity wallet (Arc Testnet) | [`0xfb526dC52755ba99F7d952e8385bBAAc572F00c9`](https://testnet.arcscan.app/address/0xfb526dC52755ba99F7d952e8385bBAAc572F00c9) |
 | Arc native USDC send (Arcscan) | YOUR_LINK |
@@ -284,7 +285,7 @@ Arc marketplace settlement and paid listings use **Arc Testnet ERC-20 USDC** (6 
 |------------|--------|
 | The Graph Gateway GraphQL and Kelp Substreams SQL sink | Live data (sink must run for Kelp freshness) |
 | Privy wallet-actions, intents, gasless payroll | Live on configured networks |
-| Arc Testnet USDC, CCTP, Gateway x402 marketplace | Live on Arc Testnet (`5042002`) |
+| Arc USDC, CCTP, Gateway x402 marketplace | Live on Arc (`5042`); Arc Testnet (`5042002`) for `arc-testnet` listings |
 | Privy card onramp in UI | Mock UI only; qualifying money paths use wallet-actions and intents |
 | Gasless writes | Privy gasless transactions where configured |
 | Uniswap in featured demos | Subgraph queries via The Graph, not router swaps |

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { resolveArcNetworkId } from "@/lib/arc/app-kit-flows";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { padAddress, padUint } from "@/lib/web3/abi";
@@ -7,9 +8,10 @@ import { requireChain } from "@/lib/web3/chains";
 import { sendSponsoredTransaction } from "@/lib/web3/privy-signer";
 import { ethCall } from "@/lib/web3/rpc";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
-import { ARC_ADDRESSES } from "../shared";
+import { getArcAddresses } from "../shared";
 
 export type ArcContractInput = StepInput & {
+  network?: string;
   target?: string;
   data?: string;
   value?: string;
@@ -22,6 +24,10 @@ export type ArcContractInput = StepInput & {
   jobCalldata?: string;
 };
 
+function arcChain(input: ArcContractInput) {
+  return requireChain(resolveArcNetworkId(input.network));
+}
+
 async function attachMemo(input: ArcContractInput) {
   const wallet = await requireLinkedWalletForExecution(input._context?.executionId);
   if (!wallet.success) {
@@ -31,14 +37,14 @@ async function attachMemo(input: ArcContractInput) {
     return fail("target and data are required");
   }
   try {
-    const chain = requireChain("arc-testnet");
+    const chain = arcChain(input);
     const inner = input.data.startsWith("0x") ? input.data.slice(2) : input.data;
     const padded = inner + (inner.length % 64 === 0 ? "" : "0".repeat(64 - (inner.length % 64)));
     const calldata = `0x${padAddress(input.target)}${padUint(64)}${padUint(inner.length / 2)}${padded}`;
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: ARC_ADDRESSES.memo,
+      to: getArcAddresses(chain.id).memo,
       data: calldata,
       value: input.value,
     });
@@ -62,18 +68,19 @@ async function deployOnArc(input: ArcContractInput) {
     return fail("bytecode is required");
   }
   try {
-    const chain = requireChain("arc-testnet");
+    const chain = arcChain(input);
+    const addresses = getArcAddresses(chain.id);
     const salt = (input.salt || "0".repeat(64)).replace(/^0x/, "").padStart(64, "0");
     const init = input.bytecode.startsWith("0x") ? input.bytecode.slice(2) : input.bytecode;
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
-      to: ARC_ADDRESSES.create2,
+      to: addresses.create2,
       data: `0x${salt}${init}`,
     });
     return ok({
       hash,
-      factory: ARC_ADDRESSES.create2,
+      factory: addresses.create2,
       explorer: `${chain.explorerUrl}/tx/${hash}`,
       note: "Deployed via CREATE2 factory with USDC gas. SCP template deploy stays on the Circle plugin.",
     });
@@ -88,7 +95,7 @@ async function readContract(input: ArcContractInput) {
   }
   try {
     const result = await ethCall({
-      network: "arc-testnet",
+      network: resolveArcNetworkId(input.network),
       to: input.contractAddress,
       data: input.data,
     });
@@ -107,7 +114,7 @@ async function writeContract(input: ArcContractInput) {
     return fail("contractAddress and data are required");
   }
   try {
-    const chain = requireChain("arc-testnet");
+    const chain = arcChain(input);
     const { hash } = await sendSponsoredTransaction({
       walletId: wallet.wallet.privyWalletId,
       chain,
@@ -150,11 +157,13 @@ async function erc8183CreateJob(input: ArcContractInput) {
   });
 }
 
-async function usycInfo() {
+async function usycInfo(input: ArcContractInput) {
+  const addresses = getArcAddresses(input.network);
   return ok({
-    usyc: ARC_ADDRESSES.usyc,
-    entitlements: ARC_ADDRESSES.usycEntitlements,
-    teller: ARC_ADDRESSES.usycTeller,
+    network: resolveArcNetworkId(input.network),
+    usyc: addresses.usyc,
+    entitlements: addresses.usycEntitlements,
+    teller: addresses.usycTeller,
     decimals: 6,
     eligibility:
       "USYC Teller mint is allowlisted. Institutions outside the United States, subject to eligibility and a $100,000 minimum. Request allowlisting via Circle Support before calling the Teller.",
@@ -193,7 +202,7 @@ export async function erc8183CreateJobStep(input: ArcContractInput) {
 
 export async function usycInfoStep(input: ArcContractInput) {
   "use step";
-  return withStepLogging(input, () => usycInfo());
+  return withStepLogging(input, () => usycInfo(input));
 }
 
 export const _integrationType = "arc";

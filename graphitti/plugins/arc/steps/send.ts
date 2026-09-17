@@ -1,14 +1,16 @@
 import "server-only";
 
+import { resolveArcNetworkId } from "@/lib/arc/app-kit-flows";
 import { fail, ok } from "@/lib/http-json";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { encodeTransfer } from "@/lib/web3/abi";
 import { parseUnits, requireChain } from "@/lib/web3/chains";
 import { sendSponsoredTransaction } from "@/lib/web3/privy-signer";
 import { requireLinkedWalletForExecution } from "@/lib/web3/user-wallet";
-import { ARC_ADDRESSES, tokenAddress } from "../shared";
+import { getArcAddresses, tokenAddress } from "../shared";
 
 export type SendInput = StepInput & {
+  network?: string;
   token?: string;
   tokenAddress?: string;
   to?: string;
@@ -24,7 +26,7 @@ async function sendOnArc(input: SendInput) {
     return fail("to and amount are required");
   }
   try {
-    const chain = requireChain("arc-testnet");
+    const chain = requireChain(resolveArcNetworkId(input.network));
     const symbol = input.token || "USDC";
     if (symbol === "USDC" && !input.tokenAddress) {
       const value = `0x${parseUnits(input.amount, 18).toString(16)}`;
@@ -39,10 +41,11 @@ async function sendOnArc(input: SendInput) {
         token: "USDC",
         kind: "native",
         decimals: 18,
+        network: chain.id,
         explorer: `${chain.explorerUrl}/tx/${hash}`,
       });
     }
-    const token = input.tokenAddress || tokenAddress(symbol);
+    const token = input.tokenAddress || tokenAddress(symbol, chain.id);
     if (!token) {
       return fail("Pass tokenAddress for cirBTC or an ERC-20");
     }
@@ -58,6 +61,7 @@ async function sendOnArc(input: SendInput) {
       tokenAddress: token,
       kind: "erc20",
       decimals: 6,
+      network: chain.id,
       explorer: `${chain.explorerUrl}/tx/${hash}`,
     });
   } catch (error) {
@@ -73,7 +77,7 @@ async function estimateSend(input: SendInput) {
     to: input.to,
     amount: input.amount,
     token: input.token || "USDC",
-    maxFeePerGasWei: ARC_ADDRESSES.minMaxFeePerGasWei.toString(),
+    maxFeePerGasWei: getArcAddresses(input.network).minMaxFeePerGasWei.toString(),
     note: "Arc gas is USDC. Floor maxFeePerGas is 20 Gwei.",
   });
 }

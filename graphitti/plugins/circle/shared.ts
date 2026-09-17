@@ -3,16 +3,16 @@ import { ARC_GENESIS } from "@/lib/arc/app-kit-flows";
 import {
   CIRCLE_API,
   CIRCLE_GATEWAY,
+  CIRCLE_GATEWAY_TESTNET,
   CIRCLE_IRIS,
   circleFetch,
 } from "@/lib/circle/client";
 import { fail, ok } from "@/lib/http-json";
 import { padAddress, padUint } from "@/lib/web3/abi";
-import { ARC_USDC_ERC20, getChain } from "@/lib/web3/chains";
+import { ARC_USDC_ERC20, getChain, isArcNetwork, resolveNetworkId } from "@/lib/web3/chains";
 import type { CircleCredentials } from "./credentials";
 
 export const CIRCLE_IRIS_SANDBOX = "https://iris-api-sandbox.circle.com";
-export const CIRCLE_GATEWAY_TESTNET = "https://gateway-api-testnet.circle.com";
 
 export const GRAPH_X402_HOSTS = [
   "gateway.thegraph.com",
@@ -24,7 +24,7 @@ export const GRAPH_X402_HOSTS = [
 export const BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 export function normalizeCircleNetwork(network: string): string {
-  return network.trim().toLowerCase().replace(/_/g, "-");
+  return resolveNetworkId(network);
 }
 
 export const TOKEN_ADDRESSES = {
@@ -37,10 +37,12 @@ export const TOKEN_ADDRESSES = {
     optimism: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     polygon: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     "arc-testnet": ARC_USDC_ERC20,
+    arc: ARC_USDC_ERC20,
   },
   EURC: {
     ethereum: "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
     "arc-testnet": ARC_GENESIS.eurc,
+    arc: "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1",
   },
 } as const;
 
@@ -52,6 +54,7 @@ export const CCTP_DOMAINS: Record<string, number> = {
   optimism: 2,
   polygon: 7,
   "arc-testnet": 26,
+  arc: 26,
 };
 
 export const TOKEN_MESSENGER_V2 = {
@@ -124,7 +127,7 @@ export function lookupToken(
   if (!address) {
     return;
   }
-  if (symbol === "USDC" && network === "arc-testnet") {
+  if (symbol === "USDC" && isArcNetwork(normalized)) {
     return { address, decimals: 6, nativeDecimals: 18 };
   }
   return { address, decimals: 6 };
@@ -321,7 +324,7 @@ export function encodeGatewayDeposit(token: string, amount: bigint) {
 }
 
 export function usdcDecimals(network: string, kind: "erc20" | "native" = "erc20") {
-  if (network === "arc-testnet" && kind === "native") {
+  if (isArcNetwork(network) && kind === "native") {
     return 18;
   }
   return 6;

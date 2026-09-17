@@ -1,4 +1,14 @@
-import { ARC_USDC_ERC20, CHAINS } from "@/lib/web3/chains";
+import { getArcAddresses } from "@/lib/arc/app-kit-flows";
+import {
+  CIRCLE_GATEWAY,
+  CIRCLE_GATEWAY_TESTNET,
+} from "@/lib/circle/client";
+import {
+  ARC_USDC_ERC20,
+  requireChain,
+  toCaip2,
+  type SupportedChain,
+} from "@/lib/web3/chains";
 
 export const RESERVED_SLUGS = [
   "marketplace",
@@ -9,13 +19,14 @@ export const RESERVED_SLUGS = [
   "hub",
 ] as const;
 
-export const ARC_MARKETPLACE_CHAIN = CHAINS["arc-testnet"];
+/** Default marketplace settlement: Arc mainnet. */
+export const ARC_MARKETPLACE_CHAIN = requireChain("arc");
 export const ARC_MARKETPLACE_ASSET = ARC_USDC_ERC20;
 export const ARC_MARKETPLACE_DECIMALS = 6;
 
-/** Circle Gateway Wallet on Arc Testnet (same address as other Gateway testnets). */
+/** Circle Gateway Wallet on Arc mainnet. */
 export const MARKETPLACE_GATEWAY_WALLET =
-  "0x0077777d7EBA4688BDeF3E311b846F25870A19B9" as const;
+  getArcAddresses("arc").gatewayWallet;
 
 export const GATEWAY_WALLET_BATCHED_NAME = "GatewayWalletBatched";
 export const GATEWAY_WALLET_BATCHED_VERSION = "1";
@@ -23,8 +34,38 @@ export const GATEWAY_WALLET_BATCHED_VERSION = "1";
 /** 7 days plus verification latency, matching Circle Gateway middleware. */
 export const MARKETPLACE_X402_MAX_TIMEOUT_SECONDS = 604_900;
 
-export const CIRCLE_GATEWAY_X402_BASE =
-  "https://gateway-api-testnet.circle.com";
+export const CIRCLE_GATEWAY_X402_BASE = CIRCLE_GATEWAY;
+export const CIRCLE_GATEWAY_X402_TESTNET = CIRCLE_GATEWAY_TESTNET;
+
+export type MarketplaceSettlement = {
+  chain: SupportedChain;
+  network: string;
+  gatewayWallet: string;
+  gatewayApi: string;
+};
+
+function isArcTestnetSettlement(network?: string): boolean {
+  const value = (network ?? "").trim().toLowerCase();
+  return (
+    value === "arc-testnet" ||
+    value === "eip155:5042002" ||
+    value.includes("5042002")
+  );
+}
+
+/** Arc mainnet unless the listing or 402 network is Arc Testnet. */
+export function getMarketplaceSettlement(
+  network?: string
+): MarketplaceSettlement {
+  const testnet = isArcTestnetSettlement(network);
+  const chain = testnet ? requireChain("arc-testnet") : requireChain("arc");
+  return {
+    chain,
+    network: toCaip2(chain),
+    gatewayWallet: getArcAddresses(chain.id).gatewayWallet,
+    gatewayApi: testnet ? CIRCLE_GATEWAY_X402_TESTNET : CIRCLE_GATEWAY_X402_BASE,
+  };
+}
 
 export function isReservedSlug(slug: string): boolean {
   return (RESERVED_SLUGS as readonly string[]).includes(slug.toLowerCase());
