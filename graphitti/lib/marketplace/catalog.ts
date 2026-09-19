@@ -237,10 +237,18 @@ export const MARKETPLACE_CATALOG: Record<string, CatalogListingMeta> = {
     workflowType: "read",
     priceUsdcPerCall: "0",
   },
+  "Circle nanopay ping": {
+    slug: "circle-nanopay-ping",
+    category: "circle",
+    chain: "arc-testnet",
+    workflowType: "read",
+    priceUsdcPerCall: "0.01",
+  },
 };
 
 /** Hackathon demo workflows shown with a star in Examples and Hub. */
 export const HACKATHON_FEATURED_WORKFLOW_NAMES = [
+  "Circle nanopay ping",
   "FPL League Top Two USDC Payouts",
   "Kelp rsETH Backing Monitor (Substreams → Supabase)",
   "Stripe invoice to Privy USDC settlement",

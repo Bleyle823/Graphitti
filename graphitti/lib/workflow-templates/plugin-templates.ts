@@ -1266,4 +1266,77 @@ export const PLUGIN_WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       },
     ],
   },
+  {
+    name: "Circle nanopay ping",
+    description:
+      "Cheap 0.01 Arc Testnet USDC listing for Circle Gateway x402 nanopayment tests. After payment, reads CCTP domains and public x402 resources. No onchain writes.",
+    nodes: [
+      {
+        id: "nanopay-trigger",
+        type: "trigger",
+        position: { x: 0, y: 200 },
+        data: {
+          label: "Manual Trigger",
+          type: "trigger",
+          config: { triggerType: "Manual" },
+          status: "idle",
+        },
+      },
+      {
+        id: "nanopay-note",
+        type: "note",
+        dragHandle: ".sticky-note-drag-handle",
+        width: 280,
+        height: 180,
+        position: { x: -320, y: 160 },
+        data: {
+          label: "Sticky note",
+          type: "note",
+          config: {
+            text: "Link a Privy wallet, then List at 0.01 USDC on Arc Testnet. Deposit Gateway USDC (pnpm deposit-gateway -- --amount 1 --testnet) and pay with pnpm pay-listing -- <call-url>.",
+            color: "blue",
+            fontSize: "sm",
+            textAlign: "left",
+          },
+          status: "idle",
+        },
+      },
+      {
+        id: "nanopay-domains",
+        type: "action",
+        position: { x: 300, y: 200 },
+        data: {
+          label: "Get CCTP domains",
+          type: "action",
+          config: { actionType: "circle/get-domains" },
+          status: "idle",
+          description: "Local domain table; always succeeds after 402 settle",
+        },
+      },
+      {
+        id: "nanopay-discover",
+        type: "action",
+        position: { x: 600, y: 200 },
+        data: {
+          label: "Discover x402 resources",
+          type: "action",
+          config: { actionType: "circle/discover-agent-services" },
+          status: "idle",
+          description: "Public Circle x402 discovery (no API key)",
+        },
+      },
+    ],
+    edges: [
+      {
+        id: "e-nanopay-1",
+        source: "nanopay-trigger",
+        target: "nanopay-domains",
+      },
+      {
+        id: "e-nanopay-2",
+        source: "nanopay-domains",
+        target: "nanopay-discover",
+      },
+    ],
+  },
 ];

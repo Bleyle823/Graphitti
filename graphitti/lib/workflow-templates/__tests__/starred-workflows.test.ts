@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { HACKATHON_FEATURED_WORKFLOW_NAMES } from "../../marketplace/catalog";
+import {
+  HACKATHON_FEATURED_WORKFLOW_NAMES,
+  MARKETPLACE_CATALOG,
+} from "../../marketplace/catalog";
 import { loadInMemoryWorkflowTemplates } from "../load-templates";
 
 const STARRED_NAMES = HACKATHON_FEATURED_WORKFLOW_NAMES;
@@ -362,5 +365,24 @@ describe("starred workflow templates", () => {
       expect(listConditionNodeIds(template)).toContain(conditionId);
       expect(hasFalseOutgoing(template, conditionId)).toBe(true);
     }
+  });
+
+  it("Circle nanopay ping is a cheap paid Arc Testnet read listing", () => {
+    const ping = requireTemplate("Circle nanopay ping");
+    const types = actionTypes(ping);
+    expect(types).toEqual([
+      "circle/get-domains",
+      "circle/discover-agent-services",
+    ]);
+    expect(types).not.toContain("code/run-code");
+    expect(hasEdge(ping, "nanopay-trigger", "nanopay-domains")).toBe(true);
+    expect(hasEdge(ping, "nanopay-domains", "nanopay-discover")).toBe(true);
+    expect(unreachableExecutableNodes(ping)).toHaveLength(0);
+    expect(MARKETPLACE_CATALOG["Circle nanopay ping"]).toMatchObject({
+      slug: "circle-nanopay-ping",
+      chain: "arc-testnet",
+      workflowType: "read",
+      priceUsdcPerCall: "0.01",
+    });
   });
 });
